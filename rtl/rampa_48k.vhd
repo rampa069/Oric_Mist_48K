@@ -58,7 +58,7 @@ ARCHITECTURE SYN OF rampa_48k IS
 	SIGNAL sub_wire0	: STD_LOGIC_VECTOR (7 DOWNTO 0);
 
 BEGIN
-	q    <= sub_wire0(7 DOWNTO 0); -- when oe='1' and cs='1' and address(15)='0' else (others=>'0');
+	q    <= sub_wire0(7 DOWNTO 0) when oe='1' and cs='1' else (others=>'0');
 
 	altsyncram_component : altsyncram
 	GENERIC MAP (

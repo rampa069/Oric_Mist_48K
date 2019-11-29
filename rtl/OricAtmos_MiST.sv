@@ -40,6 +40,7 @@ wire [15:0] audio;
 //assign 		LED = 1'b1;
 assign 		AUDIO_R = AUDIO_L;
 assign LED=UART_RXD;
+
 pll pll (
 	.inclk0				(CLOCK_27			),
 	.c0					(clk_24 				),
@@ -102,7 +103,7 @@ oricatmos oricatmos(
 	.K7_TAPEIN			(UART_RXD			),
 	.K7_TAPEOUT			(UART_TXD			),
 	.clk_in				(clk_24				),
-	.clk_ram				(clk_ram),
+	.clk_ram				(clk_ram)
 	);
 	
 dac #(

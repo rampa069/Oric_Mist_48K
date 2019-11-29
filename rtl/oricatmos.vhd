@@ -76,7 +76,7 @@ entity oricatmos is
     VIDEO_VSYNC       : out   std_logic;
     VIDEO_SYNC        : out   std_logic;
     CLK_IN            : in    std_logic;
-	 CLK_RAM				 : in    std_logic
+	 clk_ram				 : in    std_logic
     );
 end;
 
@@ -204,7 +204,7 @@ ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
 
 inst_ram : entity work.rampa_48k
 	port map(
-		clock  			=> CLK_RAM,
+		clock  			=> clk_ram,
 		cs   			   => ula_CE_SRAM,
 		oe   			   => ula_OE_SRAM,
 		wren   			=> ula_WE_SRAM,
@@ -215,7 +215,7 @@ inst_ram : entity work.rampa_48k
 
 inst_rom : entity work.BASIC22
 	port map (
-		clk  			=> CLK_RAM,
+		clk  			=> clk_ram,
 		addr 			=> cpu_ad(13 downto 0),
 		data 			=> ROM_DO
 );
@@ -306,6 +306,7 @@ inst_key : keyboard
 );
 
 via_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
+
 K7_TAPEOUT  <= via_out(7);
 K7_REMOTE   <= via_out(6);
 ula_IOCONTROL <= '0'; -- ula_IOCONTROL <= IOCONTROL; 

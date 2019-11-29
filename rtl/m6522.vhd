@@ -48,6 +48,9 @@ library ieee ;
   use ieee.std_logic_unsigned.all;
   use ieee.numeric_std.all;
 
+--library UNISIM;
+--  use UNISIM.Vcomponents.all;
+
 entity M6522 is
   port (
 
@@ -188,17 +191,18 @@ architecture RTL of M6522 is
 
   signal final_irq         : std_logic;
 begin
-
-  p_phase : process
+  p_phase : process(RESET_L, CLK)
   begin
-    -- internal clock phase
-    wait until rising_edge(CLK);
-    if (ENA_4 = '1') then
+    if rising_edge(CLK) then
       p2_h_t1 <= I_P2_H;
-      if (p2_h_t1 = '0') and (I_P2_H = '1') then
-        phase <= "11";
-      else
-        phase <= phase + "1";
+      if (ENA_4 = '1') then
+        if (p2_h_t1 = '0') and (I_P2_H = '1') then
+            phase <= "11";
+        elsif (p2_h_t1 = '1') and (I_P2_H = '0') then
+          phase <= "00";
+        else
+          phase <= "01";
+        end if;
       end if;
     end if;
   end process;
@@ -326,38 +330,41 @@ begin
     end if;
   end process;
 
-  p_read : process(cs, I_RW_L, I_RS, r_irb, r_ira, r_ddrb, r_ddra, t1c, r_t1l_l,
-                   r_t1l_h, t2c, r_sr, r_acr, r_pcr, r_ifr, r_ier, r_orb)
+  p_read : process
   begin
-    t1_r_reset_int <= false;
-    t2_r_reset_int <= false;
-    sr_read_ena <= false;
-    r_irb_hs <= '0';
-    r_ira_hs <= '0';
-    O_DATA <= x"00"; -- default
-    if (cs = '1') and (I_RW_L = '1') then
-      case I_RS is
-        --when x"0" => O_DATA <= r_irb; r_irb_hs <= '1';
-        -- fix from Mark McDougall, untested
-        when x"0" => O_DATA <= (r_irb and not r_ddrb) or (r_orb and r_ddrb); r_irb_hs <= '1';
-        when x"1" => O_DATA <= r_ira; r_ira_hs <= '1';
-        when x"2" => O_DATA <= r_ddrb;
-        when x"3" => O_DATA <= r_ddra;
-        when x"4" => O_DATA <= t1c( 7 downto 0);  t1_r_reset_int <= true;
-        when x"5" => O_DATA <= t1c(15 downto 8);
-        when x"6" => O_DATA <= r_t1l_l;
-        when x"7" => O_DATA <= r_t1l_h;
-        when x"8" => O_DATA <= t2c( 7 downto 0);  t2_r_reset_int <= true;
-        when x"9" => O_DATA <= t2c(15 downto 8);
-        when x"A" => O_DATA <= r_sr;              sr_read_ena <= true;
-        when x"B" => O_DATA <= r_acr;
-        when x"C" => O_DATA <= r_pcr;
-        when x"D" => O_DATA <= r_ifr;
-        when x"E" => O_DATA <= ('0' & r_ier);
-        when x"F" => O_DATA <= r_ira;
-        when others => null;
-      end case;
-    end if;
+	wait until rising_edge(CLK);
+	
+	if ENA_4 = '1' then
+		t1_r_reset_int <= false;
+		t2_r_reset_int <= false;
+		sr_read_ena <= false;
+		r_irb_hs <= '0';
+		r_ira_hs <= '0';
+		
+		if (cs = '1') and (I_RW_L = '1') then
+		  case I_RS is
+			--when x"0" => O_DATA <= r_irb; r_irb_hs <= '1';
+			-- fix from Mark McDougall, untested
+			when x"0" => O_DATA <= (r_irb and not r_ddrb) or (r_orb and r_ddrb); r_irb_hs <= '1';
+			when x"1" => O_DATA <= r_ira; r_ira_hs <= '1';
+			when x"2" => O_DATA <= r_ddrb;
+			when x"3" => O_DATA <= r_ddra;
+			when x"4" => O_DATA <= t1c( 7 downto 0);  t1_r_reset_int <= true;
+			when x"5" => O_DATA <= t1c(15 downto 8);
+			when x"6" => O_DATA <= r_t1l_l;
+			when x"7" => O_DATA <= r_t1l_h;
+			when x"8" => O_DATA <= t2c( 7 downto 0);  t2_r_reset_int <= true;
+			when x"9" => O_DATA <= t2c(15 downto 8);
+			when x"A" => O_DATA <= r_sr;              sr_read_ena <= true;
+			when x"B" => O_DATA <= r_acr;
+			when x"C" => O_DATA <= r_pcr;
+			when x"D" => O_DATA <= r_ifr;
+			when x"E" => O_DATA <= ('0' & r_ier);
+			when x"F" => O_DATA <= r_ira;
+			when others => null;
+		  end case;
+		end if;
+	end if;
 
   end process;
   --
@@ -586,48 +593,49 @@ begin
     end if;
 
     O_PB_OE_L(6 downto 0) <= not r_ddrb(6 downto 0);
-    O_PB      <= r_orb;
+    O_PB(7 downto 0)      <= r_orb(7 downto 0);
 
   end process;
   --
   -- Timer 1
   --
-  p_timer1_done : process
+  p_timer1_done : process(t1c,phase,r_acr)
     variable done : boolean;
   begin
-    wait until rising_edge(CLK);
-    if (ENA_4 = '1') then
       done := (t1c = x"0000");
       t1c_done <= done and (phase = "11");
-      if (phase = "11") then
+      --if (phase = "11") then
         t1_reload_counter <= done and (r_acr(6) = '1');
-      end if;
-    end if;
+      --end if;
   end process;
 
-  p_timer1 : process
+  p_timer1 : process(CLK, RESET_L)
   begin
-    wait until rising_edge(CLK);
-    if (ENA_4 = '1') then
-      if t1_load_counter or (t1_reload_counter and phase = "11") then
-        t1c( 7 downto 0) <= r_t1l_l;
-        t1c(15 downto 8) <= r_t1l_h;
-      elsif (phase="11") then
-        t1c <= t1c - "1";
-      end if;
+    if RESET_L = '0' then
+      t1c_active <= false;
+      t1_irq <= '0';
+    elsif rising_edge(CLK) then
+      if (ENA_4 = '1') then
+        if t1_load_counter or (t1_reload_counter and phase = "11") then
+          t1c( 7 downto 0) <= r_t1l_l;
+          t1c(15 downto 8) <= r_t1l_h;
+        elsif (phase="11") then
+          t1c <= t1c - "1";
+        end if;
 
-      if t1_load_counter or t1_reload_counter then
-        t1c_active <= true;
-      elsif t1c_done then
-        t1c_active <= false;
-      end if;
+        if t1_load_counter or t1_reload_counter then
+          t1c_active <= true;
+        elsif t1c_done then
+          t1c_active <= false;
+        end if;
 
-      t1_toggle <= '0';
-      if t1c_active and t1c_done then
-        t1_toggle <= '1';
-        t1_irq <= '1';
-      elsif t1_w_reset_int or t1_r_reset_int or (clear_irq(6) = '1') then
-        t1_irq <= '0';
+        t1_toggle <= '0';
+        if t1c_active and t1c_done then
+          t1_toggle <= '1';
+          t1_irq <= '1';
+        elsif  t1_w_reset_int or t1_r_reset_int or (clear_irq(6) = '1') then
+          t1_irq <= '0';
+        end if;
       end if;
     end if;
   end process;
@@ -638,62 +646,64 @@ begin
   begin
     wait until rising_edge(CLK);
     if (ENA_4 = '1') then
-      if (phase = "01") then -- leading edge p2_h
+      if (phase = "00") then -- leading edge p2_h
         t2_pb6    <= I_PB(6);
         t2_pb6_t1 <= t2_pb6;
       end if;
     end if;
   end process;
 
-  p_timer2_done : process
+  p_timer2_done : process(t2c,phase)
     variable done : boolean;
   begin
-    wait until rising_edge(CLK);
-    if (ENA_4 = '1') then
       done := (t2c = x"0000");
       t2c_done <= done and (phase = "11");
-      if (phase = "11") then
+      --if (phase = "11") then
         t2_reload_counter <= done;
-      end if;
-    end if;
+      --end if;
   end process;
 
-  p_timer2 : process
+  p_timer2 : process(CLK, RESET_L)
     variable ena : boolean;
   begin
-    wait until rising_edge(CLK);
-    if (ENA_4 = '1') then
-      if (r_acr(5) = '0') then
-        ena := true;
-      else
-        ena := (t2_pb6_t1 = '1') and (t2_pb6 = '0'); -- falling edge
-      end if;
-
-      if t2_load_counter or (t2_reload_counter and phase = "11") then
-      -- not sure if t2c_reload should be here. Does timer2 just continue to
-      -- count down, or is it reloaded ? Reloaded makes more sense if using
-      -- it to generate a clock for the shift register.
-        t2c( 7 downto 0) <= r_t2l_l;
-        t2c(15 downto 8) <= r_t2l_h;
-      else
-        if (phase="11") and ena then -- or count mode
-            t2c <= t2c - "1";
+    if RESET_L = '0' then
+      t2_irq <= '0';
+      t2c_active <= false;
+    elsif rising_edge(CLK) then
+      if (ENA_4 = '1') then
+        if (r_acr(5) = '0') then
+          ena := true;
+        else
+          ena := (t2_pb6_t1 = '1') and (t2_pb6 = '0'); -- falling edge
         end if;
-      end if;
 
-      t2_sr_ena <= (t2c(7 downto 0) = x"00") and (phase = "11");
+        if t2_load_counter
+        --  or (t2_reload_counter and phase = "11")
+        then
+          -- not sure if t2c_reload should be here. Does timer2 just continue to
+          -- count down, or is it reloaded ? Reloaded makes more sense if using
+          -- it to generate a clock for the shift register.
+          t2c( 7 downto 0) <= r_t2l_l;
+          t2c(15 downto 8) <= r_t2l_h;
+        else
+          if (phase="11") and ena then -- or count mode
+            t2c <= t2c - "1";
+          end if;
+        end if;
 
-      if t2_load_counter then
-        t2c_active <= true;
-      elsif t2c_done then
-        t2c_active <= false;
-      end if;
+        t2_sr_ena <= (t2c(7 downto 0) = x"00") and (phase = "11");
 
+        if t2_load_counter then
+          t2c_active <= true;
+        elsif t2c_done then
+          t2c_active <= false;
+        end if;
 
-      if t2c_active and t2c_done then
-        t2_irq <= '1';
-      elsif t2_w_reset_int or t2_r_reset_int or (clear_irq(5) = '1') then
-        t2_irq <= '0';
+        if t2c_active and t2c_done then
+          t2_irq <= '1';
+        elsif t2_w_reset_int or t2_r_reset_int or (clear_irq(5) = '1') then
+          t2_irq <= '0';
+        end if;
       end if;
     end if;
   end process;
@@ -729,7 +739,7 @@ begin
         free_run := '0';
 
         case r_acr(4 downto 2) is
-          when "000" => ena := '0';
+          when "000" => ena := '0'; cb1_ip := '1';
           when "001" => ena := '1'; cb1_op := '1'; use_t2 := '1';
           when "010" => ena := '1'; cb1_op := '1';
           when "011" => ena := '1'; cb1_ip := '1';
@@ -741,35 +751,31 @@ begin
         end case;
 
         -- clock select
-        if (ena = '0') then
-          sr_strobe <= '1';
-        else
-          if (cb1_ip = '1') then
-            sr_strobe <= I_CB1;
-          else
-            if (sr_cnt(3) = '0') and (free_run = '0') then
-              sr_strobe <= '1';
-            else
-              if ((use_t2 = '1') and t2_sr_ena) or
-                 ((use_t2 = '0') and (phase = "00")) then
-                  sr_strobe <= not sr_strobe;
-              end if;
-            end if;
-          end if;
-        end if;
+        -- SR still runs even in disabled mode (on rising edge of CB1).  It
+        -- just doesn't generate any interrupts.
+        -- Ref BBC micro advanced user guide p409
+		if (cb1_ip = '1') then
+		  sr_strobe <= I_CB1;
+		else
+		  if (sr_cnt(3) = '0') and (free_run = '0') then
+		    sr_strobe <= '1';
+		  else
+			if ((use_t2 = '1') and t2_sr_ena) or
+			  ((use_t2 = '0') and (phase = "00")) then
+			    sr_strobe <= not sr_strobe;
+			end if;
+		  end if;
+		end if;
 
         -- latch on rising edge, shift on falling edge
         if sr_write_ena then
           r_sr <= load_data;
-        elsif (ena = '1') then -- use shift reg
-
+        else
           if (dir_out = '0') then
             -- input
             if (sr_cnt(3) = '1') or (cb1_ip = '1') then
               if sr_strobe_rising then
-                r_sr(0) <= I_CB2;
-              elsif sr_strobe_falling then
-                r_sr(7 downto 1) <= r_sr(6 downto 0);
+                r_sr <= r_sr(6 downto 0) & I_CB2;
               end if;
             end if;
             sr_out <= '1';
