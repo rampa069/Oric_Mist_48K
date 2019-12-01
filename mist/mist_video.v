@@ -127,23 +127,30 @@ wire [5:0] osd_r_o;
 wire [5:0] osd_g_o;
 wire [5:0] osd_b_o;
 
-osd #(OSD_X_OFFSET, OSD_Y_OFFSET, OSD_COLOR, OSD_AUTO_CE) osd
-(
-	.clk_sys ( clk_sys ),
-	.rotate  ( rotate  ),
-	.ce      ( scandoubler_disable ? ce_x1 : ce_x2 ),
-	.SPI_DI  ( SPI_DI  ),
-	.SPI_SCK ( SPI_SCK ),
-	.SPI_SS3 ( SPI_SS3 ),
-	.R_in    ( scandoubler_disable ? R_full : SD_R_O ),
-	.G_in    ( scandoubler_disable ? G_full : SD_G_O ),
-	.B_in    ( scandoubler_disable ? B_full : SD_B_O ),
-	.HSync   ( scandoubler_disable ? HSync : SD_HS_O ),
-	.VSync   ( scandoubler_disable ? VSync : SD_VS_O ),
-	.R_out   ( osd_r_o ),
-	.G_out   ( osd_g_o ),
-	.B_out   ( osd_b_o )
-);
+//osd #(OSD_X_OFFSET, OSD_Y_OFFSET, OSD_COLOR, OSD_AUTO_CE) osd
+//(
+//	.clk_sys ( clk_sys ),
+//	.rotate  ( rotate  ),
+//	.ce      ( scandoubler_disable ? ce_x1 : ce_x2 ),
+//	.SPI_DI  ( SPI_DI  ),
+//	.SPI_SCK ( SPI_SCK ),
+//	.SPI_SS3 ( SPI_SS3 ),
+//	.R_in    ( scandoubler_disable ? R_full : SD_R_O ),
+//	.G_in    ( scandoubler_disable ? G_full : SD_G_O ),
+//	.B_in    ( scandoubler_disable ? B_full : SD_B_O ),
+//	.HSync   ( scandoubler_disable ? HSync : SD_HS_O ),
+//	.VSync   ( scandoubler_disable ? VSync : SD_VS_O ),
+//	.R_out   ( osd_r_o ),
+//	.G_out   ( osd_g_o ),
+//	.B_out   ( osd_b_o )
+//);
+
+assign osd_r_o = scandoubler_disable ? R_full : SD_R_O;
+assign osd_g_o = scandoubler_disable ? G_full : SD_G_O;
+assign osd_b_o = scandoubler_disable ? B_full : SD_B_O;
+
+
+
 
 wire [5:0] cofi_r, cofi_g, cofi_b;
 wire       cofi_hs, cofi_vs;
