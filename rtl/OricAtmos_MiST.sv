@@ -26,6 +26,7 @@ localparam CONF_STR = {
 	"V,v1.00.",`BUILD_DATE
 };
 wire clk_24;
+wire clk_ram;
 wire        key_pressed;
 wire [7:0]  key_code;
 wire        key_strobe;
@@ -37,9 +38,9 @@ wire			ypbpr;
 wire        scandoublerD;
 wire [31:0] status;
 wire [15:0] audio;
-//assign 		LED = 1'b1;
+//assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
-assign LED=UART_RXD;
+//assign LED=UART_RXD;
 
 pll pll (
 	.inclk0				(CLOCK_27			),
