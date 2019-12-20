@@ -84,6 +84,7 @@ port (
 
 	CLK        :   in  std_logic;                     -- 24 MHz                       -- pin 07
 	PHI2       :   out std_logic;                     -- 1 MHz CPU & system           -- pin 14
+	PHI2_EN    :   out std_logic;                     -- 1 MHz clock enable pulse
 	RW         :   in  std_logic;                     -- R/W from CPU                 -- pin 27
 	MAPn       :   in  std_logic;                     -- MAP                          -- pin 26
 	DB         :   in  std_logic_vector( 7 downto 0); -- DATA BUS                     -- pin 18,34,5,13,12,11,17,8
@@ -123,6 +124,7 @@ architecture RTL of ula is
 	signal CLK_24        : std_logic;                    -- CLOCK 24 MHz internal
 	signal CLK_4_INT     : std_logic;                    -- CLOCK  4 MHz internal
 	signal CLK_1_INT     : std_logic;                    -- CLOCK  1 MHz internal
+	signal CLK_1_EN      : std_logic;                    -- CLOCK  1 MHz enable pulse
 	signal CLK_PIXEL_INT : std_logic;                    -- CLOCK PIXEL  internal 
 	signal CLK_FLASH     : std_logic;                    -- CLOCK FLASH  external
 
@@ -214,6 +216,7 @@ begin
 
 	-- output assignments
 	PHI2         <= CLK_1_INT;
+	PHI2_EN      <= CLK_1_EN;
 --	AD_RAM       <= AD_RAM_INT(15 downto 8);
 	CSIOn        <= CSIOn_INT;
 	CSROMn       <= CSROMn_INT;
@@ -287,6 +290,7 @@ begin
 
 	-- CPU clock --
 	CLK_1_INT <= ph(2);
+	CLK_1_EN  <= c(15);
 
 	-- VIA 6522 clock
 	CLK_4_INT     <= c(0) or c(1) or c(2) or c(6) or c(7) or c(8) or c(12) or c(13) or c(14) or c(18) or c(19) or c(20);
@@ -306,38 +310,42 @@ begin
 	-------------------------------------
 
 	-- Horizontal Counter 
-	u_CPT_H: process(CLK_1_INT, RESET_INT)
+	u_CPT_H: process(CLK_24, RESET_INT)
 	begin
 		if (RESET_INT = '1') then
 			lCTR_H  <= (others => '0');
-		elsif rising_edge(CLK_1_INT) then
-			if lCTR_H < 63 then
-				lCTR_H <= lCTR_H + 1;
-			else       
-				lCTR_H <= (others => '0');
-			end if;                             
+		elsif rising_edge(CLK_24) then
+			if CLK_1_EN = '1' then
+				if lCTR_H < 63 then
+					lCTR_H <= lCTR_H + 1;
+				else
+					lCTR_H <= (others => '0');
+				end if;
+			end if;
 		end if;
 	end process;
 
 	-- Vertical Counter
-	u_CPT_V: process(CLK_1_INT, RESET_INT)
+	u_CPT_V: process(CLK_24, RESET_INT)
 	begin
 		if (RESET_INT = '1') then
 			lCTR_V <= (others => '0');
 			lCTR_FLASH <= (others => '0');
-		elsif rising_edge(CLK_1_INT) then
-			if (lCTR_H = 63) then
-				-- 50Hz = 312 lines, 60Hz = 260 lines
-				if ((lCTR_V < 312) and lFREQ_SEL='1') or
-					((lCTR_V < 260) and lFREQ_SEL='0') then
-					lCTR_V <= lCTR_V + 1;
-				else
-					lCTR_V <= (others => '0');
-					-- increment flash counter every frame
-					lCTR_FLASH <= lCTR_FLASH + 1;
+		elsif rising_edge(CLK_24) then
+			if CLK_1_EN = '1' then
+				if (lCTR_H = 63) then
+					-- 50Hz = 312 lines, 60Hz = 260 lines
+					if ((lCTR_V < 312) and lFREQ_SEL='1') or
+						((lCTR_V < 260) and lFREQ_SEL='0') then
+						lCTR_V <= lCTR_V + 1;
+					else
+						lCTR_V <= (others => '0');
+						-- increment flash counter every frame
+						lCTR_FLASH <= lCTR_FLASH + 1;
+					end if;
 				end if;
 			end if;
-		end if;    
+		end if;
 	end process;
 
 

@@ -41,6 +41,7 @@
 --
 --        dmb: ier bit 7 should read back as '1'
 --        dmb: Fixes to sr_do_shift change that broke MMFS on the Beeb (SR mode 0)
+-- version 006 Tweak to p_timer2_ena to fix clocking issue
 -- version 005 Many fixes to all areas, VIA now passes all VICE tests
 -- version 004 fixes to PB7 T1 control and Mode 0 Shift Register operation
 -- version 003 fix reset of T1/T2 IFR flags if T1/T2 is reload via reg5/reg9 from wolfgang (WoS)
@@ -100,6 +101,7 @@ architecture RTL of M6522 is
 
    signal phase             : std_logic_vector(1 downto 0):="00";
    signal p2_h_t1           : std_logic;
+   signal p2_h_dl           : std_logic; -- 1 clock delay, no enable
    signal cs                : std_logic;
 
    -- registers
@@ -733,14 +735,17 @@ begin
    -- Ensure we don't start counting until the P2 clock after r_acr is changed
    p_timer2_ena : process
    begin
-      wait until rising_edge(I_P2_H);
-      if r_acr(5) = '0' then
-         t2_cnt_clk <= '1';
-      else
-         t2_cnt_clk <= '0';
+      wait until falling_edge(CLK);
+      p2_h_dl <= I_P2_H;
+      if (I_P2_H = '1') and (p2_h_dl = '0') then
+        if r_acr(5) = '0' then
+           t2_cnt_clk <= '1';
+        else
+           t2_cnt_clk <= '0';
+        end if;
       end if;
    end process;
- 
+
    p_timer2_done : process
       variable done : boolean;
       variable done_sr : boolean;

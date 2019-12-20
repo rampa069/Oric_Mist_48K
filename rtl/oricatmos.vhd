@@ -162,7 +162,7 @@ COMPONENT keyboard
 	PORT
 	(
 		clk_24		:	 IN STD_LOGIC;
-		clk			:	 IN STD_LOGIC;
+		clk_en		:	 IN STD_LOGIC;
 		reset			:	 IN STD_LOGIC;
 		key_pressed	:	 IN STD_LOGIC;
 		key_extended:	 IN STD_LOGIC;
@@ -182,8 +182,8 @@ inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
       Res_n   		=> RESETn,
-      Enable  		=> '1',
-      Clk     		=> ula_phi2,
+      Enable  		=> ENA_1MHZ,
+      Clk     		=> CLK_IN,
       Rdy     		=> '1',
       Abort_n 		=> '1',
       IRQ_n   		=> cpu_irq,
@@ -214,6 +214,7 @@ inst_ula : entity work.ULA
    port map (
       CLK        	=> CLK_IN,
       PHI2       	=> ula_PHI2,
+			PHI2_EN     => ENA_1MHZ,
       CLK_4      	=> ula_CLK_4,
       RW         	=> cpu_rw,
       RESETn     	=> RESETn,
@@ -283,7 +284,7 @@ inst_psg : entity work.ay8912
 inst_key : keyboard
 	port map(
 		clk_24		=> CLK_IN,
-		clk			=> ula_phi2,
+		clk_en		=> ENA_1MHZ,
 		reset			=> not RESETn,
 		key_pressed	=> key_pressed,
 		key_extended => key_extended,
