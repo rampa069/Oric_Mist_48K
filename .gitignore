@@ -1,5 +1,9 @@
 *~
 *.bak
+PLLJ_PLLSPE_INFO.txt
+*.qws
+*.qdf
+build_id.v
 db/
 output_files/
 incremental_db/

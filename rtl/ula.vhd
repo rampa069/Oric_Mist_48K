@@ -271,7 +271,7 @@ begin
 		if (RESET_INT = '1') then
 			c <= "000000000000000000000001";
 			ph <= "001";
-		elsif falling_edge(CLK_24) then
+		elsif rising_edge(CLK_24) then
 			-- advance states
 			c <= c(22 downto 0) & c(23);
 			if (c(7) or c(15) or c(23)) = '1' then
@@ -511,13 +511,13 @@ begin
 	addr_latch: process
 	begin
 		wait until rising_edge(CLK_24);
-		if c(0) = '1' then
+		if c(23) = '1' then
 			-- Generate video phase 1 address
 			AD_RAM_INT <= VAP1;
-		elsif c(8) = '1' then
+		elsif c(7) = '1' then
 			-- Generate video phase 2 address
 			AD_RAM_INT <= VAP2;
-		elsif c(16) = '1' then
+		elsif c(15) = '1' then
 			-- Generate CPU phase 3 address
 			AD_RAM_INT <= lADDR; 
 		end if;

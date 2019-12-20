@@ -59,6 +59,7 @@
   
 entity oricatmos is
   port (
+    CLK_IN            : in    std_logic;
     RESET             : in    std_logic;
 	 ps2_key         	 : in    std_logic_vector(10 downto 0);
 	 key_pressed       : in    std_logic;
@@ -75,9 +76,14 @@ entity oricatmos is
     VIDEO_HSYNC       : out   std_logic;
     VIDEO_VSYNC       : out   std_logic;
     VIDEO_SYNC        : out   std_logic;
-    CLK_IN            : in    std_logic;
-	 clk_ram				 : in    std_logic
-    );
+	ram_ad        : out std_logic_vector(15 downto 0);
+	ram_d         : out std_logic_vector( 7 downto 0);
+	ram_q         : in  std_logic_vector( 7 downto 0);
+	ram_cs        : out std_logic;
+	ram_oe        : out std_logic;
+	ram_we        : out std_logic;
+	phi2          : out std_logic
+);
 end;
 
 architecture RTL of oricatmos is
@@ -149,7 +155,6 @@ architecture RTL of oricatmos is
     signal ROM_DO      			: std_logic_vector(7 downto 0);
 
 
-	 signal ad                 : std_logic_vector(15 downto 0);
 	 signal SRAM_DO            : std_logic_vector(7 downto 0);
 	 signal break           	: std_logic;
 
@@ -190,32 +195,17 @@ inst_cpu : entity work.T65
       DO      		=> cpu_do
 );
 		
-ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
---inst_ram : entity work.ram48k
---	port map(
---		clk  			=> CLK_IN,
---		--cs   			=> ula_CE_SRAM,
---		oe   			=> ula_OE_SRAM,
---		we   			=> ula_WE_SRAM,
---		addr 			=> ad,
---		di   			=> cpu_do,
---		do   			=> SRAM_DO
---);
-
-inst_ram : entity work.rampa_48k
-	port map(
-		clock  			=> clk_ram,
-		cs   			   => ula_CE_SRAM,
-		oe   			   => ula_OE_SRAM,
-		wren   			=> ula_WE_SRAM,
-		address 			=> ad,
-		data   			=> cpu_do,
-		q   			=> SRAM_DO
-);
+ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
+ram_d   <= cpu_do;
+SRAM_DO <= ram_q;
+ram_cs  <= ula_CE_SRAM;
+ram_oe  <= ula_OE_SRAM;
+ram_we  <= ula_WE_SRAM;
+phi2    <= ula_PHI2;
 
 inst_rom : entity work.BASIC11A
 	port map (
-		clk  			=> clk_ram,
+		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
 		data 			=> ROM_DO
 );
