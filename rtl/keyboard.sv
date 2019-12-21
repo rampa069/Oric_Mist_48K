@@ -3,9 +3,8 @@
 module keyboard
 (
 	input			 clk_24,
-	input			 clk,
+	input			 clk_en,
 	input			 reset,
-//	input  [10:0]	 ps2_key,
 	input          key_pressed,  // 1-make (pressed), 0-break (released)
 	input          key_extended, // extended code
 	input          key_strobe,   // strobe
@@ -14,8 +13,6 @@ module keyboard
 	input	 [7:0]	 row,
 	output [7:0]	 ROWbit,
 	output			swrst
-
-
 );
 
 reg sw0 = 1'b0;
@@ -89,10 +86,8 @@ reg swf5 = 1'b0;
 reg swf6 = 1'b0;
 
 always @(posedge clk_24) begin
-	reg old_state;
-	old_state <= key_strobe;
 	
-	if(old_state != key_strobe) begin
+	if(key_strobe) begin
 		casex(key_code)
 			'h045: sw0      			<= key_pressed; // 0
 			'h016: sw1       			<= key_pressed; // 1
@@ -174,7 +169,8 @@ wire no_key = (~sw0 & ~sw1 & ~sw2 & ~sw3 & ~sw4 & ~sw5 & ~sw6 & ~sw7 & ~sw8 & ~s
 					
 //wire sp_key = ( swls | swrs | swctl | swfcn );
 
-	always @(posedge clk) begin
+always @(posedge clk_24) begin
+	if (clk_en) begin
 		if (no_key) ROWbit <= 8'b11111111;
 		else if (col == 3'b111) begin
 
@@ -287,18 +283,7 @@ wire no_key = (~sw0 & ~sw1 & ~sw2 & ~sw3 & ~sw4 & ~sw5 & ~sw6 & ~sw7 & ~sw8 & ~s
 			if (sw7) 	ROWbit <= 8'b11111110;			
 		end
 	end
-
-
-
-
-
-
-
-
-
-
-
-
+end
 
 endmodule
 
