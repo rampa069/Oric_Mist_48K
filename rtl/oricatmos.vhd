@@ -307,7 +307,7 @@ process begin
 	wait until rising_edge(clk_in);
 --		if    cpu_rw = '1' and ula_IOCONTROL = '1' and ula_CSIOn  = '0' then
 --			cpu_di <= EXP_DO;-- expansion port
---		els
+--		else
 		if cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and ula_LATCH_SRAM = '0' then
 			cpu_di <= VIA_DO;-- Via
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' then
