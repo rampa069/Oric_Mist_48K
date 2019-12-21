@@ -80,7 +80,7 @@ signal 	Anot, Bnot, Cnot		: STD_LOGIC;
 signal 	n_setreg	: STD_LOGIC;
 signal 	n_Pegel		: STD_LOGIC_VECTOR (11 downto 0);
 	
-signal 	clockgen		: STD_LOGIC_VECTOR (9 downto 0);
+signal 	clockgen		: STD_LOGIC_VECTOR (8 downto 0);
 signal 	S_Tick		: STD_LOGIC;
 signal 	H_Tick		: STD_LOGIC;
 
@@ -95,7 +95,7 @@ process (cpuclk, clockgen)
 begin 
 	S_Tick <= '0';	--sound
 	H_Tick <= '0';	--Hüllkurve
-	IF clockgen(9 downto 1)=0 THEN
+	IF clockgen(8 downto 1)=0 THEN
 		S_Tick <= '1';
 		IF clockgen(0)='0' THEN
 			H_Tick <= '1';
@@ -107,7 +107,8 @@ begin
 		Amono <= (chanC&"00000")+('0'&chanB&"0000")+(chanA&"00000");
 		IF H_Tick='1' THEN
 --			clockgen <= ((48*16)-1);	--48MHz
-			clockgen <= "1011111111";	--48MHz
+--			clockgen <= "1011111111";	--48MHz
+			clockgen <= "101111111";   --24MHz
 		ELSE
 			clockgen <= clockgen-1;
 		END IF;

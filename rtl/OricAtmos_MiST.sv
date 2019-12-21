@@ -58,6 +58,7 @@ pll pll (
 	.inclk0		(CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
+	.c2       (clk_48),
 	.locked   (pll_locked )
 	);
 
@@ -104,6 +105,7 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 
 oricatmos oricatmos(
 	.clk_in         (clk_24       ),
+	.clk_psg        (clk_48),
 	.RESET          (status[0] | buttons[1]),
 	.key_pressed    (key_pressed  ),
 	.key_code       (key_code     ),

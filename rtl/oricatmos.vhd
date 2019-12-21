@@ -60,6 +60,7 @@
 entity oricatmos is
   port (
     CLK_IN            : in    std_logic;
+	 CLK_PSG           : in    std_logic;
     RESET             : in    std_logic;
 	 ps2_key         	 : in    std_logic_vector(10 downto 0);
 	 key_pressed       : in    std_logic;
