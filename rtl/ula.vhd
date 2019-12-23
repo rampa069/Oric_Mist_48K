@@ -435,7 +435,7 @@ begin
 		  lREG_STYLE <= (others=>'0');
 		  lREG_PAPER <= (others=>'0');
 	  elsif rising_edge(CLK_24) then
-			if (RELD_REG = '1' and isAttrib = '1') then
+			if (RELD_REG = '1' and isAttrib = '1' and BLANKINGn = '1') then
 				case lREGHOLD(6 downto 3) is
 					when "0000" => lREG_INK   <= lREGHOLD(2 downto 0);
 					when "0001" => lREG_STYLE <= lREGHOLD(2 downto 0);
