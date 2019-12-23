@@ -58,7 +58,6 @@ pll pll (
 	.inclk0		(CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
-	.c2       (clk_48),
 	.locked   (pll_locked )
 	);
 
@@ -82,14 +81,14 @@ user_io(
 	.status         	(status         	)
 	);
 	
-mist_video #(.COLOR_DEPTH(1)) mist_video(
+mist_video #(.COLOR_DEPTH(3)) mist_video(
 	.clk_sys      (clk_24     ),
 	.SPI_SCK      (SPI_SCK    ),
 	.SPI_SS3      (SPI_SS3    ),
 	.SPI_DI       (SPI_DI     ),
-	.R            (r          ),
-	.G            (g          ),
-	.B            (b          ),
+	.R            ({r,r,r}    ),
+	.G            ({g,g,g}    ),
+	.B            ({b,b,b}    ),
 	.HSync        (hs         ),
 	.VSync        (vs         ),
 	.VGA_R        (VGA_R      ),
@@ -99,13 +98,12 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.VGA_HS       (VGA_HS     ),
 	.ce_divider   (1'b0       ),
 	.scandoubler_disable(scandoublerD	),
-	.scanlines    (status[4:3]),
+	.scanlines			(scandoublerD ? 2'b00 : status[4:3]),
 	.ypbpr        (ypbpr      )
 	);
 
 oricatmos oricatmos(
 	.clk_in         (clk_24       ),
-	.clk_psg        (clk_48),
 	.RESET          (status[0] | buttons[1]),
 	.key_pressed    (key_pressed  ),
 	.key_code       (key_code     ),

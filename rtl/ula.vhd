@@ -160,7 +160,6 @@ architecture RTL of ula is
 	signal CHROWCNT     : std_logic_vector( 2 downto 0); -- ch?? row count
 	signal lCTR_H       : std_logic_vector( 6 downto 0); -- Horizontal counter
 	signal lCTR_V       : std_logic_vector( 8 downto 0); -- Vertical counter
-
 	signal rgb_int      : std_logic_vector( 2 downto 0); -- Red Green Blue video signal
 
 	-- local select RAM, IO & ROM
@@ -374,8 +373,7 @@ begin
 	CLK_FLASH    <= lCTR_FLASH(4); 	-- Flash clock toggles every 16 video frames
 	lCOMPSYNC    <= not (lHSYNCn xor lVSYNCn);
 	BLANKINGn    <= lVBLANKn and lHBLANKn;
-
-
+   
 
 	-----------------------------
 	-----------------------------
@@ -483,7 +481,7 @@ begin
 	-- Assign out signal
 	RGB_INT <=     lRGB  when (lInv = '0' and BLANKINGn = '1') else
 			     not(lRGB) when (lInv = '1' and BLANKINGn = '1') else
-			     (others=>'0');
+			     "000";--(others=>'0') ;
 
 	-- Compute offset 
 	ModeStyle <= lHIRES_SEL & lALT_SEL;
@@ -493,6 +491,8 @@ begin
 			  "101110" when "01",     -- TEXT  & ALT  xB8xx
 			  "101101" when others;   -- TEXT  & STD  xB4xx
 
+			  
+   
 	-----------------------------
 	-----------------------------
 	-- Video address generator --
@@ -500,7 +500,7 @@ begin
 	-----------------------------
 
 	-- divide by 8 in LORES
-	CTR_V_DIV8 <= lCTR_V when (HIRES_DEC = '1') else "000" & lCTR_V(8 downto 3) ;
+	CTR_V_DIV8 <= lCTR_V  when (HIRES_DEC = '1') else "000" & lCTR_V(8 downto 3) ;
 
 	-- to multiply by 40 without using a multiplier we just sum the results of the operations of
 	-- multiply by 32 by shifting 5 bits and multiply by 8 by shifting 3 bits 
@@ -513,8 +513,7 @@ begin
 	-- Compute character row counter
 	CHROWCNT    <= lCTR_V(3 downto 1) when (DBLHGT_EN = '1') else lCTR_V(2 downto 0);
 	-- Generate Address Phase 2
-	VAP2        <= lADD & lDATABUS(6 downto 0) & CHROWCNT;
-
+   VAP2 <= lADD & lDATABUS(6 downto 0) & CHROWCNT;
 	-- multiplex addresses at rising edge of each phase
 	addr_latch: process
 	begin

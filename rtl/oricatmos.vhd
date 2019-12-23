@@ -215,7 +215,7 @@ inst_ula : entity work.ULA
    port map (
       CLK        	=> CLK_IN,
       PHI2       	=> ula_PHI2,
-			PHI2_EN     => ENA_1MHZ,
+		PHI2_EN     => ENA_1MHZ,
       CLK_4      	=> ula_CLK_4,
       RW         	=> cpu_rw,
       RESETn     	=> RESETn,
