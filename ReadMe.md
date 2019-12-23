@@ -21,7 +21,7 @@ At the moment the full original machine is working (except tape recording).
 
 ### TODO
 
- * **OSD** to load roms,tapes and disks from **SD CARD**.
+ * load roms,tapes and disks from **SD CARD**.
  * Disk controller.
  * Tape recording.
 
@@ -39,4 +39,4 @@ At the moment the full original machine is working (except tape recording).
    * SliceBit: Oric hardware Gurú
    * Ramón Martínez:  Oric hardware, Some software, and fpga coding.
    * Slingshot: SDRAM work.
-   * 
+   
