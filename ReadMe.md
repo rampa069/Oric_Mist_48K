@@ -1,5 +1,5 @@
 # Oric 48K in MiST and SiDi FPGA
- 
+
 Trying to implement an Oric-1 and Oric Atmos in a modern FPGA.
 
 ### Background:
@@ -20,16 +20,14 @@ At the moment the full original machine is working (except tape recording).
 * **ROM** 1.0 (in the ORIC 1 version).
 
 ### TODO
- * Implement **SDRAM** to load **ROM** and **RAM**.
- * 64K **RAM**
- * **OSD** to load roms,tapes and disks from **SD CARD**. 
+
+ * **OSD** to load roms,tapes and disks from **SD CARD**.
  * Disk controller.
- * Implementing a real Oric **ULA**.
- * Tape recording. 
+ * Tape recording.
 
 ### KNOWN BUGS
 
-   * Sometimes, in Hires mode the top line is missing.
+   * None at the moment....
 
 ## The TEAM
 
@@ -38,5 +36,7 @@ At the moment the full original machine is working (except tape recording).
    * Subcritical: Verilog and VHDL.
    * ManuFerHi: Hardware consulting.
    * Chema Enguita: Oric gurú
-   * SliceBit: Oric hardware Gurú 
+   * SliceBit: Oric hardware Gurú
    * Ramón Martínez:  Oric hardware, Some software, and fpga coding.
+   * Slingshot: SDRAM work.
+   * 
