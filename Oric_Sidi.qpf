@@ -16,15 +16,15 @@
 #
 # -------------------------------------------------------------------------- #
 #
-# Quartus II 64-Bit
-# Version 13.0.1 Build 232 06/12/2013 Service Pack 1 SJ Full Version
-# Date created = 14:32:28  October 06, 2018
+# Quartus II 32-bit
+# Version 13.1.0 Build 162 10/23/2013 SJ Web Edition
+# Date created = 19:20:10  December 26, 2019
 #
 # -------------------------------------------------------------------------- #
 
-QUARTUS_VERSION = "13.0"
-DATE = "14:32:28  October 06, 2018"
+QUARTUS_VERSION = "13.1"
+DATE = "19:20:10  December 26, 2019"
 
 # Revisions
 
-PROJECT_REVISION = "Oric_MiST"
+PROJECT_REVISION = "Oric_Sidi"
