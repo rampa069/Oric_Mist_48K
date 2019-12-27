@@ -81,14 +81,14 @@ user_io(
 	.status         	(status         	)
 	);
 	
-mist_video #(.COLOR_DEPTH(3)) mist_video(
+mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.clk_sys      (clk_24     ),
 	.SPI_SCK      (SPI_SCK    ),
 	.SPI_SS3      (SPI_SS3    ),
 	.SPI_DI       (SPI_DI     ),
-	.R            ({r,r,r}    ),
-	.G            ({g,g,g}    ),
-	.B            ({b,b,b}    ),
+	.R            ({r}    ),
+	.G            ({g}    ),
+	.B            ({b}    ),
 	.HSync        (hs         ),
 	.VSync        (vs         ),
 	.VGA_R        (VGA_R      ),
