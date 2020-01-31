@@ -31,7 +31,8 @@ module OricAtmos_MiST(
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"OricAtmos;;",
+	"OricAtmos;TAP;",
+	"O1,Serial port,Tape,Serial;",
 	"O23,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v1.00.",`BUILD_DATE
@@ -98,7 +99,7 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.VGA_HS       (VGA_HS     ),
 	.ce_divider   (1'b0       ),
 	.scandoubler_disable(scandoublerD	),
-	.scanlines			(scandoublerD ? 2'b00 : status[4:3]),
+	.scanlines			(scandoublerD ? 2'b00 : status[3:2]),
 	.ypbpr        (ypbpr      )
 	);
 
