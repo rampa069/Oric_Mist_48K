@@ -32,7 +32,7 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"OricAtmos;TAP;",
-	"O1,Serial port,Tape,Serial;",
+	"O1,ROM,Atmos (Audio),Oric-1 (SD card);",
 	"O23,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v1.00.",`BUILD_DATE
@@ -51,9 +51,15 @@ wire			ypbpr;
 wire        scandoublerD;
 wire [31:0] status;
 wire [15:0] audio;
+wire [7:0] joystick_0;
+wire [7:0] joystick_1;
+wire       tapebits;
+wire 		  remote;
+
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
-//assign LED=UART_RXD;
+assign      rom = ~status[1] ;
+assign      LED=remote;
 
 pll pll (
 	.inclk0		(CLOCK_27   ),
@@ -79,6 +85,8 @@ user_io(
 	.key_pressed    	(key_pressed    	),
 	.key_extended   	(key_extended   	),
 	.key_code       	(key_code       	),
+	.joystick_0       ( joystick_0      ),
+	.joystick_1       ( joystick_1      ),
 	.status         	(status         	)
 	);
 	
@@ -104,27 +112,32 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 	);
 
 oricatmos oricatmos(
-	.clk_in         (clk_24       ),
-	.RESET          (status[0] | buttons[1]),
-	.key_pressed    (key_pressed  ),
-	.key_code       (key_code     ),
-	.key_extended   (key_extended ),
-	.key_strobe     (key_strobe   ),
-	.PSG_OUT				(audio				),
-	.VIDEO_R				(r						),
-	.VIDEO_G				(g						),
-	.VIDEO_B				(b						),
-	.VIDEO_HSYNC		(hs           ),
-	.VIDEO_VSYNC		(vs           ),
-	.K7_TAPEIN			(UART_RXD			),
-	.K7_TAPEOUT			(UART_TXD			),
-	.ram_ad         (ram_ad       ),
-	.ram_d          (ram_d        ),
-	.ram_q          (ram_cs ? ram_q : 8'd0 ),
-	.ram_cs         (ram_cs_oric  ),
-	.ram_oe         (ram_oe_oric  ),
-	.ram_we         (ram_we       ),
-	.phi2           (phi2         )
+	.clk_in           (clk_24       ),
+	.RESET            (status[0] | buttons[1] | rom_changed),
+	.key_pressed      (key_pressed  ),
+	.key_code         (key_code     ),
+	.key_extended     (key_extended ),
+	.key_strobe       (key_strobe   ),
+	.PSG_OUT				(audio		),
+	.VIDEO_R				(r			   ),
+	.VIDEO_G				(g				),
+	.VIDEO_B				(b				),
+	.VIDEO_HSYNC		(hs         ),
+	.VIDEO_VSYNC		(vs         ),
+	.K7_TAPEIN			(UART_RXD   ),
+	.K7_TAPEOUT			(tapebits   ),
+	.K7_REMOTE			(remote     ),
+	.rom			      (rom),
+	.ram_ad           (ram_ad       ),
+	.ram_d            (ram_d        ),
+	.ram_q            (ram_cs ? ram_q : 8'd0 ),
+	.ram_cs           (ram_cs_oric  ),
+	.ram_oe           (ram_oe_oric  ),
+	.ram_we           (ram_we       ),
+	.joystick_0       ( joystick_0      ),
+	.joystick_1       ( joystick_1      ),
+	.phi2             (phi2         ),
+	.pll_locked       (pll_locked)
 	);
 
 reg         port1_req, port2_req;
@@ -137,6 +150,9 @@ wire        ram_cs = ram_ad[15:14] == 2'b11 ? 1'b0 : ram_cs_oric;
 reg         sdram_we;
 reg  [15:0] sdram_ad;
 wire        phi2;
+wire        rom;
+wire        old_rom;
+wire        rom_changed;
 
 always @(posedge clk_72) begin
 	reg ram_we_old, ram_oe_old;
@@ -145,11 +161,17 @@ always @(posedge clk_72) begin
 	ram_we_old <= ram_cs & ram_we;
 	ram_oe_old <= ram_cs & ram_oe;
 	ram_ad_old <= ram_ad;
+	old_rom <= rom;
+	rom_changed <= 1'b0;
 
 	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
 		port1_req <= ~port1_req;
 		sdram_ad <= ram_ad;
 		sdram_we <= ram_we;
+	end
+	
+	if (rom != old_rom) begin
+	  rom_changed <= 1'b1;
 	end
 end
 

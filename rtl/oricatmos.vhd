@@ -70,6 +70,7 @@ entity oricatmos is
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
     K7_REMOTE         : out   std_logic;
+	 rom               : in    std_logic;
 	 PSG_OUT           : out   std_logic_vector(15 downto 0);
     VIDEO_R           : out   std_logic;
     VIDEO_G           : out   std_logic;
@@ -83,7 +84,10 @@ entity oricatmos is
 	ram_cs        : out std_logic;
 	ram_oe        : out std_logic;
 	ram_we        : out std_logic;
-	phi2          : out std_logic
+	phi2          : out std_logic;
+	joystick_0    : in  std_logic_vector( 7 downto 0);
+	joystick_1    : in  std_logic_vector( 7 downto 0);
+	pll_locked    : in  std_logic
 );
 end;
 
@@ -154,11 +158,14 @@ architecture RTL of oricatmos is
 	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
     signal ROM_DO      			: std_logic_vector(7 downto 0);
+    signal ROMSD_DO    			: std_logic_vector(7 downto 0);
 
 
 	 signal SRAM_DO            : std_logic_vector(7 downto 0);
 	 signal break           	: std_logic;
-
+	 signal joya               : std_logic_vector(6 downto 0);
+	 signal joyb               : std_logic_vector(6 downto 0);
+	 
 COMPONENT keyboard
 	PORT
 	(
@@ -204,12 +211,20 @@ ram_oe  <= ula_OE_SRAM;
 ram_we  <= ula_WE_SRAM;
 phi2    <= ula_PHI2;
 
-inst_rom : entity work.BASIC11A
+inst_rom0 : entity work.BASIC11A
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
 		data 			=> ROM_DO
 );
+
+inst_rom1 : entity work.ORIC1SDCARD
+	port map (
+		clk  			=> CLK_IN,
+		addr 			=> cpu_ad(13 downto 0),
+		data 			=> ROMSD_DO
+);
+
 
 inst_ula : entity work.ULA
    port map (
@@ -218,7 +233,7 @@ inst_ula : entity work.ULA
 		PHI2_EN     => ENA_1MHZ,
       CLK_4      	=> ula_CLK_4,
       RW         	=> cpu_rw,
-      RESETn     	=> RESETn,
+      RESETn     	=> pll_locked, --RESETn,
 		MAPn      	=> '1',
       DB         	=> SRAM_DO,
       ADDR       	=> cpu_ad(15 downto 0),
@@ -263,7 +278,7 @@ inst_via : entity work.M6522
 		I_PB        => via_in,
 		O_PB        => via_out,
 --		O_PB_OE_L   => via_oe_l,
-		RESET_L     => RESETn,
+		RESET_L     => pll_locked, --RESETn,
 		I_P2_H      => ula_phi2,
 		ENA_4       => '1',
 		CLK         => ula_CLK_4
@@ -272,7 +287,7 @@ inst_via : entity work.M6522
 inst_psg : entity work.ay8912
 	port map (
 		cpuclk      => CLK_IN,
-		reset    	=> RESETn,
+		reset    	=> pll_locked, --RESETn,
 		cs        	=> '1',
 		bc0      	=> psg_bdir,
 		bdir     	=> via_cb2_out,
@@ -286,7 +301,7 @@ inst_key : keyboard
 	port map(
 		clk_24		=> CLK_IN,
 		clk_en		=> ENA_1MHZ,
-		reset			=> not RESETn,
+		reset			=>  not pll_locked, --not RESETn,
 		key_pressed	=> key_pressed,
 		key_extended => key_extended,
 		key_strobe	=> key_strobe,
@@ -302,17 +317,26 @@ via_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
 K7_TAPEOUT  <= via_out(7);
 K7_REMOTE   <= via_out(6);
 ula_IOCONTROL <= '0'; 
---ula_IOCONTROL <= IOCONTROL; 
+--ula_IOCONTROL <= ula_CSIOn; 
+
+joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
+joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
 process begin
 	wait until rising_edge(clk_in);
---		if    cpu_rw = '1' and ula_IOCONTROL = '1' and ula_CSIOn  = '0' then
---			cpu_di <= EXP_DO;-- expansion port
---		else
-		if cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and ula_LATCH_SRAM = '0' then
+  
+	    
+		if    cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and cpu_ad =  x"310" then
+			    cpu_di(6 downto 0) <= joya; 
+		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and cpu_ad =  x"320" then
+			    cpu_di(6 downto 0) <= joyb; 
+				
+		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and ula_LATCH_SRAM = '0' then
 			cpu_di <= VIA_DO;-- Via
-		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' then
+		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' and rom = '1' then
 			cpu_di <= ROM_DO;		-- ROM
+		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' and rom = '0' then
+			cpu_di <= ROMSD_DO;		-- ROM-SD	
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_phi2   = '1' and ula_LATCH_SRAM = '0' then
 			cpu_di <= SRAM_DO;-- Read data
 		end if;
