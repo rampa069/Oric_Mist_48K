@@ -35,7 +35,7 @@ localparam CONF_STR = {
 	"O1,ROM,Oric Atmos,Oric 1;",
 	"O23,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
-	"V,v1.00.",`BUILD_DATE
+	"V,v1.20.",`BUILD_DATE
 };
 wire        clk_24;
 wire        clk_72;
