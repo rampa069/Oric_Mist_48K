@@ -243,10 +243,6 @@ set_global_assignment -name USE_SIGNALTAP_FILE output_files/oric.stp
 set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS OFF
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
-set_global_assignment -name VHDL_FILE "rtl/rom/xenon1-3.vhd"
-set_global_assignment -name VHDL_FILE "rtl/rom/xenon1-2.vhd"
-set_global_assignment -name VHDL_FILE "rtl/rom/xenon1-1.vhd"
-set_global_assignment -name VHDL_FILE "rtl/rom/xenon1-0.vhd"
 set_global_assignment -name SYSTEMVERILOG_FILE mist/sdram.sv
 set_global_assignment -name QIP_FILE mist/mist.qip
 set_global_assignment -name VHDL_FILE rtl/T65/T65_Pack.vhd
