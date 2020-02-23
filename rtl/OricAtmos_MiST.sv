@@ -32,7 +32,7 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"OricAtmos;TAP;",
-	"O1,ROM,Atmos (Audio),Oric-1 (SD card);",
+	"O1,ROM,Oric Atmos,Oric 1;",
 	"O23,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v1.00.",`BUILD_DATE
@@ -55,6 +55,8 @@ wire [7:0] joystick_0;
 wire [7:0] joystick_1;
 wire       tapebits;
 wire 		  remote;
+
+
 
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
@@ -202,6 +204,8 @@ sdram sdram(
 	.port2_d       ( ),
 	.port2_q       ( )
 );
+
+
 
 
 dac #(

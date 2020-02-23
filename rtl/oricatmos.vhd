@@ -37,19 +37,6 @@
 -- Email seilebost@free.fr
 --
 --
--- Revision list
---
--- version 001 2006/03/?? : initial release
--- version 002 2009/01/06 : suite
--- version 003 2009/03/22 : version sram (ram statique)
--- version 004 2009/11/17 : nettoyage code
--- version 005 2009/11/18 : ajout gestion clavier PS2
--- version 006 2009/11/19 : correction gestion clavier PS2
--- version 007 2009/11/20 : correction gestion clavier PS2
--- version 090
--- version 091 2010/02/02 : passage en réel !!
--- version 092 2010/04/08 : test sur les int du VIA
--- version 093 2011/03/15 : ajout d'un fichier de log
 
   library ieee;
   use ieee.std_logic_1164.all;
@@ -78,16 +65,16 @@ entity oricatmos is
     VIDEO_HSYNC       : out   std_logic;
     VIDEO_VSYNC       : out   std_logic;
     VIDEO_SYNC        : out   std_logic;
-	ram_ad        : out std_logic_vector(15 downto 0);
-	ram_d         : out std_logic_vector( 7 downto 0);
-	ram_q         : in  std_logic_vector( 7 downto 0);
-	ram_cs        : out std_logic;
-	ram_oe        : out std_logic;
-	ram_we        : out std_logic;
-	phi2          : out std_logic;
-	joystick_0    : in  std_logic_vector( 7 downto 0);
-	joystick_1    : in  std_logic_vector( 7 downto 0);
-	pll_locked    : in  std_logic
+	 ram_ad        : out std_logic_vector(15 downto 0);
+	 ram_d         : out std_logic_vector( 7 downto 0);
+	 ram_q         : in  std_logic_vector( 7 downto 0);
+	 ram_cs        : out std_logic;
+	 ram_oe        : out std_logic;
+	 ram_we        : out std_logic;
+	 phi2          : out std_logic;
+	 joystick_0    : in  std_logic_vector( 7 downto 0);
+	 joystick_1    : in  std_logic_vector( 7 downto 0);
+	 pll_locked    : in  std_logic
 );
 end;
 
@@ -107,22 +94,14 @@ architecture RTL of oricatmos is
     signal cpu_irq            : std_logic;
       
     -- VIA    
---    signal via_pa_out_oe      : std_logic_vector(7 downto 0);
     signal via_pa_in          : std_logic_vector(7 downto 0);
     signal via_pa_out         : std_logic_vector(7 downto 0);
     signal via_ca1_in         : std_logic;     
     signal via_ca2_in         : std_logic;
-    -- le 17/11/2009 signal via_ca2_out        : std_logic;
-    -- le 17/11/2009 signal via_ca2_oe_l       : std_logic;    
-    -- le 17/11/2009 signal via_cb1_in         : std_logic;
---    signal via_cb1_out        : std_logic;
---    signal via_cb1_oe_l       : std_logic;
     signal via_cb2_in         : std_logic;
     signal via_cb2_out        : std_logic;
---    signal via_cb2_oe_l       : std_logic;
-    signal via_in             : std_logic_vector(7 downto 0);
-    signal via_out            : std_logic_vector(7 downto 0);
---    signal via_oe_l           : std_logic_vector(7 downto 0);
+    signal via_pb_in             : std_logic_vector(7 downto 0);
+    signal via_pb_out            : std_logic_vector(7 downto 0);
     signal VIA_DO             : std_logic_vector(7 downto 0);
     
     -- Clavier : émulation par port PS2
@@ -137,7 +116,6 @@ architecture RTL of oricatmos is
     signal ula_CSIOn          : std_logic;
 	 signal ula_CSIO           : std_logic;
     signal ula_CSROMn         : std_logic;
---    signal ula_CSRAMn         : std_logic; -- add 05/02/09    
     signal ula_AD_RAM         : std_logic_vector(7 downto 0);
     signal ula_AD_SRAM        : std_logic_vector(15 downto 0);
     signal ula_CE_SRAM        : std_logic;
@@ -157,8 +135,12 @@ architecture RTL of oricatmos is
     
 	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
-    signal ROM_DO      			: std_logic_vector(7 downto 0);
-    signal ROMSD_DO    			: std_logic_vector(7 downto 0);
+    signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
+    signal ROM_1_DO    			: std_logic_vector(7 downto 0);
+	 
+	 --- Printer port
+	 signal PRN_STROBE			: std_logic;
+	 signal PRN_DATA           : std_logic_vector(7 downto 0);
 
 
 	 signal SRAM_DO            : std_logic_vector(7 downto 0);
@@ -211,18 +193,18 @@ ram_oe  <= ula_OE_SRAM;
 ram_we  <= ula_WE_SRAM;
 phi2    <= ula_PHI2;
 
-inst_rom0 : entity work.BASIC11A
+inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
-		data 			=> ROM_DO
+		data 			=> ROM_ATMOS_DO
 );
 
-inst_rom1 : entity work.ORIC1SDCARD
+inst_rom1 : entity work.BASIC10  -- Oric-1 ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
-		data 			=> ROMSD_DO
+		data 			=> ROM_1_DO
 );
 
 
@@ -268,16 +250,11 @@ inst_via : entity work.M6522
 		O_CA2       => psg_bdir,  -- via_ca2_out
 		I_PA        => via_pa_in,
 		O_PA        => via_pa_out,
---		O_PA_OE_L   => via_pa_out_oe,
 		I_CB1       => K7_TAPEIN,
---		O_CB1       => via_cb1_out,
---		O_CB1_OE_L  => via_cb1_oe_l,
 		I_CB2       => '1',
 		O_CB2       => via_cb2_out,
---		O_CB2_OE_L  => via_cb2_oe_l,
-		I_PB        => via_in,
-		O_PB        => via_out,
---		O_PB_OE_L   => via_oe_l,
+		I_PB        => via_pb_in,
+		O_PB        => via_pb_out,
 		RESET_L     => pll_locked, --RESETn,
 		I_P2_H      => ula_phi2,
 		ENA_4       => '1',
@@ -307,17 +284,20 @@ inst_key : keyboard
 		key_strobe	=> key_strobe,
 		key_code		=> key_code,
 		row			=> via_pa_out,
-		col			=> via_out(2 downto 0),
+		col			=> via_pb_out(2 downto 0),
 		ROWbit		=> KEY_ROW,
 		swrst			=> break
 );
 
-via_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
+via_pb_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
 
-K7_TAPEOUT  <= via_out(7);
-K7_REMOTE   <= via_out(6);
+K7_TAPEOUT  <= via_pb_out(7);
+K7_REMOTE   <= via_pb_out(6);
+PRN_STROBE  <= via_pb_out(4);
+PRN_DATA    <= via_pa_out;
+
 ula_IOCONTROL <= '0'; 
---ula_IOCONTROL <= ula_CSIOn; 
+
 
 joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
@@ -325,20 +305,21 @@ joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) &
 process begin
 	wait until rising_edge(clk_in);
   
-	    
+	   -- DKtronics joystick interface 
 		if    cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and cpu_ad =  x"310" then
-			    cpu_di(6 downto 0) <= joya; 
+			   cpu_di(6 downto 0) <= joya; 
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and cpu_ad =  x"320" then
-			    cpu_di(6 downto 0) <= joyb; 
+			   cpu_di(6 downto 0) <= joyb; 
 				
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and ula_LATCH_SRAM = '0' then
 			cpu_di <= VIA_DO;-- Via
+			
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' and rom = '1' then
-			cpu_di <= ROM_DO;		-- ROM
+			cpu_di <= ROM_ATMOS_DO;		-- ROM Oric Atmos
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' and rom = '0' then
-			cpu_di <= ROMSD_DO;		-- ROM-SD	
+			cpu_di <= ROM_1_DO;	-- ROM Oric 1
 		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_phi2   = '1' and ula_LATCH_SRAM = '0' then
-			cpu_di <= SRAM_DO;-- Read data
+			cpu_di <= SRAM_DO;   -- Read data from SDRAM
 		end if;
 end process;
 
