@@ -16,8 +16,7 @@ At the moment the full original machine is working (except tape recording).
 * Full 48K of **RAM**.
 * Keyboard.
 * Sound (**AY-3-8910**).
-* **ROM** 1.1a (in the ATMOS version).
-* **ROM** 1.0 (in the ORIC 1 version).
+* switchable **ROM** (between 1.1a ATMOS version and 1.0 ORIC 1 version).
 
 ### TODO
 
