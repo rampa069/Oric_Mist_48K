@@ -31,9 +31,11 @@ module OricAtmos_MiST(
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"OricAtmos;TAP;",
-	"O1,ROM,Oric Atmos,Oric 1;",
-	"O23,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+	"OricAtmos;;",
+	"S1,DSK,Mount Drive A:;",
+	"S2,DSK,Mount Deive B:;",
+	"O3,ROM,Oric Atmos,Oric 1;",
+	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v1.20.",`BUILD_DATE
 };
@@ -60,8 +62,8 @@ wire 		  remote;
 
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
-assign      rom = ~status[1] ;
-assign      LED=remote;
+assign      rom = ~status[3] ;
+assign      LED=!remote;
 
 pll pll (
 	.inclk0		(CLOCK_27   ),
@@ -89,8 +91,11 @@ user_io(
 	.key_code       	(key_code       	),
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
-	.status         	(status         	)
+	.status         	(status         	),
+	
 	);
+
+
 	
 mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.clk_sys      (clk_24     ),
@@ -109,7 +114,7 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.VGA_HS       (VGA_HS     ),
 	.ce_divider   (1'b0       ),
 	.scandoubler_disable(scandoublerD	),
-	.scanlines			(scandoublerD ? 2'b00 : status[3:2]),
+	.scanlines			(scandoublerD ? 2'b00 : status[5:4]),
 	.ypbpr        (ypbpr      )
 	);
 

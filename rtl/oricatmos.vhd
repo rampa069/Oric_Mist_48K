@@ -65,16 +65,17 @@ entity oricatmos is
     VIDEO_HSYNC       : out   std_logic;
     VIDEO_VSYNC       : out   std_logic;
     VIDEO_SYNC        : out   std_logic;
-	 ram_ad        : out std_logic_vector(15 downto 0);
-	 ram_d         : out std_logic_vector( 7 downto 0);
-	 ram_q         : in  std_logic_vector( 7 downto 0);
-	 ram_cs        : out std_logic;
-	 ram_oe        : out std_logic;
-	 ram_we        : out std_logic;
-	 phi2          : out std_logic;
-	 joystick_0    : in  std_logic_vector( 7 downto 0);
-	 joystick_1    : in  std_logic_vector( 7 downto 0);
-	 pll_locked    : in  std_logic
+	 ram_ad            : out std_logic_vector(15 downto 0);
+	 ram_d             : out std_logic_vector( 7 downto 0);
+	 ram_q             : in  std_logic_vector( 7 downto 0);
+	 ram_cs            : out std_logic;
+	 ram_oe            : out std_logic;
+	 ram_we            : out std_logic;
+	 phi2              : out std_logic;
+	 joystick_0        : in  std_logic_vector( 7 downto 0);
+	 joystick_1        : in  std_logic_vector( 7 downto 0);
+	 pll_locked        : in  std_logic
+	 
 );
 end;
 
@@ -100,8 +101,8 @@ architecture RTL of oricatmos is
     signal via_ca2_in         : std_logic;
     signal via_cb2_in         : std_logic;
     signal via_cb2_out        : std_logic;
-    signal via_pb_in             : std_logic_vector(7 downto 0);
-    signal via_pb_out            : std_logic_vector(7 downto 0);
+    signal via_pb_in          : std_logic_vector(7 downto 0);
+    signal via_pb_out         : std_logic_vector(7 downto 0);
     signal VIA_DO             : std_logic_vector(7 downto 0);
     
     -- Clavier : émulation par port PS2
@@ -148,6 +149,19 @@ architecture RTL of oricatmos is
 	 signal joya               : std_logic_vector(6 downto 0);
 	 signal joyb               : std_logic_vector(6 downto 0);
 	 
+	 -- Disk controller
+	 signal cont_MAPn          : std_logic :='1';
+    signal cont_ROMDISn       : std_logic :='1';
+    signal cont_D_OUT         : std_logic_vector(7 downto 0);
+    signal cont_IOCONTROLn    : std_logic :='1';
+
+	 signal  disk_cur_TRACK    : std_logic_vector(5 downto 0);  -- Current track (0-34)
+
+    signal IMAGE_NUMBER_out   : std_logic_vector(9 downto 0);
+    signal disk_track_addr    : std_logic_vector(13 downto 0);
+    signal disk_a_on          : std_logic; -- 0 when disk is active else 1
+    signal track_ok           : std_logic; 
+
 COMPONENT keyboard
 	PORT
 	(
@@ -184,7 +198,10 @@ inst_cpu : entity work.T65
       DI      		=> cpu_di,
       DO      		=> cpu_do
 );
-		
+	
+
+
+	
 ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
 ram_d   <= cpu_do;
 SRAM_DO <= ram_q;
@@ -211,12 +228,12 @@ inst_rom1 : entity work.BASIC10  -- Oric-1 ROM
 inst_ula : entity work.ULA
    port map (
       CLK        	=> CLK_IN,
-      PHI2       	=> ula_PHI2,
+      PHI2       	=> ula_phi2,
 		PHI2_EN     => ENA_1MHZ,
       CLK_4      	=> ula_CLK_4,
       RW         	=> cpu_rw,
       RESETn     	=> pll_locked, --RESETn,
-		MAPn      	=> '1',
+		MAPn      	=> cont_MAPn,
       DB         	=> SRAM_DO,
       ADDR       	=> cpu_ad(15 downto 0),
       SRAM_AD    	=> ula_AD_SRAM,
@@ -242,8 +259,8 @@ inst_via : entity work.M6522
 		I_DATA      => cpu_do(7 downto 0),
 		O_DATA      => VIA_DO,
 		I_RW_L      => cpu_rw,
-		I_CS1       => ula_CSIO,
-		I_CS2_L     => ula_IOCONTROL,
+		I_CS1       => cont_IOCONTROLn,
+		I_CS2_L     => ula_CSIOn,
 		O_IRQ_L     => cpu_irq,   -- note, not open drain
 		I_CA1       => '1',       -- PRT_ACK
 		I_CA2       => '1',       -- psg_bdir
@@ -255,7 +272,7 @@ inst_via : entity work.M6522
 		O_CB2       => via_cb2_out,
 		I_PB        => via_pb_in,
 		O_PB        => via_pb_out,
-		RESET_L     => pll_locked, --RESETn,
+		RESET_L     => RESETn, --RESETn,
 		I_P2_H      => ula_phi2,
 		ENA_4       => '1',
 		CLK         => ula_CLK_4
@@ -264,7 +281,7 @@ inst_via : entity work.M6522
 inst_psg : entity work.ay8912
 	port map (
 		cpuclk      => CLK_IN,
-		reset    	=> pll_locked, --RESETn,
+		reset    	=> RESETn, --RESETn,
 		cs        	=> '1',
 		bc0      	=> psg_bdir,
 		bdir     	=> via_cb2_out,
@@ -278,7 +295,7 @@ inst_key : keyboard
 	port map(
 		clk_24		=> CLK_IN,
 		clk_en		=> ENA_1MHZ,
-		reset			=>  not pll_locked, --not RESETn,
+		reset			=> not RESETn, --not RESETn,
 		key_pressed	=> key_pressed,
 		key_extended => key_extended,
 		key_strobe	=> key_strobe,
@@ -289,6 +306,9 @@ inst_key : keyboard
 		swrst			=> break
 );
 
+
+
+
 via_pb_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
 
 K7_TAPEOUT  <= via_pb_out(7);
@@ -296,30 +316,35 @@ K7_REMOTE   <= via_pb_out(6);
 PRN_STROBE  <= via_pb_out(4);
 PRN_DATA    <= via_pa_out;
 
-ula_IOCONTROL <= '0'; 
+cont_IOCONTROLn <= '1'; 
+cont_ROMDISn <= '1'; 
+cont_MAPn <= '1';
 
 
 joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
+
+
 process begin
 	wait until rising_edge(clk_in);
   
-	   -- DKtronics joystick interface 
-		if    cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and cpu_ad =  x"310" then
-			   cpu_di(6 downto 0) <= joya; 
-		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and cpu_ad =  x"320" then
-			   cpu_di(6 downto 0) <= joyb; 
-				
-		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSIOn  = '0' and ula_LATCH_SRAM = '0' then
-			cpu_di <= VIA_DO;-- Via
-			
-		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' and rom = '1' then
-			cpu_di <= ROM_ATMOS_DO;		-- ROM Oric Atmos
-		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_CSROMn = '0' and rom = '0' then
-			cpu_di <= ROM_1_DO;	-- ROM Oric 1
-		elsif cpu_rw = '1' and ula_IOCONTROL = '0' and ula_phi2   = '1' and ula_LATCH_SRAM = '0' then
-			cpu_di <= SRAM_DO;   -- Read data from SDRAM
+	 
+		-- expansion port
+      if    cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
+      CPU_DI <= cont_D_OUT;
+      -- VIA
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
+			cpu_di <= VIA_DO;
+		-- ROM Atmos	
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '1' and cont_ROMDISn = '1' then
+			cpu_di <= ROM_ATMOS_DO;
+		--ROM Oric-1
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
+			cpu_di <= ROM_1_DO;	
+		-- Oric RAM
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_LATCH_SRAM = '0' then
+			cpu_di <= SRAM_DO; 
 		end if;
 end process;
 
