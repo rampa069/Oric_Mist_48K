@@ -33,7 +33,7 @@ module OricAtmos_MiST(
 localparam CONF_STR = {
 	"OricAtmos;;",
 	"S1,DSK,Mount Drive A:;",
-	"S2,DSK,Mount Deive B:;",
+	"S2,DSK,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",

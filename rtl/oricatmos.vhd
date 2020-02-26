@@ -94,16 +94,20 @@ architecture RTL of oricatmos is
     signal cpu_rw             : std_logic;
     signal cpu_irq            : std_logic;
       
-    -- VIA    
-    signal via_pa_in          : std_logic_vector(7 downto 0);
-    signal via_pa_out         : std_logic_vector(7 downto 0);
-    signal via_ca1_in         : std_logic;     
-    signal via_ca2_in         : std_logic;
-    signal via_cb2_in         : std_logic;
+	 -- VIA
+    signal via_pa_out_oe      : std_logic_vector( 7 downto 0);
+    signal via_pa_in          : std_logic_vector( 7 downto 0);
+    signal via_pa_in_from_psg : std_logic_vector( 7 downto 0);
+    signal via_pa_out         : std_logic_vector( 7 downto 0);
+    signal via_cb1_out        : std_logic;
+    signal via_cb1_oe_l       : std_logic;
     signal via_cb2_out        : std_logic;
-    signal via_pb_in          : std_logic_vector(7 downto 0);
-    signal via_pb_out         : std_logic_vector(7 downto 0);
-    signal VIA_DO             : std_logic_vector(7 downto 0);
+    signal via_cb2_oe_l       : std_logic;
+    signal via_pb_in             : std_logic_vector( 7 downto 0);
+    signal via_pb_out            : std_logic_vector( 7 downto 0);
+    signal via_pb_oe_l           : std_logic_vector( 7 downto 0);
+    signal VIA_DO             : std_logic_vector( 7 downto 0);
+
     
     -- Clavier : émulation par port PS2
     signal KEY_ROW            : std_logic_vector( 7 downto 0);
@@ -111,7 +115,7 @@ architecture RTL of oricatmos is
     -- PSG
     signal psg_bdir           : std_logic; 
     signal psg_bc1            : std_logic; 
-	 
+	 signal ym_o_ioa           : std_logic_vector (7 downto 0);
     -- ULA    
     signal ula_phi2           : std_logic;
     signal ula_CSIOn          : std_logic;
@@ -217,7 +221,7 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		data 			=> ROM_ATMOS_DO
 );
 
-inst_rom1 : entity work.BASIC10  -- Oric-1 ROM
+inst_rom1 : entity work.TEST108J -- Oric-1 ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
@@ -265,11 +269,20 @@ inst_via : entity work.M6522
 		I_CA1       => '1',       -- PRT_ACK
 		I_CA2       => '1',       -- psg_bdir
 		O_CA2       => psg_bdir,  -- via_ca2_out
+		O_CA2_OE_L  => open,
+		
 		I_PA        => via_pa_in,
 		O_PA        => via_pa_out,
+		O_PA_OE_L   => via_pa_out_oe,
+		
 		I_CB1       => K7_TAPEIN,
+		O_CB1       => via_cb1_out,
+      O_CB1_OE_L  => via_cb1_oe_l,
+		
 		I_CB2       => '1',
 		O_CB2       => via_cb2_out,
+		O_CB2_OE_L  => via_cb2_oe_l,
+		
 		I_PB        => via_pb_in,
 		O_PB        => via_pb_out,
 		RESET_L     => RESETn, --RESETn,
@@ -286,8 +299,8 @@ inst_psg : entity work.ay8912
 		bc0      	=> psg_bdir,
 		bdir     	=> via_cb2_out,
 		Data_in     => via_pa_out,
-		Data_out    => via_pa_in,
-		IO_A    		=> x"FF",
+		Data_out    => via_pa_in_from_psg,
+		IO_A    		=> ym_o_ioa,
 		Amono       => PSG_OUT
 );
 
@@ -309,7 +322,17 @@ inst_key : keyboard
 
 
 
-via_pb_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
+--via_pb_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
+
+
+via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
+via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
+--via_pb_in(3) <= '0' when ( (KEY_ROW and  not ym_o_ioa)) /= x"00" else  '1';
+via_pb_in(3) <= '0' when ( (KEY_ROW or via_pa_out)) = x"FF" else  '1';
+via_pb_in(7 downto 4) <= x"b"; --via_out(7 downto 4);
+
+
+
 
 K7_TAPEOUT  <= via_pb_out(7);
 K7_REMOTE   <= via_pb_out(6);
