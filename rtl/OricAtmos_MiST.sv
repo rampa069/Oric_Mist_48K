@@ -91,7 +91,7 @@ user_io(
 	.key_code       	(key_code       	),
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
-	.status         	(status         	),
+	.status         	(status         	)
 	
 	);
 

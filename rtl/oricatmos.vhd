@@ -221,7 +221,7 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		data 			=> ROM_ATMOS_DO
 );
 
-inst_rom1 : entity work.TEST108J -- Oric-1 ROM
+inst_rom1 : entity work.TEST109 -- Oric-1 ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
@@ -265,10 +265,10 @@ inst_via : entity work.M6522
 		I_RW_L      => cpu_rw,
 		I_CS1       => cont_IOCONTROLn,
 		I_CS2_L     => ula_CSIOn,
-		O_IRQ_L     => cpu_irq,   -- note, not open drain
+		O_IRQ_L     => cpu_irq,   
 		I_CA1       => '1',       -- PRT_ACK
 		I_CA2       => '1',       -- psg_bdir
-		O_CA2       => psg_bdir,  -- via_ca2_out
+		O_CA2       => psg_bdir,  
 		O_CA2_OE_L  => open,
 		
 		I_PA        => via_pa_in,
@@ -322,15 +322,12 @@ inst_key : keyboard
 
 
 
---via_pb_in <= x"F7" when (KEY_ROW or via_pa_out) = x"FF" else x"FF";
 
 
 via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
 via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
---via_pb_in(3) <= '0' when ( (KEY_ROW and  not ym_o_ioa)) /= x"00" else  '1';
 via_pb_in(3) <= '0' when ( (KEY_ROW or via_pa_out)) = x"FF" else  '1';
-via_pb_in(7 downto 4) <= x"b"; --via_out(7 downto 4);
-
+via_pb_in(7 downto 4) <= via_pb_out(7 downto 4);
 
 
 
