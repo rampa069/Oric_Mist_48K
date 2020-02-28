@@ -325,9 +325,14 @@ inst_key : keyboard
 
 
 via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
+--via_pa_in <= via_pa_out;
 via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
 via_pb_in(3) <= '0' when ( (KEY_ROW or via_pa_out)) = x"FF" else  '1';
-via_pb_in(7 downto 4) <= via_pb_out(7 downto 4);
+--via_pb_in(7 downto 4) <= x"b"; --via_pb_out(7 downto 4);
+via_pb_in(4) <=via_pb_out(4);
+via_pb_in(5) <= 'Z';
+via_pb_in(6) <=via_pb_out(6);
+via_pb_in(7) <=via_pb_out(7);
 
 
 
