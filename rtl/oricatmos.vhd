@@ -121,8 +121,8 @@ architecture RTL of oricatmos is
     -- ULA    
     signal ula_phi2           : std_logic;
     signal ula_CSIOn          : std_logic;
-	 --signal ula_CSIO           : std_logic;
     signal ula_CSROMn         : std_logic;
+	 signal ula_CSRAMn         : std_logic;
     signal ula_AD_RAM         : std_logic_vector(7 downto 0);
     signal ula_AD_SRAM        : std_logic_vector(15 downto 0);
     signal ula_CE_SRAM        : std_logic;
@@ -269,7 +269,7 @@ inst_ula : entity work.ULA
 		LATCH_SRAM 	=> ula_LATCH_SRAM,
       CSIOn      	=> ula_CSIOn,
       CSROMn     	=> ula_CSROMn,
---      CSRAMn     	=> ula_CSRAMn,
+      CSRAMn     	=> ula_CSRAMn,
       R          	=> VIDEO_R,
       G          	=> VIDEO_G,
       B          	=> VIDEO_B,
@@ -357,21 +357,25 @@ via_pb_in(7) <=via_pb_out(7);
 
 
 K7_TAPEOUT  <= via_pb_out(7);
-K7_REMOTE   <= via_pb_out(6);
+--K7_REMOTE   <= via_pb_out(6);
 PRN_STROBE  <= via_pb_out(4);
 PRN_DATA    <= via_pa_out;
+
 
 cont_D_OUT <= "--------";
 
 joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
-cont_sel <= '1' when cpu_ad(7 downto 4) = "0001" and ula_IOCONTROL = '0' and cpu_ad(3 downto 2) /= "11"   else '0';
+cont_sel <= '1' when cpu_ad(7 downto 4) = "0001" and ula_CSIOn = '0' and cpu_ad(3 downto 2) /= "11"   else '0';
 cont_IOCONTROLn <= '0' when cont_sel = '1' else '1';
 cont_u16k <= '1' when (cont_ROMDISn = '0') and (cpu_ad(14) = '1') and (cpu_ad(15) = '1') else '0';
 cont_ECE <= not (cpu_ad(13) and cont_u16k and not cont_ROMENn);
 cont_MAPn <= '0' when (PH2_2 and cont_ECE and cont_u16k) = '1' else '1';
 cont_RESETn <= '0' when RESETn = '0' else '1';
+
+K7_REMOTE <= cont_MAPn;
+
 -- Control Register.
     process (cont_sel, cpu_ad, cpu_rw, cpu_do)
     begin
@@ -438,12 +442,12 @@ process begin
 		--ROM Oric-1
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
 			cpu_di <= ROM_1_DO;
-		--ROM Microdisc
-		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
-			cpu_di <= ROM_MD_DO;	
 		-- Oric RAM
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_LATCH_SRAM = '0' then
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' then
 			cpu_di <= SRAM_DO; 
+		--ROM Microdisc
+		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_MAPn ='1' and cont_ECE ='0' and cont_ROMDISn = '0' then
+			cpu_di <= ROM_MD_DO;	
 		end if;
 end process;
 
