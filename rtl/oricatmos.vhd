@@ -48,6 +48,7 @@ entity oricatmos is
   port (
     CLK_IN            : in    std_logic;
 	 CLK_PSG           : in    std_logic;
+	 CLK_MICRODISC     : in    std_logic;
     RESET             : in    std_logic;
 	 ps2_key         	 : in    std_logic_vector(10 downto 0);
 	 key_pressed       : in    std_logic;
@@ -74,7 +75,8 @@ entity oricatmos is
 	 phi2              : out std_logic;
 	 joystick_0        : in  std_logic_vector( 7 downto 0);
 	 joystick_1        : in  std_logic_vector( 7 downto 0);
-	 pll_locked        : in  std_logic
+	 pll_locked        : in  std_logic;
+	 ROMDISn           : in std_logic
 	 
 );
 end;
@@ -119,7 +121,7 @@ architecture RTL of oricatmos is
     -- ULA    
     signal ula_phi2           : std_logic;
     signal ula_CSIOn          : std_logic;
-	 signal ula_CSIO           : std_logic;
+	 --signal ula_CSIO           : std_logic;
     signal ula_CSROMn         : std_logic;
     signal ula_AD_RAM         : std_logic_vector(7 downto 0);
     signal ula_AD_SRAM        : std_logic_vector(15 downto 0);
@@ -142,6 +144,7 @@ architecture RTL of oricatmos is
 	 signal ENA_1MHZ           : std_logic;
     signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
     signal ROM_1_DO    			: std_logic_vector(7 downto 0);
+	 signal ROM_MD_DO          : std_logic_vector(7 downto 0);
 	 
 	 --- Printer port
 	 signal PRN_STROBE			: std_logic;
@@ -155,9 +158,15 @@ architecture RTL of oricatmos is
 	 
 	 -- Disk controller
 	 signal cont_MAPn          : std_logic :='1';
+	 signal cont_MAPn_tmp      : std_logic;
     signal cont_ROMDISn       : std_logic :='1';
     signal cont_D_OUT         : std_logic_vector(7 downto 0);
     signal cont_IOCONTROLn    : std_logic :='1';
+	 signal cont_sel           : std_logic;
+	 signal cont_ECE           : std_logic;
+	 signal cont_u16k          : std_logic;
+	 signal cont_ROMENn        : std_logic;
+	 signal cont_RESETn        : std_logic;
 
 	 signal  disk_cur_TRACK    : std_logic_vector(5 downto 0);  -- Current track (0-34)
 
@@ -165,7 +174,13 @@ architecture RTL of oricatmos is
     signal disk_track_addr    : std_logic_vector(13 downto 0);
     signal disk_a_on          : std_logic; -- 0 when disk is active else 1
     signal track_ok           : std_logic; 
-
+    -- Controller derived clocks
+	 signal PH2_1: std_logic;                                
+    signal PH2_2: std_logic;                                
+    signal PH2_3: std_logic;                                
+    signal PH2_old: std_logic_vector(3 downto 0);   
+    signal PH2_cntr: std_logic_vector(4 downto 0);
+	 
 COMPONENT keyboard
 	PORT
 	(
@@ -189,7 +204,7 @@ RESETn <= not RESET;
 inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
-      Res_n   		=> RESETn,
+      Res_n   		=> cont_RESETn,
       Enable  		=> ENA_1MHZ,
       Clk     		=> CLK_IN,
       Rdy     		=> '1',
@@ -207,11 +222,12 @@ inst_cpu : entity work.T65
 
 	
 ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
-ram_d   <= cpu_do;
+ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when ula_WE_SRAM = '1' else (others => 'Z');
+
 SRAM_DO <= ram_q;
-ram_cs  <= ula_CE_SRAM;
-ram_oe  <= ula_OE_SRAM;
-ram_we  <= ula_WE_SRAM;
+ram_cs  <= '0' when cont_RESETn = '0' else ula_CE_SRAM;
+ram_oe  <= '0' when cont_RESETn = '0' else ula_OE_SRAM;
+ram_we  <= '0' when cont_RESETn = '0' else ula_WE_SRAM;
 phi2    <= ula_PHI2;
 
 inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
@@ -221,13 +237,19 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		data 			=> ROM_ATMOS_DO
 );
 
-inst_rom1 : entity work.TEST109 -- Oric-1 ROM
+inst_rom1 : entity work.BASIC10 -- Oric-1 ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
 		data 			=> ROM_1_DO
 );
 
+inst_rom2 : entity work.MICRODISC -- Microdisc ROM
+	port map (
+		clk  			=> CLK_IN,
+		addr 			=> cpu_ad(12 downto 0),
+		data 			=> ROM_MD_DO
+);
 
 inst_ula : entity work.ULA
    port map (
@@ -256,7 +278,7 @@ inst_ula : entity work.ULA
 		VSYNC      	=> VIDEO_VSYNC		
 );
 
-ula_CSIO <= not(ula_CSIOn);
+--ula_CSIO <= not(ula_CSIOn);
 inst_via : entity work.M6522
 	port map (
 		I_RS        => cpu_ad(3 downto 0),
@@ -325,10 +347,8 @@ inst_key : keyboard
 
 
 via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
---via_pa_in <= via_pa_out;
 via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
 via_pb_in(3) <= '0' when ( (KEY_ROW or via_pa_out)) = x"FF" else  '1';
---via_pb_in(7 downto 4) <= x"b"; --via_pb_out(7 downto 4);
 via_pb_in(4) <=via_pb_out(4);
 via_pb_in(5) <= 'Z';
 via_pb_in(6) <=via_pb_out(6);
@@ -341,16 +361,67 @@ K7_REMOTE   <= via_pb_out(6);
 PRN_STROBE  <= via_pb_out(4);
 PRN_DATA    <= via_pa_out;
 
-cont_IOCONTROLn <= '1'; 
-cont_ROMDISn <= '1'; 
-cont_MAPn <= '1';
-
+cont_D_OUT <= "--------";
 
 joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
-
-
+cont_sel <= '1' when cpu_ad(7 downto 4) = "0001" and ula_IOCONTROL = '0' and cpu_ad(3 downto 2) /= "11"   else '0';
+cont_IOCONTROLn <= '0' when cont_sel = '1' else '1';
+cont_u16k <= '1' when (cont_ROMDISn = '0') and (cpu_ad(14) = '1') and (cpu_ad(15) = '1') else '0';
+cont_ECE <= not (cpu_ad(13) and cont_u16k and not cont_ROMENn);
+cont_MAPn <= '0' when (PH2_2 and cont_ECE and cont_u16k) = '1' else '1';
+cont_RESETn <= '0' when RESETn = '0' else '1';
+-- Control Register.
+    process (cont_sel, cpu_ad, cpu_rw, cpu_do)
+    begin
+        if RESETn = '0' then
+            cont_ROMENn <= '0';
+            --DSEL <= "00";
+            --SSEL <= '0';
+            if ROMDISn = '0' then
+				   cont_ROMDISn <= '0';
+				else cont_ROMDISn <= '1';
+				end if;
+            --IRQEN <= '0';       
+        elsif falling_edge(PH2_2) then 
+            if cont_sel = '1' and cpu_ad(3 downto 2) = "01" and cpu_rw = '0' then
+                cont_ROMENn <= cpu_do(7);
+                --DSEL <= D(6 downto 5);
+                --SSEL <= D(4);
+                cont_ROMDISn <= cpu_do(1);
+                --IRQEN <= D(0);
+            end if;
+        end if;
+    end process;
+	 
+-- PH2 derived clocks.
+    process (ULA_PHI2, CLK_MICRODISC)
+    begin
+        if RESETn = '0' then
+            PH2_cntr <= "00000";
+        elsif falling_edge(CLK_MICRODISC) then 
+            PH2_old <= PH2_old(2 downto 0) & ULA_PHI2;
+            if (PH2_old = "1111") and (ULA_PHI2 = '0') then 
+                PH2_cntr <= "00000";
+                PH2_1 <= '1';
+            else
+                PH2_cntr <= PH2_cntr + 1;               
+                if (PH2_cntr = "10000") then 
+                    PH2_1 <= '0';
+                    PH2_2 <= '1';
+                elsif (PH2_cntr = "10111") then 
+                    PH2_3 <= '1';
+                elsif (PH2_cntr = "11100") then 
+                    PH2_2 <= '0';                   
+                elsif (PH2_cntr = "11101") then 
+                    PH2_3 <= '0';
+                end if;
+            end if;
+        end if;
+    end process; 
+	 
+	 
 process begin
 	wait until rising_edge(clk_in);
   
@@ -366,7 +437,10 @@ process begin
 			cpu_di <= ROM_ATMOS_DO;
 		--ROM Oric-1
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
-			cpu_di <= ROM_1_DO;	
+			cpu_di <= ROM_1_DO;
+		--ROM Microdisc
+		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
+			cpu_di <= ROM_MD_DO;	
 		-- Oric RAM
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_LATCH_SRAM = '0' then
 			cpu_di <= SRAM_DO; 

@@ -35,12 +35,14 @@ localparam CONF_STR = {
 	"S1,DSK,Mount Drive A:;",
 	"S2,DSK,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
+	"O6,FDD Controller,Off,On;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v1.20.",`BUILD_DATE
 };
 wire        clk_24;
 wire        clk_72;
+wire        clk_32;
 wire        pll_locked;
 wire        key_pressed;
 wire [7:0]  key_code;
@@ -64,11 +66,13 @@ wire 		  remote;
 assign 		AUDIO_R = AUDIO_L;
 assign      rom = ~status[3] ;
 assign      LED=!remote;
+assign      ROMDISn = ~status[6];
 
 pll pll (
 	.inclk0		(CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
+	.c2       (clk_32     ),
 	.locked   (pll_locked )
 	);
 
@@ -120,6 +124,7 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 
 oricatmos oricatmos(
 	.clk_in           (clk_24       ),
+	.clk_microdisc    (clk_32       ),
 	.RESET            (status[0] | buttons[1] | rom_changed),
 	.key_pressed      (key_pressed  ),
 	.key_code         (key_code     ),
@@ -144,7 +149,8 @@ oricatmos oricatmos(
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
 	.phi2             (phi2         ),
-	.pll_locked       (pll_locked)
+	.pll_locked       (pll_locked),
+	.ROMDISn          (ROMDISn)
 	);
 
 reg         port1_req, port2_req;
@@ -160,6 +166,7 @@ wire        phi2;
 wire        rom;
 wire        old_rom;
 wire        rom_changed;
+wire        ROMDISn;
 
 always @(posedge clk_72) begin
 	reg ram_we_old, ram_oe_old;
