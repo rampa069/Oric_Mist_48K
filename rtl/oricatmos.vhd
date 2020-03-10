@@ -158,8 +158,7 @@ architecture RTL of oricatmos is
 	 
 	 -- Disk controller
 	 signal cont_MAPn          : std_logic :='1';
-	 signal cont_MAPn_tmp      : std_logic;
-    signal cont_ROMDISn       : std_logic :='1';
+	 signal cont_ROMDISn       : std_logic :='1';
     signal cont_D_OUT         : std_logic_vector(7 downto 0);
     signal cont_IOCONTROLn    : std_logic :='1';
 	 signal cont_sel           : std_logic;
@@ -167,19 +166,19 @@ architecture RTL of oricatmos is
 	 signal cont_u16k          : std_logic;
 	 signal cont_ROMENn        : std_logic;
 	 signal cont_RESETn        : std_logic;
-
-	 signal  disk_cur_TRACK    : std_logic_vector(5 downto 0);  -- Current track (0-34)
-
-    signal IMAGE_NUMBER_out   : std_logic_vector(9 downto 0);
-    signal disk_track_addr    : std_logic_vector(13 downto 0);
-    signal disk_a_on          : std_logic; -- 0 when disk is active else 1
-    signal track_ok           : std_logic; 
-    -- Controller derived clocks
-	 signal PH2_1: std_logic;                                
-    signal PH2_2: std_logic;                                
-    signal PH2_3: std_logic;                                
-    signal PH2_old: std_logic_vector(3 downto 0);   
-    signal PH2_cntr: std_logic_vector(4 downto 0);
+    signal cont_DSEL          : std_logic_vector(1 downto 0);
+	 signal cont_SSEL          : std_logic;
+	 signal cont_IRQEN         : std_logic;
+	 
+	 -- Controller derived clocks
+	 signal PH2_1              : std_logic;                                
+    signal PH2_2              : std_logic;                                
+    signal PH2_3              : std_logic;                                
+    signal PH2_old            : std_logic_vector(3 downto 0);   
+    signal PH2_cntr           : std_logic_vector(4 downto 0);
+	 
+	 -- Ram 16K upper
+	 signal ram16k_do          : std_logic_vector(7 downto 0);
 	 
 COMPONENT keyboard
 	PORT
@@ -222,7 +221,8 @@ inst_cpu : entity work.T65
 
 	
 ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
-ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when ula_WE_SRAM = '1' else (others => 'Z');
+--ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (ula_WE_SRAM = '1' and cpu_rw ='0') ; --else (others => 'Z');
+ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (cpu_rw ='0') ; --else (others => 'Z');
 
 SRAM_DO <= ram_q;
 ram_cs  <= '0' when cont_RESETn = '0' else ula_CE_SRAM;
@@ -249,6 +249,15 @@ inst_rom2 : entity work.MICRODISC -- Microdisc ROM
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(12 downto 0),
 		data 			=> ROM_MD_DO
+);
+
+inst_ram1 : entity work.ram16k -- upper 16k
+	port map (
+		clock  			=> CLK_IN,
+		address 			=> cpu_ad(13 downto 0),
+		data 			   => cpu_do,
+		wren           => cont_u16k and not cpu_rw,
+		q              => ram16k_do
 );
 
 inst_ula : entity work.ULA
@@ -361,8 +370,8 @@ K7_TAPEOUT  <= via_pb_out(7);
 PRN_STROBE  <= via_pb_out(4);
 PRN_DATA    <= via_pa_out;
 
-
-cont_D_OUT <= "--------";
+K7_REMOTE   <= not (ula_PHI2 and PH2_2);
+cont_D_OUT <= "00000000";
 
 joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
@@ -373,28 +382,28 @@ cont_u16k <= '1' when (cont_ROMDISn = '0') and (cpu_ad(14) = '1') and (cpu_ad(15
 cont_ECE <= not (cpu_ad(13) and cont_u16k and not cont_ROMENn);
 cont_MAPn <= '0' when (PH2_2 and cont_ECE and cont_u16k) = '1' else '1';
 cont_RESETn <= '0' when RESETn = '0' else '1';
+--cont_nIRQ <= '0' when fdc_IRQ = '1' and cont_IRQEN = '1' else 'Z'; --todo
 
-K7_REMOTE <= cont_MAPn;
 
 -- Control Register.
     process (cont_sel, cpu_ad, cpu_rw, cpu_do)
     begin
         if RESETn = '0' then
             cont_ROMENn <= '0';
-            --DSEL <= "00";
-            --SSEL <= '0';
+            cont_DSEL <= "00";
+            cont_SSEL <= '0';
             if ROMDISn = '0' then
 				   cont_ROMDISn <= '0';
 				else cont_ROMDISn <= '1';
 				end if;
-            --IRQEN <= '0';       
+            cont_IRQEN <= '0';       
         elsif falling_edge(PH2_2) then 
             if cont_sel = '1' and cpu_ad(3 downto 2) = "01" and cpu_rw = '0' then
                 cont_ROMENn <= cpu_do(7);
-                --DSEL <= D(6 downto 5);
-                --SSEL <= D(4);
+                cont_DSEL <= cpu_do(6 downto 5);
+                cont_SSEL <= cpu_do(4);
                 cont_ROMDISn <= cpu_do(1);
-                --IRQEN <= D(0);
+                cont_IRQEN <= cpu_do(0);
             end if;
         end if;
     end process;
@@ -430,9 +439,10 @@ process begin
 	wait until rising_edge(clk_in);
   
 	 
+	 
 		-- expansion port
       if    cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
-      CPU_DI <= cont_D_OUT;
+         CPU_DI <= cont_D_OUT;
       -- VIA
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
 			cpu_di <= VIA_DO;
@@ -442,12 +452,15 @@ process begin
 		--ROM Oric-1
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
 			cpu_di <= ROM_1_DO;
+		--ROM Microdisc
+		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
+			cpu_di <= ROM_MD_DO;	
+		-- Oric RAM Overlay
+		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_MAPn ='0' and cont_ROMDISn = '0' and cont_ECE = '1' then
+			cpu_di <= ram16k_do;	
 		-- Oric RAM
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' then
-			cpu_di <= SRAM_DO; 
-		--ROM Microdisc
-		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_MAPn ='1' and cont_ECE ='0' and cont_ROMDISn = '0' then
-			cpu_di <= ROM_MD_DO;	
+			cpu_di <= SRAM_DO; 	
 		end if;
 end process;
 
