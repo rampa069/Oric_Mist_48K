@@ -59,17 +59,23 @@ wire [7:0] joystick_0;
 wire [7:0] joystick_1;
 wire       tapebits;
 wire 		  remote;
+wire       reset;
 
-
+wire[15:0] cpu_ad;
+wire [7:0] cpu_di; 
+wire [7:0] cpu_do;
+wire       nIORQ; 
+wire       nM1;
 
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 assign      rom = ~status[3] ;
 assign      LED=!remote;
-assign      ROMDISn = ~status[6];
+assign      disk_enable = ~status[6];
+assign      reset = (status[0] | buttons[1] | rom_changed);
 
 pll pll (
-	.inclk0		(CLOCK_27   ),
+	.inclk0	 (CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
 	.c2       (clk_32     ),
@@ -150,7 +156,7 @@ oricatmos oricatmos(
 	.joystick_1       ( joystick_1      ),
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
-	.ROMDISn          (ROMDISn)
+	.disk_enable      (disk_enable),
 	);
 
 reg         port1_req, port2_req;
@@ -166,7 +172,11 @@ wire        phi2;
 wire        rom;
 wire        old_rom;
 wire        rom_changed;
-wire        ROMDISn;
+wire        disk_enable;
+//wire [15:0] cpu_ad;
+//wire  [7:0] cpu_di;
+//wire  [7:0] cpu_do;
+
 
 always @(posedge clk_72) begin
 	reg ram_we_old, ram_oe_old;
@@ -228,6 +238,156 @@ audiodac(
    .dac_i				(audio				),
    .dac_o				(AUDIO_L				)
   );
+
+
+  
+  ///////////////////   FDC   ///////////////////
+wire [31:0] sd_lba;
+wire  [1:0] sd_rd;
+wire  [1:0] sd_wr;
+wire        sd_ack;
+wire  [8:0] sd_buff_addr;
+wire  [7:0] sd_buff_dout;
+wire  [7:0] sd_buff_din;
+wire        sd_buff_wr;
+wire  [1:0] img_mounted;
+wire [31:0] img_size;
+
+wire        ioctl_wr;
+wire [24:0] ioctl_addr;
+wire  [7:0] ioctl_dout;
+wire        ioctl_download;
+wire  [7:0] ioctl_index;
+
+wire       fdd_sel  = &cpu_ad[7:5] & ~cpu_ad[3]; // 224-231(E0-E7), 240-247(F0-F7)
+
+reg fdd_num = 0;
+always @(posedge clk_24) begin
+	if(sd_rd[1]|sd_wr[1]) fdd_num <= 1;
+	if(sd_rd[0]|sd_wr[0]) fdd_num <= 0;
+end
+
+assign sd_buff_din = fdd_num ? fdd2_buf_dout : fdd1_buf_dout;
+assign sd_lba      = fdd_num ? fdd2_lba      : fdd1_lba;
+
+
+
+// FDD1
+wire        fdd1_busy;
+reg         fdd1_ready;
+reg         fdd1_side;
+wire        fdd1_io   = fdd_sel & ~cpu_ad[4] & ~nIORQ & nM1;
+wire  [7:0] fdd1_dout;
+wire  [7:0] fdd1_buf_dout;
+wire [31:0] fdd1_lba;
+
+always @(posedge clk_24) begin
+	reg old_wr;
+	reg old_mounted;
+
+	old_wr <= nWR;
+	if(old_wr & ~nWR & fdd1_io) fdd1_side <= cpu_ad[2];
+
+	old_mounted <= img_mounted[0];
+	if(reset) fdd1_ready <= 0;
+		else if(~old_mounted & img_mounted[0]) fdd1_ready <= 1;
+end
+
+wd1793 #(1) fdd1
+(
+	.clk_sys(clk_24),
+	.ce(cpu_n),
+	.reset(reset),
+	.io_en(fdd1_io & fdd1_ready),
+	.rd(~nRD),
+	.wr(~nWR),
+	.addr(cpu_ad[1:0]),
+	.din(cpu_do),
+	.dout(fdd1_dout),
+
+	.img_mounted(img_mounted[0]),
+	.img_size(img_size[19:0]),
+	.sd_lba(fdd1_lba),
+	.sd_rd(sd_rd[0]),
+	.sd_wr(sd_wr[0]),
+	.sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr),
+	.sd_buff_dout(sd_buff_dout),
+	.sd_buff_din(fdd1_buf_dout),
+	.sd_buff_wr(sd_buff_wr),
+
+	.wp(~status[4]),
+
+	.size_code(4),
+	.layout(ioctl_index[7:6] == 2),
+	.side(fdd1_side),
+	.ready(fdd1_ready),
+	.prepare(fdd1_busy),
+
+	.input_active(0),
+	.input_addr(0),
+	.input_data(0),
+	.input_wr(0),
+	.buff_din(0)
+);
+
+
+// FDD2
+reg         fdd2_ready;
+reg         fdd2_side;
+wire        fdd2_io   = fdd_sel & cpu_ad[4] & ~nIORQ & nM1;
+wire  [7:0] fdd2_dout;
+wire  [7:0] fdd2_buf_dout;
+wire [31:0] fdd2_lba;
+
+always @(posedge clk_24) begin
+	reg old_wr;
+	reg old_mounted;
+
+	old_wr <= nWR;
+	if(old_wr & ~nWR & fdd2_io) fdd2_side <= cpu_ad[2];
+
+	old_mounted <= img_mounted[1];
+	if(reset) fdd2_ready <= 0;
+		else if(~old_mounted & img_mounted[1]) fdd2_ready <= 1;
+end
+
+wd1793 #(1) fdd2
+(
+	.clk_sys(clk_24),
+	.ce(cpu_n),
+	.reset(reset),
+	.io_en(fdd2_io & fdd2_ready),
+	.rd(~nRD),
+	.wr(~nWR),
+	.addr(cpu_ad[1:0]),
+	.din(cpu_do),
+	.dout(fdd2_dout),
+
+	.img_mounted(img_mounted[1]),
+	.img_size(img_size[19:0]),
+	.sd_lba(fdd2_lba),
+	.sd_rd(sd_rd[1]),
+	.sd_wr(sd_wr[1]),
+	.sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr),
+	.sd_buff_dout(sd_buff_dout),
+	.sd_buff_din(fdd2_buf_dout),
+	.sd_buff_wr(sd_buff_wr),
+
+	.wp(~status[4]),
+
+	.size_code(4),
+	.layout(ioctl_index[7:6] == 2),
+	.side(fdd2_side),
+	.ready(fdd2_ready),
+
+	.input_active(0),
+	.input_addr(0),
+	.input_data(0),
+	.input_wr(0),
+	.buff_din(0)
+);
 
 
 endmodule

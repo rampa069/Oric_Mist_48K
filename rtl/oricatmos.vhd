@@ -1,7 +1,7 @@
 --
 -- A simulation model of ORIC ATMOS hardware
 -- Copyright (c) SEILEBOST - March 2006
---
+-- 
 -- All rights reserved
 --
 -- Redistribution and use in source and synthezised forms, with or without
@@ -76,8 +76,8 @@ entity oricatmos is
 	 joystick_0        : in  std_logic_vector( 7 downto 0);
 	 joystick_1        : in  std_logic_vector( 7 downto 0);
 	 pll_locked        : in  std_logic;
-	 ROMDISn           : in std_logic
-	 
+	 disk_enable       : in std_logic
+	
 );
 end;
 
@@ -161,7 +161,6 @@ architecture RTL of oricatmos is
 	 signal cont_ROMDISn       : std_logic :='1';
     signal cont_D_OUT         : std_logic_vector(7 downto 0);
     signal cont_IOCONTROLn    : std_logic :='1';
-	 signal cont_sel           : std_logic;
 	 signal cont_ECE           : std_logic;
 	 signal cont_u16k          : std_logic;
 	 signal cont_ROMENn        : std_logic;
@@ -169,6 +168,7 @@ architecture RTL of oricatmos is
     signal cont_DSEL          : std_logic_vector(1 downto 0);
 	 signal cont_SSEL          : std_logic;
 	 signal cont_IRQEN         : std_logic;
+	 signal cont_irq           : std_logic;
 	 
 	 -- Controller derived clocks
 	 signal PH2_1              : std_logic;                                
@@ -177,8 +177,10 @@ architecture RTL of oricatmos is
     signal PH2_old            : std_logic_vector(3 downto 0);   
     signal PH2_cntr           : std_logic_vector(4 downto 0);
 	 
-	 -- Ram 16K upper
+	 -- Ram 16K upper bank
 	 signal ram16k_do          : std_logic_vector(7 downto 0);
+
+
 	 
 COMPONENT keyboard
 	PORT
@@ -244,7 +246,7 @@ inst_rom1 : entity work.BASIC10 -- Oric-1 ROM
 		data 			=> ROM_1_DO
 );
 
-inst_rom2 : entity work.MICRODISC -- Microdisc ROM
+inst_rom2 : entity work.ORICDOS06 -- Microdisc ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(12 downto 0),
@@ -350,9 +352,47 @@ inst_key : keyboard
 		swrst			=> break
 );
 
-
-
-
+inst_microdisc: work.Microdisc 
+    port map( 
+          CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
+          
+                                                            -- Oric Expansion Port Signals
+          DI        => cpu_do,                              -- 6502 Data Bus
+          DO        => cont_D_OUT,                          -- 6502 Data Bus			 
+          A         => cpu_ad (15 downto 0),                -- 6502 Address Bus
+          RnW       => cpu_rw,                              -- 6502 Read-/Write
+          nIRQ      => cont_irq,                            -- 6502 /IRQ
+          PH2       => ula_phi2,                            -- 6502 PH2 
+          nROMDIS   => cont_ROMDISn,                        -- Oric ROM Disable
+          nMAP      => cont_MAPn,                           -- Oric MAP 
+          IO        => ula_CSIOn,                           -- Oric I/O 
+          IOCTRL    => cont_IOCONTROLn,                     -- Oric I/O Control           
+          nHOSTRST  => cont_RESETn,                         -- Oric RESET 
+                  
+                                                            -- Data Bus Buffer Control Signals
+          --nOE     => cont_nOE,                            -- Output Enable
+          --DIR     => cont_DIR,                            -- Direction
+          
+                                                            -- CPLD-MCU Interface
+          --nMWE      => fd_nMWE,                             -- Write Enable                                                                 
+          --nMOE      => fd_nMOE,                             -- Output Enable                                                                    
+          --MFS       => fd_MFS,                              -- Function Select
+          --MD_DI     => fd_DO,                               -- Data Bus     
+          --nMCRQ     => fd_nMCRQ,                            -- Command Request
+          
+                                                            -- Additional MCU Interface Lines
+          nRESET    => RESETn,                              -- RESET from MCU
+          DSEL      => cont_DSEL,                           -- Drive Select
+          SSEL      => cont_SSEL,                           -- Side Select
+          
+                                                            -- EEPROM Control Lines.
+          nECE      => cont_ECE,                             -- Chip Enable
+          --nEOE: out std_logic;                              -- Output Enable
+          --EA13: out std_logic;                              -- Address 
+          --EA14: out std_logic;
+			 ENA       => disk_enable,
+			 u16k      => cont_u16k
+         );
 
 
 via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
@@ -366,75 +406,15 @@ via_pb_in(7) <=via_pb_out(7);
 
 
 K7_TAPEOUT  <= via_pb_out(7);
---K7_REMOTE   <= via_pb_out(6);
+K7_REMOTE   <= via_pb_out(6);
 PRN_STROBE  <= via_pb_out(4);
 PRN_DATA    <= via_pa_out;
 
-K7_REMOTE   <= not (ula_PHI2 and PH2_2);
-cont_D_OUT <= "00000000";
 
-joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
-joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
-
-cont_sel <= '1' when cpu_ad(7 downto 4) = "0001" and ula_CSIOn = '0' and cpu_ad(3 downto 2) /= "11"   else '0';
-cont_IOCONTROLn <= '0' when cont_sel = '1' else '1';
-cont_u16k <= '1' when (cont_ROMDISn = '0') and (cpu_ad(14) = '1') and (cpu_ad(15) = '1') else '0';
-cont_ECE <= not (cpu_ad(13) and cont_u16k and not cont_ROMENn);
-cont_MAPn <= '0' when (PH2_2 and cont_ECE and cont_u16k) = '1' else '1';
-cont_RESETn <= '0' when RESETn = '0' else '1';
---cont_nIRQ <= '0' when fdc_IRQ = '1' and cont_IRQEN = '1' else 'Z'; --todo
+--joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
+--joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
 
--- Control Register.
-    process (cont_sel, cpu_ad, cpu_rw, cpu_do)
-    begin
-        if RESETn = '0' then
-            cont_ROMENn <= '0';
-            cont_DSEL <= "00";
-            cont_SSEL <= '0';
-            if ROMDISn = '0' then
-				   cont_ROMDISn <= '0';
-				else cont_ROMDISn <= '1';
-				end if;
-            cont_IRQEN <= '0';       
-        elsif falling_edge(PH2_2) then 
-            if cont_sel = '1' and cpu_ad(3 downto 2) = "01" and cpu_rw = '0' then
-                cont_ROMENn <= cpu_do(7);
-                cont_DSEL <= cpu_do(6 downto 5);
-                cont_SSEL <= cpu_do(4);
-                cont_ROMDISn <= cpu_do(1);
-                cont_IRQEN <= cpu_do(0);
-            end if;
-        end if;
-    end process;
-	 
--- PH2 derived clocks.
-    process (ULA_PHI2, CLK_MICRODISC)
-    begin
-        if RESETn = '0' then
-            PH2_cntr <= "00000";
-        elsif falling_edge(CLK_MICRODISC) then 
-            PH2_old <= PH2_old(2 downto 0) & ULA_PHI2;
-            if (PH2_old = "1111") and (ULA_PHI2 = '0') then 
-                PH2_cntr <= "00000";
-                PH2_1 <= '1';
-            else
-                PH2_cntr <= PH2_cntr + 1;               
-                if (PH2_cntr = "10000") then 
-                    PH2_1 <= '0';
-                    PH2_2 <= '1';
-                elsif (PH2_cntr = "10111") then 
-                    PH2_3 <= '1';
-                elsif (PH2_cntr = "11100") then 
-                    PH2_2 <= '0';                   
-                elsif (PH2_cntr = "11101") then 
-                    PH2_3 <= '0';
-                end if;
-            end if;
-        end if;
-    end process; 
-	 
-	 
 process begin
 	wait until rising_edge(clk_in);
   

@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity MICRODISC is
+entity ORICDOS06 is
  port (
    addr : in  std_logic_vector( 12 downto 0);
    clk  : in  std_logic;
@@ -10,7 +10,7 @@ entity MICRODISC is
    );
 end entity;
 
-architecture prom of MICRODISC is
+architecture prom of ORICDOS06 is
   type rom is array(0 to 8191) of std_logic_vector(7 downto 0);
   signal rom_data: rom := (
      X"4c", X"c2", X"e5", X"4c", X"0c", X"e2", X"4c", X"34",
