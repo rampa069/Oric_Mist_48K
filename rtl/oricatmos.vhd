@@ -412,7 +412,8 @@ inst_microdisc: work.Microdisc
 			 fdc_IRQ   => fdc_IRQ,
           fdc_A     => fdc_A,           						  -- Register Select
           fdc_DALin => fdc_DALin,								  -- Data Bus 
-          fdc_DALout=> fdc_DALout                          -- Data Bus 
+          fdc_DALout=> fdc_DALout,                          -- Data Bus
+			 fdc_sel   => fdc_sel 
          );
 
 
@@ -450,9 +451,9 @@ process begin
 		-- ROM Atmos	
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '1' and cont_ROMDISn = '1' then
 			cpu_di <= ROM_ATMOS_DO;
-		--ROM Oric-1
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
-			cpu_di <= ROM_1_DO;
+--		--ROM Oric-1
+--		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
+--			cpu_di <= ROM_1_DO;
 		--ROM Microdisc
 		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
 			cpu_di <= ROM_MD_DO;	

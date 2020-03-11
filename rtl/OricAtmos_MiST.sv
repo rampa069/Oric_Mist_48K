@@ -94,38 +94,66 @@ pll pll (
 	.locked   (pll_locked )
 	);
 
-user_io #(
-	.STRLEN				(($size(CONF_STR)>>3)))
-user_io(
+//user_io #(
+//	.STRLEN				(($size(CONF_STR)>>3)))
+//user_io(
+//	.clk_sys        	(clk_24         	),
+//	.conf_str       	(CONF_STR       	),
+//	.SPI_CLK        	(SPI_SCK        	),
+//	.SPI_SS_IO      	(CONF_DATA0     	),
+//	.SPI_MISO       	(SPI_DO         	),
+//	.SPI_MOSI       	(SPI_DI         	),
+//	.buttons        	(buttons        	),
+//	.switches       	(switches      	),
+//	.scandoubler_disable (scandoublerD	),
+//	.ypbpr          	(ypbpr          	),
+//	.key_strobe     	(key_strobe     	),
+//	.key_pressed    	(key_pressed    	),
+//	.key_extended   	(key_extended   	),
+//	.key_code       	(key_code       	),
+//	.joystick_0       ( joystick_0      ),
+//	.joystick_1       ( joystick_1      ),
+//	.status         	(status         	),
+//	.sd_conf          (0),
+//	.sd_sdhc          (1),
+//	.sd_buff_addr     (sd_buff_addr),
+//	.sd_dout          (sd_buff_dout),
+//	.sd_wr            (sd_buff_wr),
+//	.sd_ack           (sd_ack),
+//	.img_size         (img_size),
+//	.img_mounted      (img_mounted)
+//
+//	);
+
+mist_io #(.STRLEN($size(CONF_STR)>>3)) user_io
+(
+	.*,
 	.clk_sys        	(clk_24         	),
-	.conf_str       	(CONF_STR       	),
-	.SPI_CLK        	(SPI_SCK        	),
-	.SPI_SS_IO      	(CONF_DATA0     	),
-	.SPI_MISO       	(SPI_DO         	),
-	.SPI_MOSI       	(SPI_DI         	),
-	.buttons        	(buttons        	),
-	.switches       	(switches      	),
 	.scandoubler_disable (scandoublerD	),
-	.ypbpr          	(ypbpr          	),
-	.key_strobe     	(key_strobe     	),
-	.key_pressed    	(key_pressed    	),
-	.key_extended   	(key_extended   	),
-	.key_code       	(key_code       	),
-	.joystick_0       ( joystick_0      ),
-	.joystick_1       ( joystick_1      ),
-	.status         	(status         	),
-	.sd_conf          (0),
-	.sd_sdhc          (1),
-	.sd_buff_addr     (sd_buff_addr),
-	.sd_dout          (sd_buff_dout),
-	.sd_wr            (sd_buff_wr),
-	.sd_ack           (sd_ack),
-	.img_size         (img_size),
-	.img_mounted      (img_mounted)
 
-	);
-
+	//.key_strobe     	(key_strobe     	),
+	//.key_pressed    	(key_pressed    	),
+	//.key_extended   	(key_extended   	),
+	//.key_code       	(key_code       	),
 	
+
+	.conf_str(CONF_STR),
+	.sd_conf(0),
+	.sd_sdhc(1),
+	.ioctl_ce(1),
+
+	// unused
+	.ps2_kbd_clk(),
+	.ps2_kbd_data(),
+	.ps2_mouse_clk(),
+	.ps2_mouse_data(),
+	.ps2_key(),
+	.ps2_mouse(),
+	.joystick_analog_0(),
+	.joystick_analog_1(),
+	.sd_ack_conf()
+);	
+
 reg init_reset = 1;
 always @(posedge clk_24) begin
 	reg old_download;
@@ -260,9 +288,9 @@ sdram sdram(
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
 	.port2_a       ( ioctl_addr ),
-	.port2_ds      ( ),
-	.port2_we      ( ioctl_wr ),
-	.port2_d       ( ioctl_dout ),
+	.port2_ds      ( ioctl_ce),
+	.port2_we      ( ioctl_wr),
+	.port2_d       ( ioctl_dout),
 	.port2_q       ( )
 );
 
@@ -279,11 +307,11 @@ audiodac(
   );
 
 
-data_io data_io (
-	// io controller spi interface
-   .clk_sys				( SPI_SCK )
- 
-);
+//data_io data_io (
+//	// io controller spi interface
+//   .clk_sys				( SPI_SCK )
+// 
+//);
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
@@ -312,9 +340,11 @@ always @(posedge clk_24) begin
 	if(sd_rd[0]|sd_wr[0]) fdd_num <= 0;
 end
 
-assign sd_buff_din = fdd_num ? fdd2_buf_dout : fdd1_buf_dout;
-assign sd_lba      = fdd_num ? fdd2_lba      : fdd1_lba;
+//assign sd_buff_din = fdd_num ? fdd2_buf_dout : fdd1_buf_dout;
+//assign sd_lba      = fdd_num ? fdd2_lba      : fdd1_lba;
 
+assign sd_buff_din = fdd1_buf_dout;
+assign sd_lba      = fdd1_lba;
 
 
 // FDD1
@@ -377,62 +407,62 @@ wd1793 #(1) fdd1
 );
 
 
-// FDD2
-reg         fdd2_ready;
-reg         fdd2_side;
-wire        fdd2_io   = fdc_sel & cpu_ad[4] & ~fdc_IRQ ;//& nM1;
-wire  [7:0] fdd2_dout;
-wire  [7:0] fdd2_buf_dout;
-wire [31:0] fdd2_lba;
-
-always @(posedge clk_24) begin
-	reg old_wr;
-	reg old_mounted;
-
-	old_wr <= fdc_nWE;
-	if(old_wr & ~fdc_nWE & fdd2_io) fdd2_side <= fdc_A[1];
-
-	old_mounted <= img_mounted[1];
-	if(reset) fdd2_ready <= 0;
-		else if(~old_mounted & img_mounted[1]) fdd2_ready <= 1;
-end
-
-wd1793 #(1) fdd2
-(
-	.clk_sys(clk_24),
-	.ce(fdc_nCS),
-	.reset(reset),
-	.io_en(fdd2_io & fdd2_ready),
-	.rd(~fdc_nRE),
-	.wr(~fdc_nWE),
-	.addr(fdc_A[1:0]),
-	.din(fdc_DALin),
-	.dout(fdc_DALout),
-
-	.img_mounted(img_mounted[1]),
-	.img_size(img_size[19:0]),
-	.sd_lba(fdd2_lba),
-	.sd_rd(sd_rd[1]),
-	.sd_wr(sd_wr[1]),
-	.sd_ack(sd_ack),
-	.sd_buff_addr(sd_buff_addr),
-	.sd_buff_dout(sd_buff_dout),
-	.sd_buff_din(fdd2_buf_dout),
-	.sd_buff_wr(sd_buff_wr),
-
-	.wp(~status[4]),
-
-	.size_code(4),
-	.layout(ioctl_index[7:6] == 2),
-	.side(fdd2_side),
-	.ready(fdd2_ready),
-
-	.input_active(0),
-	.input_addr(0),
-	.input_data(0),
-	.input_wr(0),
-	.buff_din(0)
-);
+//// FDD2
+//reg         fdd2_ready;
+//reg         fdd2_side;
+//wire        fdd2_io   = fdc_sel & cpu_ad[4] & ~fdc_IRQ ;//& nM1;
+//wire  [7:0] fdd2_dout;
+//wire  [7:0] fdd2_buf_dout;
+//wire [31:0] fdd2_lba;
+//
+//always @(posedge clk_24) begin
+//	reg old_wr;
+//	reg old_mounted;
+//
+//	old_wr <= fdc_nWE;
+//	if(old_wr & ~fdc_nWE & fdd2_io) fdd2_side <= fdc_A[1];
+//
+//	old_mounted <= img_mounted[1];
+//	if(reset) fdd2_ready <= 0;
+//		else if(~old_mounted & img_mounted[1]) fdd2_ready <= 1;
+//end
+//
+//wd1793 #(1) fdd2
+//(
+//	.clk_sys(clk_24),
+//	.ce(fdc_nCS),
+//	.reset(reset),
+//	.io_en(fdd2_io & fdd2_ready),
+//	.rd(~fdc_nRE),
+//	.wr(~fdc_nWE),
+//	.addr(fdc_A[1:0]),
+//	.din(fdc_DALin),
+//	.dout(fdc_DALout),
+//
+//	.img_mounted(img_mounted[1]),
+//	.img_size(img_size[19:0]),
+//	.sd_lba(fdd2_lba),
+//	.sd_rd(sd_rd[1]),
+//	.sd_wr(sd_wr[1]),
+//	.sd_ack(sd_ack),
+//	.sd_buff_addr(sd_buff_addr),
+//	.sd_buff_dout(sd_buff_dout),
+//	.sd_buff_din(fdd2_buf_dout),
+//	.sd_buff_wr(sd_buff_wr),
+//
+//	.wp(~status[4]),
+//
+//	.size_code(4),
+//	.layout(ioctl_index[7:6] == 2),
+//	.side(fdd2_side),
+//	.ready(fdd2_ready),
+//
+//	.input_active(0),
+//	.input_addr(0),
+//	.input_data(0),
+//	.input_wr(0),
+//	.buff_din(0)
+//);
 
 
 endmodule
