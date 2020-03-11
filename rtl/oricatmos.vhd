@@ -51,9 +51,6 @@ entity oricatmos is
 	 CLK_MICRODISC     : in    std_logic;
     RESET             : in    std_logic;
 	 ps2_key         	 : in    std_logic_vector(10 downto 0);
-	 key_pressed       : in    std_logic;
-	 key_extended      : in    std_logic;
-	 key_code          : in    std_logic_vector(7 downto 0);
 	 key_strobe        : in    std_logic;
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
@@ -77,11 +74,6 @@ entity oricatmos is
 	 joystick_1        : in  std_logic_vector( 7 downto 0);
 	 pll_locked        : in  std_logic;
 	 disk_enable       : in std_logic;
-	 -- BUS
-	 cpu_ad            : inout std_logic_vector(23 downto 0);
-	 cpu_di            : inout std_logic_vector (7 downto 0);
- 	 cpu_do            : inout std_logic_vector (7 downto 0);
-	 -- FDC bus
 	 fdc_A				 : inout std_logic_vector (1 downto 0);
     fdc_DALin			 : inout std_logic_vector (7 downto 0);
     fdc_DALout			 : inout std_logic_vector (7 downto 0);
@@ -91,8 +83,9 @@ entity oricatmos is
 	 fdc_nWE           : inout std_logic;
 	 fdc_DRQ           : inout std_logic;
 	 fdc_IRQ           : inout std_logic;
-	 fdc_sel           : inout std_logic
-
+	 fdc_sel           : inout std_logic;
+	 cont_DSEL         : inout std_logic_vector (1 downto 0);
+    cont_SSEL         : inout std_logic
 	 );
 end;
 
@@ -105,9 +98,9 @@ architecture RTL of oricatmos is
     signal clk_cnt            : std_logic_vector(2 downto 0) := "000";
 
     -- cpu
-    --signal cpu_ad             : std_logic_vector(23 downto 0);
-    --signal cpu_di             : std_logic_vector(7 downto 0);
-    --signal cpu_do             : std_logic_vector(7 downto 0);
+    signal cpu_ad             : std_logic_vector(23 downto 0);
+    signal cpu_di             : std_logic_vector(7 downto 0);
+    signal cpu_do             : std_logic_vector(7 downto 0);
     signal cpu_rw             : std_logic;
     signal cpu_irq            : std_logic;
       
@@ -180,8 +173,8 @@ architecture RTL of oricatmos is
 	 signal cont_u16k          : std_logic;
 	 signal cont_ROMENn        : std_logic;
 	 signal cont_RESETn        : std_logic;
-    signal cont_DSEL          : std_logic_vector(1 downto 0);
-	 signal cont_SSEL          : std_logic;
+    --signal cont_DSEL          : std_logic_vector(1 downto 0);
+	 --signal cont_SSEL          : std_logic;
 	 signal cont_IRQEN         : std_logic;
 	 signal cont_irq           : std_logic;
 	 
@@ -201,12 +194,9 @@ COMPONENT keyboard
 	PORT
 	(
 		clk_24		:	 IN STD_LOGIC;
-		clk_en		:	 IN STD_LOGIC;
+		clk 		   :	 IN STD_LOGIC;
 		reset			:	 IN STD_LOGIC;
-		key_pressed	:	 IN STD_LOGIC;
-		key_extended:	 IN STD_LOGIC;
-		key_strobe	:	 IN STD_LOGIC;
-		key_code		:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		ps2_key		:	 IN STD_LOGIC_VECTOR(10 DOWNTO 0);
 		col			:	 IN STD_LOGIC_VECTOR(2 DOWNTO 0);
 		row			:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 		ROWbit		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
@@ -355,12 +345,9 @@ inst_psg : entity work.ay8912
 inst_key : keyboard
 	port map(
 		clk_24		=> CLK_IN,
-		clk_en		=> ENA_1MHZ,
+		clk  		   => ENA_1MHZ,
 		reset			=> not RESETn, --not RESETn,
-		key_pressed	=> key_pressed,
-		key_extended => key_extended,
-		key_strobe	=> key_strobe,
-		key_code		=> key_code,
+		ps2_key		=> ps2_key,
 		row			=> via_pa_out,
 		col			=> via_pb_out(2 downto 0),
 		ROWbit		=> KEY_ROW,

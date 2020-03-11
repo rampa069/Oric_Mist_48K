@@ -185,7 +185,7 @@ begin
                 DO <= "--------";    
             end if;
         else 
-            DO <= "ZZZZZZZZ";    
+            DO <= "00000000";    
         end if;
     end process;    
 --    

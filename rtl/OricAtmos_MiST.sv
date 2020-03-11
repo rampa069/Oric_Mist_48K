@@ -31,7 +31,7 @@ module OricAtmos_MiST(
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"OricAtmos;;",
+	"ORICATMOS;;",
 	"S0,DSK,Mount Drive A:;",
 	"S1,DSK,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
@@ -44,12 +44,10 @@ wire        clk_24;
 wire        clk_72;
 wire        clk_32;
 wire        pll_locked;
-wire        key_pressed;
-wire [7:0]  key_code;
-wire        key_strobe;
-wire        key_extended;
+
 wire 			r, g, b; 
 wire 			hs, vs;
+
 wire  [1:0] buttons, switches;
 wire			ypbpr;
 wire        scandoublerD;
@@ -57,15 +55,13 @@ wire [31:0] status;
 wire [15:0] audio;
 wire [7:0] joystick_0;
 wire [7:0] joystick_1;
+
+wire [10:0]ps2_key;
+wire 		  ps2_kbd_clk, ps2_kbd_data;
+
 wire       tapebits;
 wire 		  remote;
 wire       reset;
-
-wire[15:0] cpu_ad;
-wire [7:0] cpu_di; 
-wire [7:0] cpu_do;
-
-//wire       nM1;
 
 wire [1:0] fdc_A;
 wire       fdc_nCS;
@@ -78,11 +74,14 @@ wire       fdc_sel;
 wire       fdc_DRQ;
 wire       fdc_IRQ;
 
+wire [1:0] cont_DSEL;
+wire       cont_SSEL;
+
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 assign      rom = ~status[3] ;
 //assign      LED=!remote;
-assign      LED = ~img_mounted[0];
+assign      LED = ~fdc_nCS;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1] | rom_changed);
 
@@ -94,60 +93,23 @@ pll pll (
 	.locked   (pll_locked )
 	);
 
-//user_io #(
-//	.STRLEN				(($size(CONF_STR)>>3)))
-//user_io(
-//	.clk_sys        	(clk_24         	),
-//	.conf_str       	(CONF_STR       	),
-//	.SPI_CLK        	(SPI_SCK        	),
-//	.SPI_SS_IO      	(CONF_DATA0     	),
-//	.SPI_MISO       	(SPI_DO         	),
-//	.SPI_MOSI       	(SPI_DI         	),
-//	.buttons        	(buttons        	),
-//	.switches       	(switches      	),
-//	.scandoubler_disable (scandoublerD	),
-//	.ypbpr          	(ypbpr          	),
-//	.key_strobe     	(key_strobe     	),
-//	.key_pressed    	(key_pressed    	),
-//	.key_extended   	(key_extended   	),
-//	.key_code       	(key_code       	),
-//	.joystick_0       ( joystick_0      ),
-//	.joystick_1       ( joystick_1      ),
-//	.status         	(status         	),
-//	.sd_conf          (0),
-//	.sd_sdhc          (1),
-//	.sd_buff_addr     (sd_buff_addr),
-//	.sd_dout          (sd_buff_dout),
-//	.sd_wr            (sd_buff_wr),
-//	.sd_ack           (sd_ack),
-//	.img_size         (img_size),
-//	.img_mounted      (img_mounted)
-//
-//	);
+
 
 mist_io #(.STRLEN($size(CONF_STR)>>3)) user_io
 (
 	.*,
 	.clk_sys        	(clk_24         	),
-	.scandoubler_disable (scandoublerD	),
-
-	//.key_strobe     	(key_strobe     	),
-	//.key_pressed    	(key_pressed    	),
-	//.key_extended   	(key_extended   	),
-	//.key_code       	(key_code       	),
-	
-
+	.scandoubler_disable (scandoublerD	),	
+   
 	.conf_str(CONF_STR),
+	
 	.sd_conf(0),
 	.sd_sdhc(1),
 	.ioctl_ce(1),
 
 	// unused
-	.ps2_kbd_clk(),
-	.ps2_kbd_data(),
 	.ps2_mouse_clk(),
 	.ps2_mouse_data(),
-	.ps2_key(),
 	.ps2_mouse(),
 	.joystick_analog_0(),
 	.joystick_analog_1(),
@@ -186,10 +148,7 @@ oricatmos oricatmos(
 	.clk_in           (clk_24       ),
 	.clk_microdisc    (clk_32       ),
 	.RESET            (status[0] | buttons[1] | rom_changed),
-	.key_pressed      (key_pressed  ),
-	.key_code         (key_code     ),
-	.key_extended     (key_extended ),
-	.key_strobe       (key_strobe   ),
+	.ps2_key          (ps2_key     ),
 	.PSG_OUT				(audio		),
 	.VIDEO_R				(r			   ),
 	.VIDEO_G				(g				),
@@ -211,11 +170,6 @@ oricatmos oricatmos(
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
-	//
-	.cpu_ad            (cpu_ad),
-	.cpu_di            (cpu_di),
-	.cpu_do            (cpu_do),
-	//
 	.fdc_A             (fdc_A),
    .fdc_nCS				 (fdc_nCS),
 	.fdc_nRE				 (fdc_nRE),
@@ -225,7 +179,9 @@ oricatmos oricatmos(
 	.fdc_IRQ           (fdc_IRQ),
 	.fdc_DALin         (fdc_DALin),
 	.fdc_DALout        (fdc_DALout),
-	.fdc_sel           (fdc_sel)
+	.fdc_sel           (fdc_sel),
+	.cont_DSEL         (cont_DSEL),
+	.cont_SSEL         (cont_SSEL)
 	);
 
 reg         port1_req, port2_req;
@@ -287,10 +243,10 @@ sdram sdram(
 	// port2 is unused currently. Can be useful e.g. for TAP files
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
-	.port2_a       ( ioctl_addr ),
-	.port2_ds      ( ioctl_ce),
-	.port2_we      ( ioctl_wr),
-	.port2_d       ( ioctl_dout),
+	.port2_a       ( ),
+	.port2_ds      ( ),
+	.port2_we      ( ),
+	.port2_d       ( ),
 	.port2_q       ( )
 );
 
@@ -334,10 +290,9 @@ wire  [7:0] ioctl_index;
 //wire       fdc_sel  = &cpu_ad[7:5] & ~cpu_ad[3]; // 224-231(E0-E7), 240-247(F0-F7)
 //wire       fdc_sel = '&cpu_ad[7:4] & ~cpu_ad[3:2];
 
-reg fdd_num = 0;
 always @(posedge clk_24) begin
-	if(sd_rd[1]|sd_wr[1]) fdd_num <= 1;
-	if(sd_rd[0]|sd_wr[0]) fdd_num <= 0;
+	if(sd_rd[1]|sd_wr[1]) cont_DSEL <= 1;
+	if(sd_rd[0]|sd_wr[0]) cont_DSEL <= 0;
 end
 
 //assign sd_buff_din = fdd_num ? fdd2_buf_dout : fdd1_buf_dout;
@@ -350,10 +305,9 @@ assign sd_lba      = fdd1_lba;
 // FDD1
 wire        fdd1_busy;
 reg         fdd1_ready;
-reg         fdd1_side;
-wire        fdd1_io   = fdc_sel & ~cpu_ad[4] & ~fdc_IRQ ;//& nM1;
-wire  [7:0] fdd1_dout;
-wire  [7:0] fdd1_buf_dout;
+wire        fdd1_io   = fdc_sel & ~fdc_IRQ ;//& nM1;
+//wire  [7:0] fdd1_dout;
+//wire  [7:0] fdd1_buf_dout;
 wire [31:0] fdd1_lba;
 
 always @(posedge clk_24) begin
@@ -361,7 +315,7 @@ always @(posedge clk_24) begin
 	reg old_mounted;
 
 	old_wr <= fdc_nWE;
-	if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= fdc_A[1];
+	if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= cont_SSEL;
 
 	old_mounted <= img_mounted[0];
 	if(reset) fdd1_ready <= 0;
@@ -371,14 +325,14 @@ end
 wd1793 #(1) fdd1
 (
 	.clk_sys(clk_24),
-	.ce(fdc_nCS),
+	.ce(~fdc_nCS),
 	.reset(reset),
 	.io_en(fdd1_io & fdd1_ready),
 	.rd(fdc_nRE),
 	.wr(fdc_nWE),
-	.addr(fdc_DALin),
-	.din(fdc_DALout),
-	.dout(fdd1_dout),
+	.addr(fdc_A),
+	.din(fdc_DALin),
+	.dout(fdc_DALout),
 
 	.img_mounted(img_mounted[0]),
 	.img_size(img_size[19:0]),
