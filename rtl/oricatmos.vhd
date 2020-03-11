@@ -76,9 +76,24 @@ entity oricatmos is
 	 joystick_0        : in  std_logic_vector( 7 downto 0);
 	 joystick_1        : in  std_logic_vector( 7 downto 0);
 	 pll_locked        : in  std_logic;
-	 disk_enable       : in std_logic
-	
-);
+	 disk_enable       : in std_logic;
+	 -- BUS
+	 cpu_ad            : inout std_logic_vector(23 downto 0);
+	 cpu_di            : inout std_logic_vector (7 downto 0);
+ 	 cpu_do            : inout std_logic_vector (7 downto 0);
+	 -- FDC bus
+	 fdc_A				 : inout std_logic_vector (1 downto 0);
+    fdc_DALin			 : inout std_logic_vector (7 downto 0);
+    fdc_DALout			 : inout std_logic_vector (7 downto 0);
+	 fdc_CLK           : inout std_logic;
+	 fdc_nCS           : inout std_logic;
+	 fdc_nRE           : inout std_logic;
+	 fdc_nWE           : inout std_logic;
+	 fdc_DRQ           : inout std_logic;
+	 fdc_IRQ           : inout std_logic;
+	 fdc_sel           : inout std_logic
+
+	 );
 end;
 
 architecture RTL of oricatmos is
@@ -90,9 +105,9 @@ architecture RTL of oricatmos is
     signal clk_cnt            : std_logic_vector(2 downto 0) := "000";
 
     -- cpu
-    signal cpu_ad             : std_logic_vector(23 downto 0);
-    signal cpu_di             : std_logic_vector(7 downto 0);
-    signal cpu_do             : std_logic_vector(7 downto 0);
+    --signal cpu_ad             : std_logic_vector(23 downto 0);
+    --signal cpu_di             : std_logic_vector(7 downto 0);
+    --signal cpu_do             : std_logic_vector(7 downto 0);
     signal cpu_rw             : std_logic;
     signal cpu_irq            : std_logic;
       
@@ -387,11 +402,17 @@ inst_microdisc: work.Microdisc
           
                                                             -- EEPROM Control Lines.
           nECE      => cont_ECE,                             -- Chip Enable
-          --nEOE: out std_logic;                              -- Output Enable
-          --EA13: out std_logic;                              -- Address 
-          --EA14: out std_logic;
+ 
 			 ENA       => disk_enable,
-			 u16k      => cont_u16k
+			 u16k      => cont_u16k,
+			 fdc_nCS   => fdc_nCS,                            -- Chip Select
+          fdc_nRE   => fdc_nRE,                            -- Read Enable
+          fdc_nWE   => fdc_nWE,                            -- Write Enable
+			 fdc_DRQ   => fdc_DRQ,
+			 fdc_IRQ   => fdc_IRQ,
+          fdc_A     => fdc_A,           						  -- Register Select
+          fdc_DALin => fdc_DALin,								  -- Data Bus 
+          fdc_DALout=> fdc_DALout                          -- Data Bus 
          );
 
 

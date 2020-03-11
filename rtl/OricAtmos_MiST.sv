@@ -32,8 +32,8 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"OricAtmos;;",
-	"S1,DSK,Mount Drive A:;",
-	"S2,DSK,Mount Drive B:;",
+	"S0,DSK,Mount Drive A:;",
+	"S1,DSK,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
@@ -64,13 +64,25 @@ wire       reset;
 wire[15:0] cpu_ad;
 wire [7:0] cpu_di; 
 wire [7:0] cpu_do;
-wire       nIORQ; 
-wire       nM1;
+
+//wire       nM1;
+
+wire [1:0] fdc_A;
+wire       fdc_nCS;
+wire       fdc_nRE;
+wire       fdc_nWE;
+wire       fdc_CLK;
+wire [7:0] fdc_DALin;
+wire [7:0] fdc_DALout;
+wire       fdc_sel;
+wire       fdc_DRQ;
+wire       fdc_IRQ;
 
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 assign      rom = ~status[3] ;
-assign      LED=!remote;
+//assign      LED=!remote;
+assign      LED = ~img_mounted[0];
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1] | rom_changed);
 
@@ -101,11 +113,25 @@ user_io(
 	.key_code       	(key_code       	),
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
-	.status         	(status         	)
-	
+	.status         	(status         	),
+	.sd_conf          (0),
+	.sd_sdhc          (1),
+	.sd_buff_addr     (sd_buff_addr),
+	.sd_dout          (sd_buff_dout),
+	.sd_wr            (sd_buff_wr),
+	.sd_ack           (sd_ack),
+	.img_size         (img_size),
+	.img_mounted      (img_mounted)
+
 	);
 
-
+	
+reg init_reset = 1;
+always @(posedge clk_24) begin
+	reg old_download;
+	old_download <= ioctl_download;
+	if(~ioctl_download & old_download & !ioctl_index) init_reset <= 0;
+end
 	
 mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.clk_sys      (clk_24     ),
@@ -157,6 +183,21 @@ oricatmos oricatmos(
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
+	//
+	.cpu_ad            (cpu_ad),
+	.cpu_di            (cpu_di),
+	.cpu_do            (cpu_do),
+	//
+	.fdc_A             (fdc_A),
+   .fdc_nCS				 (fdc_nCS),
+	.fdc_nRE				 (fdc_nRE),
+	.fdc_nWE           (fdc_nWE),
+	.fdc_CLK           (fdc_CLK),
+	.fdc_DRQ           (fdc_DRQ),
+	.fdc_IRQ           (fdc_IRQ),
+	.fdc_DALin         (fdc_DALin),
+	.fdc_DALout        (fdc_DALout),
+	.fdc_sel           (fdc_sel)
 	);
 
 reg         port1_req, port2_req;
@@ -173,9 +214,7 @@ wire        rom;
 wire        old_rom;
 wire        rom_changed;
 wire        disk_enable;
-//wire [15:0] cpu_ad;
-//wire  [7:0] cpu_di;
-//wire  [7:0] cpu_do;
+
 
 
 always @(posedge clk_72) begin
@@ -220,10 +259,10 @@ sdram sdram(
 	// port2 is unused currently. Can be useful e.g. for TAP files
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
-	.port2_a       ( ),
+	.port2_a       ( ioctl_addr ),
 	.port2_ds      ( ),
-	.port2_we      ( ),
-	.port2_d       ( ),
+	.port2_we      ( ioctl_wr ),
+	.port2_d       ( ioctl_dout ),
 	.port2_q       ( )
 );
 
@@ -240,6 +279,11 @@ audiodac(
   );
 
 
+data_io data_io (
+	// io controller spi interface
+   .clk_sys				( SPI_SCK )
+ 
+);
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
@@ -259,7 +303,8 @@ wire  [7:0] ioctl_dout;
 wire        ioctl_download;
 wire  [7:0] ioctl_index;
 
-wire       fdd_sel  = &cpu_ad[7:5] & ~cpu_ad[3]; // 224-231(E0-E7), 240-247(F0-F7)
+//wire       fdc_sel  = &cpu_ad[7:5] & ~cpu_ad[3]; // 224-231(E0-E7), 240-247(F0-F7)
+//wire       fdc_sel = '&cpu_ad[7:4] & ~cpu_ad[3:2];
 
 reg fdd_num = 0;
 always @(posedge clk_24) begin
@@ -276,7 +321,7 @@ assign sd_lba      = fdd_num ? fdd2_lba      : fdd1_lba;
 wire        fdd1_busy;
 reg         fdd1_ready;
 reg         fdd1_side;
-wire        fdd1_io   = fdd_sel & ~cpu_ad[4] & ~nIORQ & nM1;
+wire        fdd1_io   = fdc_sel & ~cpu_ad[4] & ~fdc_IRQ ;//& nM1;
 wire  [7:0] fdd1_dout;
 wire  [7:0] fdd1_buf_dout;
 wire [31:0] fdd1_lba;
@@ -285,8 +330,8 @@ always @(posedge clk_24) begin
 	reg old_wr;
 	reg old_mounted;
 
-	old_wr <= nWR;
-	if(old_wr & ~nWR & fdd1_io) fdd1_side <= cpu_ad[2];
+	old_wr <= fdc_nWE;
+	if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= fdc_A[1];
 
 	old_mounted <= img_mounted[0];
 	if(reset) fdd1_ready <= 0;
@@ -296,13 +341,13 @@ end
 wd1793 #(1) fdd1
 (
 	.clk_sys(clk_24),
-	.ce(cpu_n),
+	.ce(fdc_nCS),
 	.reset(reset),
 	.io_en(fdd1_io & fdd1_ready),
-	.rd(~nRD),
-	.wr(~nWR),
-	.addr(cpu_ad[1:0]),
-	.din(cpu_do),
+	.rd(fdc_nRE),
+	.wr(fdc_nWE),
+	.addr(fdc_DALin),
+	.din(fdc_DALout),
 	.dout(fdd1_dout),
 
 	.img_mounted(img_mounted[0]),
@@ -335,7 +380,7 @@ wd1793 #(1) fdd1
 // FDD2
 reg         fdd2_ready;
 reg         fdd2_side;
-wire        fdd2_io   = fdd_sel & cpu_ad[4] & ~nIORQ & nM1;
+wire        fdd2_io   = fdc_sel & cpu_ad[4] & ~fdc_IRQ ;//& nM1;
 wire  [7:0] fdd2_dout;
 wire  [7:0] fdd2_buf_dout;
 wire [31:0] fdd2_lba;
@@ -344,8 +389,8 @@ always @(posedge clk_24) begin
 	reg old_wr;
 	reg old_mounted;
 
-	old_wr <= nWR;
-	if(old_wr & ~nWR & fdd2_io) fdd2_side <= cpu_ad[2];
+	old_wr <= fdc_nWE;
+	if(old_wr & ~fdc_nWE & fdd2_io) fdd2_side <= fdc_A[1];
 
 	old_mounted <= img_mounted[1];
 	if(reset) fdd2_ready <= 0;
@@ -355,14 +400,14 @@ end
 wd1793 #(1) fdd2
 (
 	.clk_sys(clk_24),
-	.ce(cpu_n),
+	.ce(fdc_nCS),
 	.reset(reset),
 	.io_en(fdd2_io & fdd2_ready),
-	.rd(~nRD),
-	.wr(~nWR),
-	.addr(cpu_ad[1:0]),
-	.din(cpu_do),
-	.dout(fdd2_dout),
+	.rd(~fdc_nRE),
+	.wr(~fdc_nWE),
+	.addr(fdc_A[1:0]),
+	.din(fdc_DALin),
+	.dout(fdc_DALout),
 
 	.img_mounted(img_mounted[1]),
 	.img_size(img_size[19:0]),
