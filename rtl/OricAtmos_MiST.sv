@@ -34,7 +34,6 @@ localparam CONF_STR = {
 	"ORICATMOS;;",
 	"S0,DSK,Mount Drive A:;",
 	"S1,DSK,Mount Drive B:;",
-	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
@@ -80,12 +79,11 @@ wire       cont_SSEL;
 
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
-assign      rom = ~status[3] ;
 //assign      LED=!remote;
 //assign      LED = fdd1_busy;
 assign      LED = fdc_IRQ;
 assign      disk_enable = ~status[6];
-assign      reset = (status[0] | buttons[1] | rom_changed);
+assign      reset = (status[0] | buttons[1]);
 
 pll pll (
 	.inclk0	 (CLOCK_27   ),
@@ -160,7 +158,6 @@ oricatmos oricatmos(
 	.K7_TAPEIN			(UART_RXD   ),
 	.K7_TAPEOUT			(UART_TXD   ),
 	.K7_REMOTE			(remote     ),
-	.rom			      (rom),
 	.ram_ad           (ram_ad       ),
 	.ram_d            (ram_d        ),
 	.ram_q            (ram_cs ? ram_q : 8'd0 ),
@@ -196,9 +193,6 @@ wire        ram_cs = ram_ad[15:14] == 2'b11 ? 1'b0 : ram_cs_oric;
 reg         sdram_we;
 reg  [15:0] sdram_ad;
 wire        phi2;
-wire        rom;
-wire        old_rom;
-wire        rom_changed;
 wire        disk_enable;
 
 
@@ -210,8 +204,6 @@ always @(posedge clk_72) begin
 	ram_we_old <= ram_cs & ram_we;
 	ram_oe_old <= ram_cs & ram_oe;
 	ram_ad_old <= ram_ad;
-	old_rom <= rom;
-	rom_changed <= 1'b0;
 
 	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
 		port1_req <= ~port1_req;
@@ -219,9 +211,6 @@ always @(posedge clk_72) begin
 		sdram_we <= ram_we;
 	end
 	
-	if (rom != old_rom) begin
-	  rom_changed <= 1'b1;
-	end
 end
 
 assign      SDRAM_CLK = clk_72;
@@ -327,7 +316,7 @@ wd1793 #(1) fdd1
 	.clk_sys(clk_24),
 	.ce(fdc_CLK),
 	.reset(reset),
-	.io_en(fdd1_io & fdd1_ready),
+	.io_en(~fdc_nCS),
 	.rd(~fdc_nRE),
 	.wr(~fdc_nWE),
 	.addr(fdc_A),

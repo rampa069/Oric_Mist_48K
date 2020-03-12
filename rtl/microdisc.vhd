@@ -29,8 +29,8 @@ entity Microdisc is
           CLK: in std_logic;                                -- 32 Mhz input clock
           
                                                             -- Oric Expansion Port Signals
-          DI: inout std_logic_vector(7 downto 0);           -- 6502 Data Bus
-          DO: inout std_logic_vector(7 downto 0);           -- 6502 Data Bus			 
+          DI: in std_logic_vector(7 downto 0);           -- 6502 Data Bus
+          DO: out std_logic_vector(7 downto 0);           -- 6502 Data Bus			 
           A: in std_logic_vector(15 downto 0);              -- 6502 Address Bus
           RnW: in std_logic;                                -- 6502 Read-/Write
           nIRQ: out std_logic;                              -- 6502 /IRQ

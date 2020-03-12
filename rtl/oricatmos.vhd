@@ -55,7 +55,6 @@ entity oricatmos is
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
     K7_REMOTE         : out   std_logic;
-	 rom               : in    std_logic;
 	 PSG_OUT           : out   std_logic_vector(15 downto 0);
     VIDEO_R           : out   std_logic;
     VIDEO_G           : out   std_logic;
@@ -151,7 +150,6 @@ architecture RTL of oricatmos is
 	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
     signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
-    signal ROM_1_DO    			: std_logic_vector(7 downto 0);
 	 signal ROM_MD_DO          : std_logic_vector(7 downto 0);
 	 
 	 --- Printer port
@@ -242,13 +240,6 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
 		data 			=> ROM_ATMOS_DO
-);
-
-inst_rom1 : entity work.BASIC10 -- Oric-1 ROM
-	port map (
-		clk  			=> CLK_IN,
-		addr 			=> cpu_ad(13 downto 0),
-		data 			=> ROM_1_DO
 );
 
 inst_rom2 : entity work.ORICDOS06 -- Microdisc ROM
@@ -437,11 +428,8 @@ process begin
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
 			cpu_di <= VIA_DO;
 		-- ROM Atmos	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '1' and cont_ROMDISn = '1' then
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_ROMDISn = '1' then
 			cpu_di <= ROM_ATMOS_DO;
---		--ROM Oric-1
---		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and rom = '0' and cont_ROMDISn = '1' then
---			cpu_di <= ROM_1_DO;
 		--ROM Microdisc
 		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
 			cpu_di <= ROM_MD_DO;	
