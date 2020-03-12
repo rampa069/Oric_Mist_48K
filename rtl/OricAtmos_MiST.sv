@@ -82,6 +82,7 @@ wire       cont_SSEL;
 assign 		AUDIO_R = AUDIO_L;
 assign      rom = ~status[3] ;
 //assign      LED=!remote;
+//assign      LED = fdd1_busy;
 assign      LED = fdc_IRQ;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1] | rom_changed);
@@ -302,7 +303,7 @@ assign sd_lba      = fdd1_lba;
 // FDD1
 wire        fdd1_busy;
 reg         fdd1_ready;
-wire        fdd1_io   = fdc_sel;// & ~fdc_IRQ ;//& nM1;
+wire        fdd1_io   = fdc_sel & ~fdc_IRQ ;//& nM1;
 wire        fdd1_side;
 
 //wire  [7:0] fdd1_dout;
@@ -327,8 +328,8 @@ wd1793 #(1) fdd1
 	.ce(fdc_CLK),
 	.reset(reset),
 	.io_en(fdd1_io & fdd1_ready),
-	.rd(fdc_nRE),
-	.wr(fdc_nWE),
+	.rd(~fdc_nRE),
+	.wr(~fdc_nWE),
 	.addr(fdc_A),
 	.din(fdc_DALin),
 	.dout(fdc_DALout),
