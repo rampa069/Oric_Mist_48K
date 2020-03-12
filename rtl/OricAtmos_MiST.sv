@@ -36,6 +36,7 @@ localparam CONF_STR = {
 	"S1,DSK,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
+	"O7,Drive Write,Prohibit,Allow;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v1.20.",`BUILD_DATE
@@ -81,7 +82,7 @@ wire       cont_SSEL;
 assign 		AUDIO_R = AUDIO_L;
 assign      rom = ~status[3] ;
 //assign      LED=!remote;
-assign      LED = ~fdc_nCS;
+assign      LED = fdc_IRQ;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1] | rom_changed);
 
@@ -156,7 +157,7 @@ oricatmos oricatmos(
 	.VIDEO_HSYNC		(hs         ),
 	.VIDEO_VSYNC		(vs         ),
 	.K7_TAPEIN			(UART_RXD   ),
-	.K7_TAPEOUT			(tapebits   ),
+	.K7_TAPEOUT			(UART_TXD   ),
 	.K7_REMOTE			(remote     ),
 	.rom			      (rom),
 	.ram_ad           (ram_ad       ),
@@ -263,11 +264,7 @@ audiodac(
   );
 
 
-//data_io data_io (
-//	// io controller spi interface
-//   .clk_sys				( SPI_SCK )
-// 
-//);
+
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
@@ -305,9 +302,11 @@ assign sd_lba      = fdd1_lba;
 // FDD1
 wire        fdd1_busy;
 reg         fdd1_ready;
-wire        fdd1_io   = fdc_sel & ~fdc_IRQ ;//& nM1;
+wire        fdd1_io   = fdc_sel;// & ~fdc_IRQ ;//& nM1;
+wire        fdd1_side;
+
 //wire  [7:0] fdd1_dout;
-//wire  [7:0] fdd1_buf_dout;
+wire  [7:0] fdd1_buf_dout;
 wire [31:0] fdd1_lba;
 
 always @(posedge clk_24) begin
@@ -315,7 +314,7 @@ always @(posedge clk_24) begin
 	reg old_mounted;
 
 	old_wr <= fdc_nWE;
-	if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= cont_SSEL;
+	if(old_wr & ~fdc_nWE & fdd1_io)  fdd1_side <= cont_SSEL;
 
 	old_mounted <= img_mounted[0];
 	if(reset) fdd1_ready <= 0;
@@ -325,7 +324,7 @@ end
 wd1793 #(1) fdd1
 (
 	.clk_sys(clk_24),
-	.ce(~fdc_nCS),
+	.ce(fdc_CLK),
 	.reset(reset),
 	.io_en(fdd1_io & fdd1_ready),
 	.rd(fdc_nRE),
@@ -333,6 +332,9 @@ wd1793 #(1) fdd1
 	.addr(fdc_A),
 	.din(fdc_DALin),
 	.dout(fdc_DALout),
+	
+	.intrq(fdc_IRQ),
+	.drq(fdc_DRQ),
 
 	.img_mounted(img_mounted[0]),
 	.img_size(img_size[19:0]),
@@ -345,7 +347,7 @@ wd1793 #(1) fdd1
 	.sd_buff_din(fdd1_buf_dout),
 	.sd_buff_wr(sd_buff_wr),
 
-	.wp(~status[4]),
+	.wp(~status[7]),
 
 	.size_code(4),
 	.layout(ioctl_index[7:6] == 2),

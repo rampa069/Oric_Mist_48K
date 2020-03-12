@@ -160,7 +160,7 @@ architecture RTL of oricatmos is
 
 
 	 signal SRAM_DO            : std_logic_vector(7 downto 0);
-	 signal break           	: std_logic;
+	 signal swnmi           	: std_logic;
 	 signal joya               : std_logic_vector(6 downto 0);
 	 signal joyb               : std_logic_vector(6 downto 0);
 	 
@@ -200,7 +200,7 @@ COMPONENT keyboard
 		col			:	 IN STD_LOGIC_VECTOR(2 DOWNTO 0);
 		row			:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 		ROWbit		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		swrst			:	 OUT STD_LOGIC
+		swnmi			:	 OUT STD_LOGIC
 	);
 END COMPONENT;
 
@@ -215,8 +215,8 @@ inst_cpu : entity work.T65
       Clk     		=> CLK_IN,
       Rdy     		=> '1',
       Abort_n 		=> '1',
-      IRQ_n   		=> cpu_irq,
-      NMI_n   		=> not break,
+      IRQ_n   		=> cpu_irq and cont_irq, -- Via and disk controller
+      NMI_n   		=> not swnmi,
       SO_n    		=> '1',
       R_W_n   		=> cpu_rw,
       A       		=> cpu_ad,
@@ -350,8 +350,8 @@ inst_key : keyboard
 		ps2_key		=> ps2_key,
 		row			=> via_pa_out,
 		col			=> via_pb_out(2 downto 0),
-		ROWbit		=> KEY_ROW,
-		swrst			=> break
+		ROWbit		=> key_row,
+		swnmi			=> swnmi
 );
 
 inst_microdisc: work.Microdisc 
@@ -400,7 +400,8 @@ inst_microdisc: work.Microdisc
           fdc_A     => fdc_A,           						  -- Register Select
           fdc_DALin => fdc_DALin,								  -- Data Bus 
           fdc_DALout=> fdc_DALout,                          -- Data Bus
-			 fdc_sel   => fdc_sel 
+			 fdc_sel   => fdc_sel,
+			 fdc_CLK   => fdc_CLK  
          );
 
 

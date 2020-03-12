@@ -11,7 +11,7 @@ module keyboard
 	input  [2:0]	 col,
 	input	 [7:0]	 row,
 	output [7:0]	 ROWbit,
-	output			swrst
+	output			swnmi
 
 
 );
@@ -155,7 +155,7 @@ always @(posedge clk_24) begin
 			'h076: swesc				<= pressed; // escape
 			'h014: swctl				<= pressed; // left control
 			
-			'h009: swrst      		<= pressed; // F10 break
+			'h009: swnmi      		<= pressed; // F10 break
 			'h005: swf1	      		<= pressed; // f1
 			'h006: swf2	      		<= pressed; // f2
 			'h004: swf3	      		<= pressed; // f3
