@@ -257,14 +257,6 @@ inst_rom2 : entity work.ORICDOS06 -- Microdisc ROM
 		data 			=> ROM_MD_DO
 );
 
-inst_ram1 : entity work.ram16k -- upper 16k
-	port map (
-		clock  			=> CLK_IN,
-		address 			=> cpu_ad(13 downto 0),
-		data 			   => cpu_do,
-		wren           => cont_u16k and not cpu_rw,
-		q              => ram16k_do
-);
 
 inst_ula : entity work.ULA
    port map (
