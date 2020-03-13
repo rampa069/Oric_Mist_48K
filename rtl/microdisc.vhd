@@ -29,8 +29,8 @@ entity Microdisc is
           CLK: in std_logic;                                -- 32 Mhz input clock
           
                                                             -- Oric Expansion Port Signals
-          DI: in std_logic_vector(7 downto 0);           -- 6502 Data Bus
-          DO: out std_logic_vector(7 downto 0);           -- 6502 Data Bus			 
+          DI: in std_logic_vector(7 downto 0);               -- 6502 Data Bus
+          DO: out std_logic_vector(7 downto 0);             -- 6502 Data Bus			 
           A: in std_logic_vector(15 downto 0);              -- 6502 Address Bus
           RnW: in std_logic;                                -- 6502 Read-/Write
           nIRQ: out std_logic;                              -- 6502 /IRQ
@@ -40,20 +40,9 @@ entity Microdisc is
           IO: in std_logic;                                 -- Oric I/O 
           IOCTRL: out std_logic;                            -- Oric I/O Control           
           nHOSTRST: out std_logic;                          -- Oric RESET 
-                  
-                                                            -- Data Bus Buffer Control Signals
-          --nOE: out std_logic;                               -- Output Enable
-          --DIR: out std_logic;                               -- Direction
-          
-                                                            -- CPLD-MCU Interface
-          --nMWE: in std_logic;                               -- Write Enable                                                                 
-          --nMOE: in std_logic;                               -- Output Enable                                                                    
-          --MFS: in std_logic_vector(2 downto 0);             -- Function Select
-          --MD:   inout std_logic_vector(7 downto 0);         -- Data Bus     
-          --nMCRQ: out std_logic;                             -- Command Request
-          
-                                                            -- Additional MCU Interface Lines
+
           nRESET: in std_logic;                             -- RESET from MCU
+
           DSEL: out std_logic_vector(1 downto 0);           -- Drive Select
           SSEL: out std_logic;                              -- Side Select
           
@@ -66,6 +55,7 @@ entity Microdisc is
 			 fdc_nCS: inout std_logic;                            -- Chip Select
           fdc_nRE: inout std_logic;                            -- Read Enable
           fdc_nWE: inout std_logic;                            -- Write Enable
+			 fdc_nOE: inout std_logic;
           fdc_CLK: out std_logic;                            
 			 fdc_sel: inout std_logic;
 			 fdc_DRQ: inout std_logic;
@@ -73,53 +63,15 @@ entity Microdisc is
           fdc_A:   out std_logic_vector(1 downto 0);         
           fdc_DALin: out std_logic_vector(7 downto 0);       
           fdc_DALout: in std_logic_vector(7 downto 0)         
-          --    DRQ: out std_logic;                           -- Data Request
-          --    IRQ: out std_logic;                           -- Interrupt Request
-          --   nMR: in std_logic;                            -- Master Reset
-  
+      
          );
 end Microdisc;
 
 architecture Behavioral of microdisc is
 
---    component WD1793 
---        port(                                               -- CPU Interface 
---              nCS: in std_logic;                            -- Chip Select
---              nRE: in std_logic;                            -- Read Enable
---              nWE: in std_logic;                            -- Write Enable
---              CLK: in std_logic;                            -- System Clock
---              A: in std_logic_vector(1 downto 0);           -- Register Select
---              DALin: in std_logic_vector(7 downto 0);       -- Data Bus 
---              DALout: out std_logic_vector(7 downto 0);     -- Data Bus 
---              DRQ: out std_logic;                           -- Data Request
---              IRQ: out std_logic;                           -- Interrupt Request
---              nMR: in std_logic;                            -- Master Reset             
---                                                                
---                                                            -- MCU Interface
---              nMWE: in std_logic;                           -- Write Enable                                                                 
---              nMOE: in std_logic;                           -- Output Enable                                                                    
---              MFS: in std_logic_vector(2 downto 0);         -- Function Select
---              MD: inout std_logic_vector(7 downto 0);       -- Data Bus     
---              nMCRQ: out std_logic                          -- Command Request
---				  
---             );
---    end component;
-    
---    signal fdc_nCS: std_logic;                                  
---    signal fdc_nRE: std_logic;                              
---    signal fdc_nWE: std_logic;                                  
---    signal fdc_CLK: std_logic;                                  
---    signal fdc_A: std_logic_vector(1 downto 0);         
---    signal fdc_DALin: std_logic_vector(7 downto 0); 
---    signal fdc_DALout: std_logic_vector(7 downto 0);        
---    signal fdc_DRQ: std_logic;                              
---    signal fdc_IRQ: std_logic;                                                                                                              
-                    
---    signal sel: std_logic;                  
-    --signal u16k: std_logic; 
+
     signal inECE: std_logic;
     signal inROMDIS: std_logic;
-    signal iDIR: std_logic;
     
     -- Control Register 
     signal nROMEN: std_logic;               -- ROM Enable
@@ -149,10 +101,11 @@ begin
     -- WD1793 Signals
     fdc_A <= A(1 downto 0);
     fdc_nCS <= '0' when fdc_sel = '1' and A(3 downto 2) = "00" else '1';
-    fdc_nRE <= IO or not RnW;
+	 fdc_nRE <= IO or not RnW;
     fdc_nWE <= IO or RnW;
     fdc_CLK <= not PH2_2;
-    fdc_DALin <= DI; -- DO?
+	
+	 fdc_DALin <= DI; -- DO?
             
     -- ORIC Expansion Port Signals
     IOCTRL <= '0' when fdc_sel = '1' else '1';
@@ -160,21 +113,17 @@ begin
     nIRQ <= '0' when fdc_IRQ = '1' and IRQEN = '1' else '1';
     
     -- EEPROM Control Signals
-    --nEOE <= PH2_1 or not RnW;
     u16k <= '1' when (inROMDIS = '0') and (A(14) = '1') and (A(15) = '1') else '0';
     inECE <= not (A(13) and u16k and not nROMEN);
     nECE <= inECE;
-    nMAP <= '0' when (PH2_2 and inECE and u16k) = '1' else '1'; 
-   
---    nMCRQ <= inMCRQ;        
---    
---    DIR <= iDIR;
-    iDIR <= RnW;    
---    
+	 nMAP <= '0' when (PH2_2 and inECE and u16k) = '1' else '1'; 
+
+    --nMCRQ <= inMCRQ;        
+    
     -- Data Bus Control.
-    process (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
+    process (RnW, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
     begin 
-        if iDIR = '1' then      
+        if RnW = '1' then      
             if A(3 downto 2) = "10" then 
                 DO <= (not fdc_DRQ) & "-------";
             elsif A(3 downto 2) = "01" then 
@@ -189,7 +138,7 @@ begin
         end if;
     end process;    
 --    
---    nOE <= '0' when sel = '1' and PH2 = '1' else '1';
+    fdc_nOE <= '0' when fdc_sel = '1' and PH2 = '1' else '1';
     
     -- Control Register.
     process (fdc_sel, A, RnW, DI)
@@ -198,12 +147,10 @@ begin
             nROMEN <= '0';
             DSEL <= "00";
             SSEL <= '0';
-            
             if ENA = '0' then
 				   inROMDIS <= '0';
 				else inROMDIS <= '1';
 				end if;
-
             IRQEN <= '0';       
         elsif falling_edge(PH2_2) then 
             if fdc_sel = '1' and A(3 downto 2) = "01" and RnW = '0' then

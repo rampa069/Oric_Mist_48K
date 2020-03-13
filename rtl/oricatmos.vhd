@@ -73,6 +73,7 @@ entity oricatmos is
 	 joystick_1        : in  std_logic_vector( 7 downto 0);
 	 pll_locked        : in  std_logic;
 	 disk_enable       : in std_logic;
+	 rom               : in std_logic;
 	 fdc_A				 : inout std_logic_vector (1 downto 0);
     fdc_DALin			 : inout std_logic_vector (7 downto 0);
     fdc_DALout			 : inout std_logic_vector (7 downto 0);
@@ -80,6 +81,7 @@ entity oricatmos is
 	 fdc_nCS           : inout std_logic;
 	 fdc_nRE           : inout std_logic;
 	 fdc_nWE           : inout std_logic;
+	 fdc_nOE           : inout std_logic;
 	 fdc_DRQ           : inout std_logic;
 	 fdc_IRQ           : inout std_logic;
 	 fdc_sel           : inout std_logic;
@@ -150,6 +152,7 @@ architecture RTL of oricatmos is
 	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
     signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
+	 signal ROM_1_DO     	   : std_logic_vector(7 downto 0);
 	 signal ROM_MD_DO          : std_logic_vector(7 downto 0);
 	 
 	 --- Printer port
@@ -226,9 +229,7 @@ inst_cpu : entity work.T65
 
 	
 ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
---ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (ula_WE_SRAM = '1' and cpu_rw ='0') ; --else (others => 'Z');
-ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (cpu_rw ='0') ; --else (others => 'Z');
-
+ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (cpu_rw ='0'); --else (others => 'Z');
 SRAM_DO <= ram_q;
 ram_cs  <= '0' when cont_RESETn = '0' else ula_CE_SRAM;
 ram_oe  <= '0' when cont_RESETn = '0' else ula_OE_SRAM;
@@ -240,6 +241,13 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(13 downto 0),
 		data 			=> ROM_ATMOS_DO
+);
+
+inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
+	port map (
+		clk  			=> CLK_IN,
+		addr 			=> cpu_ad(13 downto 0),
+		data 			=> ROM_1_DO
 );
 
 inst_rom2 : entity work.ORICDOS06 -- Microdisc ROM
@@ -386,6 +394,7 @@ inst_microdisc: work.Microdisc
 			 fdc_nCS   => fdc_nCS,                            -- Chip Select
           fdc_nRE   => fdc_nRE,                            -- Read Enable
           fdc_nWE   => fdc_nWE,                            -- Write Enable
+			 fdc_nOE   => fdc_nOE,
 			 fdc_DRQ   => fdc_DRQ,
 			 fdc_IRQ   => fdc_IRQ,
           fdc_A     => fdc_A,           						  -- Register Select
@@ -394,6 +403,7 @@ inst_microdisc: work.Microdisc
 			 fdc_sel   => fdc_sel,
 			 fdc_CLK   => fdc_CLK  
          );
+
 
 
 via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
@@ -428,15 +438,15 @@ process begin
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
 			cpu_di <= VIA_DO;
 		-- ROM Atmos	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_ROMDISn = '1' then
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_ROMDISn = '1' and rom ='1' then
 			cpu_di <= ROM_ATMOS_DO;
+		-- ROM Oric 1	
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_ROMDISn = '1' and rom ='0' then
+			cpu_di <= ROM_1_DO;
 		--ROM Microdisc
 		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
 			cpu_di <= ROM_MD_DO;	
-		-- Oric RAM Overlay
-		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_MAPn ='0' and cont_ROMDISn = '0' and cont_ECE = '1' then
-			cpu_di <= ram16k_do;	
-		-- Oric RAM
+		-- RAM	
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' then
 			cpu_di <= SRAM_DO; 	
 		end if;

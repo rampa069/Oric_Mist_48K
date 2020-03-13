@@ -232,7 +232,7 @@ begin
 	SRAM_OE    <= ph(0) or ph(1) or        RW_INT                ;
 	SRAM_CE    <= ph(0) or ph(1) or (ph(2) and (not CSRAMn_INT) );
 
-	SRAM_WE    <=  (not CSRAMn_INT) and (not RW_INT) and c(17) ;
+	SRAM_WE    <=  (not CSRAMn_INT) and (not RW_INT)  and c(17) ;
 
 	-- VIDEO OUT
 	R       <= RGB_INT(0);

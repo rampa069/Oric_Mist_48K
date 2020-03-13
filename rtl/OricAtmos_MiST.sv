@@ -34,6 +34,7 @@ localparam CONF_STR = {
 	"ORICATMOS;;",
 	"S0,DSK,Mount Drive A:;",
 	"S1,DSK,Mount Drive B:;",
+	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
@@ -63,10 +64,15 @@ wire       tapebits;
 wire 		  remote;
 wire       reset;
 
+wire        rom;
+wire        old_rom;
+wire        rom_changed;
+
 wire [1:0] fdc_A;
 wire       fdc_nCS;
 wire       fdc_nRE;
 wire       fdc_nWE;
+wire       fdc_nOE;
 wire       fdc_CLK;
 wire [7:0] fdc_DALin;
 wire [7:0] fdc_DALout;
@@ -80,10 +86,12 @@ wire       cont_SSEL;
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 //assign      LED=!remote;
-//assign      LED = fdd1_busy;
-assign      LED = fdc_IRQ;
+assign      LED = fdc_DRQ;
+//assign      LED = fdd1_ready;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1]);
+assign      rom = ~status[3] ;
+
 
 pll pll (
 	.inclk0	 (CLOCK_27   ),
@@ -169,10 +177,12 @@ oricatmos oricatmos(
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
+	.rom			      (rom),
 	.fdc_A             (fdc_A),
    .fdc_nCS				 (fdc_nCS),
 	.fdc_nRE				 (fdc_nRE),
 	.fdc_nWE           (fdc_nWE),
+	.fdc_nOE           (fdc_nOE),
 	.fdc_CLK           (fdc_CLK),
 	.fdc_DRQ           (fdc_DRQ),
 	.fdc_IRQ           (fdc_IRQ),
@@ -189,7 +199,7 @@ wire  [7:0] ram_d;
 wire  [7:0] ram_q;
 wire        ram_cs_oric, ram_oe_oric, ram_we;
 wire        ram_oe = ram_oe_oric;
-wire        ram_cs = ram_ad[15:14] == 2'b11 ? 1'b0 : ram_cs_oric;
+wire        ram_cs = ram_cs_oric ; //ram_ad[15:14] == 2'b11 ? 1'b0 : ram_cs_oric;
 reg         sdram_we;
 reg  [15:0] sdram_ad;
 wire        phi2;
@@ -204,6 +214,13 @@ always @(posedge clk_72) begin
 	ram_we_old <= ram_cs & ram_we;
 	ram_oe_old <= ram_cs & ram_oe;
 	ram_ad_old <= ram_ad;
+
+	old_rom <= rom;
+	rom_changed <= 1'b0;
+	
+	if (rom != old_rom) begin
+	  rom_changed <= 1'b1;
+	end
 
 	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
 		port1_req <= ~port1_req;
@@ -231,18 +248,27 @@ sdram sdram(
 	.port1_q       ( ram_q          ),
 
 
-	// port2 is unused currently. Can be useful e.g. for TAP files
+	// port2 is wired to the FDC controller
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
-	.port2_a       ( ),
-	.port2_ds      ( ),
-	.port2_we      ( ),
-	.port2_d       ( ),
+	.port2_a       ( ioctl_addr),
+	.port2_ds      ( {ioctl_addr[0], ~ioctl_addr[0]}),
+	.port2_we      ( ioctl_download),
+	.port2_d       ( {ioctl_dout,ioctl_dout}),
 	.port2_q       ( )
 );
 
 
+always @(posedge clk_24) begin
+	reg        ioctl_wr_last = 0;
 
+	ioctl_wr_last <= ioctl_wr;
+	if (ioctl_download) begin
+		if (~ioctl_wr_last && ioctl_wr) begin
+			port2_req <= ~port2_req;
+		end
+	end
+end
 
 dac #(
    .c_bits				(16					))
@@ -292,7 +318,7 @@ assign sd_lba      = fdd1_lba;
 // FDD1
 wire        fdd1_busy;
 reg         fdd1_ready;
-wire        fdd1_io   = fdc_sel & ~fdc_IRQ ;//& nM1;
+wire        fdd1_io   = fdc_sel & fdc_IRQ ;//& nM1;
 wire        fdd1_side;
 
 //wire  [7:0] fdd1_dout;
@@ -304,10 +330,10 @@ always @(posedge clk_24) begin
 	reg old_mounted;
 
 	old_wr <= fdc_nWE;
-	if(old_wr & ~fdc_nWE & fdd1_io)  fdd1_side <= cont_SSEL;
+	 if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= cont_SSEL;
 
 	old_mounted <= img_mounted[0];
-	if(reset) fdd1_ready <= 0;
+	 if(reset) fdd1_ready <= 0;
 		else if(~old_mounted & img_mounted[0]) fdd1_ready <= 1;
 end
 
@@ -353,62 +379,6 @@ wd1793 #(1) fdd1
 );
 
 
-//// FDD2
-//reg         fdd2_ready;
-//reg         fdd2_side;
-//wire        fdd2_io   = fdc_sel & cpu_ad[4] & ~fdc_IRQ ;//& nM1;
-//wire  [7:0] fdd2_dout;
-//wire  [7:0] fdd2_buf_dout;
-//wire [31:0] fdd2_lba;
-//
-//always @(posedge clk_24) begin
-//	reg old_wr;
-//	reg old_mounted;
-//
-//	old_wr <= fdc_nWE;
-//	if(old_wr & ~fdc_nWE & fdd2_io) fdd2_side <= fdc_A[1];
-//
-//	old_mounted <= img_mounted[1];
-//	if(reset) fdd2_ready <= 0;
-//		else if(~old_mounted & img_mounted[1]) fdd2_ready <= 1;
-//end
-//
-//wd1793 #(1) fdd2
-//(
-//	.clk_sys(clk_24),
-//	.ce(fdc_nCS),
-//	.reset(reset),
-//	.io_en(fdd2_io & fdd2_ready),
-//	.rd(~fdc_nRE),
-//	.wr(~fdc_nWE),
-//	.addr(fdc_A[1:0]),
-//	.din(fdc_DALin),
-//	.dout(fdc_DALout),
-//
-//	.img_mounted(img_mounted[1]),
-//	.img_size(img_size[19:0]),
-//	.sd_lba(fdd2_lba),
-//	.sd_rd(sd_rd[1]),
-//	.sd_wr(sd_wr[1]),
-//	.sd_ack(sd_ack),
-//	.sd_buff_addr(sd_buff_addr),
-//	.sd_buff_dout(sd_buff_dout),
-//	.sd_buff_din(fdd2_buf_dout),
-//	.sd_buff_wr(sd_buff_wr),
-//
-//	.wp(~status[4]),
-//
-//	.size_code(4),
-//	.layout(ioctl_index[7:6] == 2),
-//	.side(fdd2_side),
-//	.ready(fdd2_ready),
-//
-//	.input_active(0),
-//	.input_addr(0),
-//	.input_data(0),
-//	.input_wr(0),
-//	.buff_din(0)
-//);
 
 
 endmodule
