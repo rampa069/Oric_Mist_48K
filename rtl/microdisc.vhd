@@ -125,9 +125,9 @@ begin
     begin 
         if RnW = '1' then      
             if A(3 downto 2) = "10" then 
-                DO <= (not fdc_DRQ) & "0000000";
+                DO <= (not fdc_DRQ) & "-------";
             elsif A(3 downto 2) = "01" then 
-                DO <= (not fdc_IRQ) & "0000000"; 
+                DO <= (not fdc_IRQ) & "-------"; 
             elsif fdc_nRE = '0' and fdc_nCS = '0' then
                 DO <= fdc_DALout;            
             else 

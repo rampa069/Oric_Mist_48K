@@ -230,6 +230,17 @@ always @(posedge clk_72) begin
 	
 end
 
+always @(posedge clk_72) begin
+	reg        ioctl_wr_last = 0;
+
+	ioctl_wr_last <= ioctl_wr;
+	if (ioctl_download) begin
+		if (~ioctl_wr_last && ioctl_wr) begin
+			port2_req <= ~port2_req;
+		end
+	end
+end
+
 assign      SDRAM_CLK = clk_72;
 assign      SDRAM_CKE = 1;
 
@@ -252,23 +263,12 @@ sdram sdram(
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
 	.port2_a       ( ioctl_addr),
-	.port2_ds      ( {ioctl_addr[0], ~ioctl_addr[0]}),
-	.port2_we      ( ioctl_download),
-	.port2_d       ( {ioctl_dout,ioctl_dout}),
+	.port2_ds      ( ),
+	.port2_we      ( ioctl_wr),
+	.port2_d       ( ioctl_dout),
 	.port2_q       ( )
 );
 
-
-always @(posedge clk_24) begin
-	reg        ioctl_wr_last = 0;
-
-	ioctl_wr_last <= ioctl_wr;
-	if (ioctl_download) begin
-		if (~ioctl_wr_last && ioctl_wr) begin
-			port2_req <= ~port2_req;
-		end
-	end
-end
 
 dac #(
    .c_bits				(16					))
