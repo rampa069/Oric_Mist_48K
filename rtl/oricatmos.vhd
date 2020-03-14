@@ -162,6 +162,7 @@ architecture RTL of oricatmos is
 
 	 signal SRAM_DO            : std_logic_vector(7 downto 0);
 	 signal swnmi           	: std_logic;
+	 signal swrst              : std_logic;
 	 signal joya               : std_logic_vector(6 downto 0);
 	 signal joyb               : std_logic_vector(6 downto 0);
 	 
@@ -201,7 +202,8 @@ COMPONENT keyboard
 		col			:	 IN STD_LOGIC_VECTOR(2 DOWNTO 0);
 		row			:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 		ROWbit		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		swnmi			:	 OUT STD_LOGIC
+		swnmi			:	 OUT STD_LOGIC;
+		swrst       :   OUT STD_LOGIC
 	);
 END COMPONENT;
 
@@ -229,11 +231,12 @@ inst_cpu : entity work.T65
 
 	
 ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
-ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (cpu_rw ='0'); --else (others => 'Z');
+--ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (cpu_rw ='0'); --else (others => 'Z');
+ram_d   <= (others => '0') when RESETn = '0' else CPU_DO when ula_WE_SRAM = '1' else (others => 'Z');
 SRAM_DO <= ram_q;
-ram_cs  <= '0' when cont_RESETn = '0' else ula_CE_SRAM;
-ram_oe  <= '0' when cont_RESETn = '0' else ula_OE_SRAM;
-ram_we  <= '0' when cont_RESETn = '0' else ula_WE_SRAM;
+ram_cs  <= '0' when RESETn = '0' else ula_CE_SRAM;
+ram_oe  <= '0' when RESETn = '0' else ula_OE_SRAM;
+ram_we  <= '0' when RESETn = '0' else ula_WE_SRAM;
 phi2    <= ula_PHI2;
 
 inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
@@ -342,7 +345,8 @@ inst_key : keyboard
 		row			=> via_pa_out,
 		col			=> via_pb_out(2 downto 0),
 		ROWbit		=> key_row,
-		swnmi			=> swnmi
+		swnmi			=> swnmi,
+		swrst       => swrst
 );
 
 inst_microdisc: work.Microdisc 
@@ -374,7 +378,7 @@ inst_microdisc: work.Microdisc
           --nMCRQ     => fd_nMCRQ,                            -- Command Request
           
                                                             -- Additional MCU Interface Lines
-          nRESET    => RESETn,                              -- RESET from MCU
+          nRESET    => RESETn and not swrst,                -- RESET from MCU
           DSEL      => cont_DSEL,                           -- Drive Select
           SSEL      => cont_SSEL,                           -- Side Select
           

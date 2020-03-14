@@ -86,7 +86,7 @@ wire       cont_SSEL;
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 //assign      LED=!remote;
-assign      LED = fdc_DRQ;
+assign      LED = fdc_IRQ;
 //assign      LED = fdd1_ready;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1]);
@@ -318,19 +318,20 @@ assign sd_lba      = fdd1_lba;
 // FDD1
 wire        fdd1_busy;
 reg         fdd1_ready;
-wire        fdd1_io   = fdc_sel & fdc_IRQ ;//& nM1;
+wire        fdd1_io   = fdc_sel & ~fdc_IRQ ;//& nM1;
 wire        fdd1_side;
 
 //wire  [7:0] fdd1_dout;
 wire  [7:0] fdd1_buf_dout;
 wire [31:0] fdd1_lba;
 
+
 always @(posedge clk_24) begin
 	reg old_wr;
 	reg old_mounted;
 
-	old_wr <= fdc_nWE;
-	 if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= cont_SSEL;
+	//old_wr <= fdc_nWE;
+	 //if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= 1;
 
 	old_mounted <= img_mounted[0];
 	 if(reset) fdd1_ready <= 0;
@@ -367,7 +368,7 @@ wd1793 #(1) fdd1
 
 	.size_code(4),
 	.layout(ioctl_index[7:6] == 2),
-	.side(fdd1_side),
+	.side(cont_SSEL),
 	.ready(fdd1_ready),
 	.prepare(fdd1_busy),
 

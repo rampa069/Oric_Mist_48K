@@ -11,7 +11,8 @@ module keyboard
 	input  [2:0]	 col,
 	input	 [7:0]	 row,
 	output [7:0]	 ROWbit,
-	output			swnmi
+	output			swnmi,
+	output         swrst
 
 
 );
@@ -145,6 +146,7 @@ always @(posedge clk_24) begin
 			'h04a: swfs					<= pressed; // forward slash
 			'h055: sweq					<= pressed; // equals
 			'h011: swfcn				<= pressed; // ALT
+			'hx66: swdel				<= pressed; // delete
 			'hx71: swdel				<= pressed; // delete
 			'h05b: swrsb				<= pressed; // right sq bracket
 			'h054: swlsb				<= pressed; // left sq bracket
@@ -154,7 +156,7 @@ always @(posedge clk_24) begin
 			'h04c: swsc					<= pressed; // semi colon
 			'h076: swesc				<= pressed; // escape
 			'h014: swctl				<= pressed; // left control
-			
+			'h078: swrst            <= pressed; // F11 reset 
 			'h009: swnmi      		<= pressed; // F10 break
 			'h005: swf1	      		<= pressed; // f1
 			'h006: swf2	      		<= pressed; // f2

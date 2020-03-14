@@ -104,7 +104,7 @@ begin
 	 fdc_nRE <= IO or not RnW;
     fdc_nWE <= IO or RnW;
     fdc_CLK <= not PH2_2;
-	
+	 
 	 fdc_DALin <= DI; -- DO?
             
     -- ORIC Expansion Port Signals
@@ -121,27 +121,27 @@ begin
     --nMCRQ <= inMCRQ;        
     
     -- Data Bus Control.
-    process (RnW, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
+    process (RnW, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, fdc_nCS, A)
     begin 
         if RnW = '1' then      
             if A(3 downto 2) = "10" then 
-                DO <= (not fdc_DRQ) & "-------";
+                DO <= (not fdc_DRQ) & "0000000";
             elsif A(3 downto 2) = "01" then 
-                DO <= (not fdc_IRQ) & "-------"; 
+                DO <= (not fdc_IRQ) & "0000000"; 
             elsif fdc_nRE = '0' and fdc_nCS = '0' then
                 DO <= fdc_DALout;            
             else 
                 DO <= "--------";    
             end if;
         else 
-            DO <= "--------";    
+            DO <= "ZZZZZZZZ";    
         end if;
     end process;    
 --    
     fdc_nOE <= '0' when fdc_sel = '1' and PH2 = '1' else '1';
     
     -- Control Register.
-    process (fdc_sel, A, RnW, DI)
+    process (fdc_sel, A, RnW, DI,ENA,PH2_2,nRESET)
     begin
         if nRESET = '0' then
             nROMEN <= '0';
@@ -164,7 +164,7 @@ begin
     end process;
     
     -- PH2 derived clocks.
-    process (PH2, CLK)
+    process (PH2, CLK, nRESET)
     begin
         if nRESET = '0' then
             PH2_cntr <= "00000";
