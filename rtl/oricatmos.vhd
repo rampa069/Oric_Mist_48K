@@ -50,7 +50,9 @@ entity oricatmos is
 	 CLK_PSG           : in    std_logic;
 	 CLK_MICRODISC     : in    std_logic;
     RESET             : in    std_logic;
-	 ps2_key         	 : in    std_logic_vector(10 downto 0);
+	 key_pressed       : in    std_logic;
+	 key_extended      : in    std_logic;
+	 key_code          : in    std_logic_vector(7 downto 0);
 	 key_strobe        : in    std_logic;
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
@@ -148,6 +150,9 @@ architecture RTL of oricatmos is
 	 signal ula_VIDEO_G        : std_logic;
 	 signal ula_VIDEO_B        : std_logic;
 	 signal ula_SYNC           : std_logic;
+	 
+	 -- ÑAPA
+	 signal display_enable     : std_logic;
     
 	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
@@ -192,20 +197,25 @@ architecture RTL of oricatmos is
 
 
 	 
+	 
 COMPONENT keyboard
 	PORT
 	(
 		clk_24		:	 IN STD_LOGIC;
-		clk 		   :	 IN STD_LOGIC;
+		clk_en		:	 IN STD_LOGIC;
 		reset			:	 IN STD_LOGIC;
-		ps2_key		:	 IN STD_LOGIC_VECTOR(10 DOWNTO 0);
+		key_pressed	:	 IN STD_LOGIC;
+		key_extended:	 IN STD_LOGIC;
+		key_strobe	:	 IN STD_LOGIC;
+		key_code		:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 		col			:	 IN STD_LOGIC_VECTOR(2 DOWNTO 0);
 		row			:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
 		ROWbit		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		swnmi			:	 OUT STD_LOGIC;
-		swrst       :   OUT STD_LOGIC
+		swnmi       :   OUT STD_LOGIC;
+		swrst			:	 OUT STD_LOGIC
 	);
 END COMPONENT;
+	 
 
 begin
 
@@ -226,18 +236,17 @@ inst_cpu : entity work.T65
       DI      		=> cpu_di,
       DO      		=> cpu_do
 );
-	
 
 
-	
 ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
---ram_d   <= (others => '0') when cont_RESETn = '0' else cpu_do when (cpu_rw ='0'); --else (others => 'Z');
 ram_d   <= (others => '0') when RESETn = '0' else CPU_DO when ula_WE_SRAM = '1' else (others => 'Z');
 SRAM_DO <= ram_q;
 ram_cs  <= '0' when RESETn = '0' else ula_CE_SRAM;
 ram_oe  <= '0' when RESETn = '0' else ula_OE_SRAM;
 ram_we  <= '0' when RESETn = '0' else ula_WE_SRAM;
 phi2    <= ula_PHI2;
+
+
 
 inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 	port map (
@@ -339,12 +348,15 @@ inst_psg : entity work.ay8912
 inst_key : keyboard
 	port map(
 		clk_24		=> CLK_IN,
-		clk  		   => ENA_1MHZ,
+		clk_en		=> ENA_1MHZ,
 		reset			=> not RESETn, --not RESETn,
-		ps2_key		=> ps2_key,
+		key_pressed	=> key_pressed,
+		key_extended => key_extended,
+		key_strobe	=> key_strobe,
+		key_code		=> key_code,
 		row			=> via_pa_out,
 		col			=> via_pb_out(2 downto 0),
-		ROWbit		=> key_row,
+		ROWbit		=> KEY_ROW,
 		swnmi			=> swnmi,
 		swrst       => swrst
 );
@@ -428,7 +440,7 @@ process begin
 	 
 	 
 		-- expansion port
-      if    cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
+      if    cpu_rw = '1' and ula_phi2 = '1'  and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
          CPU_DI <= cont_D_OUT;
       -- VIA
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then

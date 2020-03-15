@@ -31,9 +31,9 @@ module OricAtmos_MiST(
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"ORICATMOS;;",
-	"S0,DSK,Mount Drive A:;",
-	"S1,DSK,Mount Drive B:;",
+	"ORIC;;",
+	"S0,IMG,Mount Drive A:;",
+	"S1,IMG,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
@@ -41,6 +41,7 @@ localparam CONF_STR = {
 	"T0,Reset;",
 	"V,v1.20.",`BUILD_DATE
 };
+wire        clk_8;
 wire        clk_24;
 wire        clk_72;
 wire        clk_32;
@@ -98,38 +99,55 @@ pll pll (
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
 	.c2       (clk_32     ),
+	.c3       (clk_8),
 	.locked   (pll_locked )
 	);
 
-
-
-mist_io #(.STRLEN($size(CONF_STR)>>3)) user_io
-(
-	.*,
+user_io #(
+	.STRLEN				(($size(CONF_STR)>>3)))
+user_io(
 	.clk_sys        	(clk_24         	),
-	.scandoubler_disable (scandoublerD	),	
-   
-	.conf_str(CONF_STR),
+	.conf_str       	(CONF_STR       	),
+	.SPI_CLK        	(SPI_SCK        	),
+	.SPI_SS_IO      	(CONF_DATA0     	),
+	.SPI_MISO       	(SPI_DO         	),
+	.SPI_MOSI       	(SPI_DI         	),
+	.buttons        	(buttons        	),
+	.switches       	(switches      	),
+	.scandoubler_disable (scandoublerD	),
+	.ypbpr          	(ypbpr          	),
+	.key_strobe     	(key_strobe     	),
+	.key_pressed    	(key_pressed    	),
+	.key_extended   	(key_extended   	),
+	.key_code       	(key_code       	),
+	.joystick_0       ( joystick_0      ),
+	.joystick_1       ( joystick_1      ),
+	.status         	(status         	),
+   // SD CARD
+   .sd_lba                      (sd_lba        ),
+	.sd_rd                       (sd_rd         ),
+	.sd_wr                       (sd_wr         ),
+	.sd_ack                      (sd_ack        ),
+	.sd_ack_conf                 (sd_ack_conf   ),
+	.sd_conf                     (sd_conf       ),
+	.sd_sdhc                     (sd_sdhc       ),
+	.sd_dout                     (sd_dout       ),
+	.sd_dout_strobe              (sd_dout_strobe),
+	.sd_din                      (sd_din        ),
+	.sd_din_strobe               (sd_din_strobe ),
+	.sd_buff_addr                (sd_buff_addr  ),
+	.img_mounted                 (img_mounted   ),
+	.img_size                    (img_size      )
+);
+
+
 	
-	.sd_conf(0),
-	.sd_sdhc(1),
-	.ioctl_ce(1),
-
-	// unused
-	.ps2_mouse_clk(),
-	.ps2_mouse_data(),
-	.ps2_mouse(),
-	.joystick_analog_0(),
-	.joystick_analog_1(),
-	.sd_ack_conf()
-);	
-
-reg init_reset = 1;
-always @(posedge clk_24) begin
-	reg old_download;
-	old_download <= ioctl_download;
-	if(~ioctl_download & old_download & !ioctl_index) init_reset <= 0;
-end
+//	reg init_reset = 1;
+//always @(posedge clk_24) begin
+//	reg old_download;
+//	old_download <= ioctl_download;
+//	if(~ioctl_download & old_download & !ioctl_index) init_reset <= 0;
+//end
 	
 mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.clk_sys      (clk_24     ),
@@ -156,7 +174,10 @@ oricatmos oricatmos(
 	.clk_in           (clk_24       ),
 	.clk_microdisc    (clk_32       ),
 	.RESET            (status[0] | buttons[1] | rom_changed),
-	.ps2_key          (ps2_key     ),
+	.key_pressed      (key_pressed  ),
+	.key_code         (key_code     ),
+	.key_extended     (key_extended ),
+	.key_strobe       (key_strobe   ),
 	.PSG_OUT				(audio		),
 	.VIDEO_R				(r			   ),
 	.VIDEO_G				(g				),
@@ -230,16 +251,6 @@ always @(posedge clk_72) begin
 	
 end
 
-always @(posedge clk_72) begin
-	reg        ioctl_wr_last = 0;
-
-	ioctl_wr_last <= ioctl_wr;
-	if (ioctl_download) begin
-		if (~ioctl_wr_last && ioctl_wr) begin
-			port2_req <= ~port2_req;
-		end
-	end
-end
 
 assign      SDRAM_CLK = clk_72;
 assign      SDRAM_CKE = 1;
@@ -262,10 +273,10 @@ sdram sdram(
 	// port2 is wired to the FDC controller
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
-	.port2_a       ( ioctl_addr),
+	.port2_a       ( ),
 	.port2_ds      ( ),
-	.port2_we      ( ioctl_wr),
-	.port2_d       ( ioctl_dout),
+	.port2_we      ( ),
+	.port2_d       ( ),
 	.port2_q       ( )
 );
 
@@ -284,102 +295,79 @@ audiodac(
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
-wire  [1:0] sd_rd;
-wire  [1:0] sd_wr;
+wire [1:0]  sd_rd;
+wire [1:0]  sd_wr;
 wire        sd_ack;
+wire        sd_ack_conf;
+wire        sd_conf;
+wire        sd_sdhc = 1'b1;
 wire  [8:0] sd_buff_addr;
-wire  [7:0] sd_buff_dout;
-wire  [7:0] sd_buff_din;
+wire  [7:0] sd_dout;
+wire  [7:0] sd_din;
 wire        sd_buff_wr;
 wire  [1:0] img_mounted;
 wire [31:0] img_size;
-
-wire        ioctl_wr;
-wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_dout;
-wire        ioctl_download;
-wire  [7:0] ioctl_index;
-
-//wire       fdc_sel  = &cpu_ad[7:5] & ~cpu_ad[3]; // 224-231(E0-E7), 240-247(F0-F7)
-//wire       fdc_sel = '&cpu_ad[7:4] & ~cpu_ad[3:2];
-
-always @(posedge clk_24) begin
-	if(sd_rd[1]|sd_wr[1]) cont_DSEL <= 1;
-	if(sd_rd[0]|sd_wr[0]) cont_DSEL <= 0;
-end
-
-//assign sd_buff_din = fdd_num ? fdd2_buf_dout : fdd1_buf_dout;
-//assign sd_lba      = fdd_num ? fdd2_lba      : fdd1_lba;
-
-assign sd_buff_din = fdd1_buf_dout;
-assign sd_lba      = fdd1_lba;
+wire        sd_dout_strobe;
+wire        sd_din_strobe;
 
 
-// FDD1
-wire        fdd1_busy;
-reg         fdd1_ready;
-wire        fdd1_io   = fdc_sel & ~fdc_IRQ ;//& nM1;
-wire        fdd1_side;
-
-//wire  [7:0] fdd1_dout;
-wire  [7:0] fdd1_buf_dout;
-wire [31:0] fdd1_lba;
 
 
-always @(posedge clk_24) begin
-	reg old_wr;
-	reg old_mounted;
 
-	//old_wr <= fdc_nWE;
-	 //if(old_wr & ~fdc_nWE & fdd1_io) fdd1_side <= 1;
+//// FDD1
+//wire        fdd1_busy;
+//reg         fdd1_ready;
+//
+//
+//
+//always @(posedge clk_24) begin
+//	reg old_mounted;
+//
+//	
+//	old_mounted <= img_mounted[0];
+//	//fdd1_ready <= img_mounted[0];
+//	 if(reset) fdd1_ready <= 0;
+//		else if(~old_mounted & img_mounted[0]) fdd1_ready <= 1;
+//end
 
-	old_mounted <= img_mounted[0];
-	 if(reset) fdd1_ready <= 0;
-		else if(~old_mounted & img_mounted[0]) fdd1_ready <= 1;
-end
+//parameter CLK = 32000000;
+//parameter CLK_EN = 16'd8000; // in kHz
+//parameter SECTOR_SIZE_CODE = 2'd3; // sec size 0=128, 1=256, 2=512, 3=1024
+//parameter SECTOR_BASE = 1'b0; // number of first sector on track (archie 0, dos 1)
 
-wd1793 #(1) fdd1
-(
-	.clk_sys(clk_24),
-	.ce(fdc_CLK),
-	.reset(reset),
-	.io_en(~fdc_nCS),
-	.rd(~fdc_nRE),
-	.wr(~fdc_nWE),
-	.addr(fdc_A),
-	.din(fdc_DALin),
-	.dout(fdc_DALout),
-	
-	.intrq(fdc_IRQ),
-	.drq(fdc_DRQ),
+fdc1772 #(.SECTOR_SIZE_CODE(2'd2),.SECTOR_BASE(1'b0),.CLK(24000000),.CLK_EN(16'd1000)) fdc1772 (
+	.clkcpu         ( clk_24       ), // system cpu clock.
+	.clk8m_en       ( fdc_CLK      ),
 
-	.img_mounted(img_mounted[0]),
-	.img_size(img_size[19:0]),
-	.sd_lba(fdd1_lba),
-	.sd_rd(sd_rd[0]),
-	.sd_wr(sd_wr[0]),
-	.sd_ack(sd_ack),
-	.sd_buff_addr(sd_buff_addr),
-	.sd_buff_dout(sd_buff_dout),
-	.sd_buff_din(fdd1_buf_dout),
-	.sd_buff_wr(sd_buff_wr),
+	// external set signals
+	.floppy_drive   (cont_DSEL ),
+	.floppy_side    (cont_SSEL      ),
+	.floppy_reset   (~reset),
 
-	.wp(~status[7]),
+	// interrupts
+	.irq            ( fdc_IRQ         ),
+	.drq            ( fdc_DRQ          ),
 
-	.size_code(4),
-	.layout(ioctl_index[7:6] == 2),
-	.side(cont_SSEL),
-	.ready(fdd1_ready),
-	.prepare(fdd1_busy),
+	.cpu_addr       ( fdc_A         ),
+	.cpu_sel        ( ~fdc_nCS          ),
+	.cpu_rw         ( fdc_nWE          ),
+	.cpu_din        ( fdc_DALin         ),
+	.cpu_dout       ( fdc_DALout        ),
 
-	.input_active(0),
-	.input_addr(0),
-	.input_data(0),
-	.input_wr(0),
-	.buff_din(0)
+	// place any signals that need to be passed up to the top after here.
+	.img_mounted    ( img_mounted      ), // signaling that new image has been mounted
+	.img_wp         ( status[7]        ), // write protect
+	.img_size       ( img_size         ), // size of image in bytes
+	.sd_lba         ( sd_lba           ),
+	.sd_rd          ( sd_rd            ),
+	.sd_wr          ( sd_wr            ),
+	.sd_ack         ( sd_ack           ),
+	.sd_buff_addr   ( sd_buff_addr     ),
+	.sd_dout        ( sd_dout     ),
+	.sd_din         ( sd_din      ),
+	.sd_dout_strobe ( sd_dout_strobe   ),
+	.sd_din_strobe  ( sd_din_strobe    )
 );
-
-
 
 
 endmodule

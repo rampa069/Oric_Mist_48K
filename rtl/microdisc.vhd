@@ -61,7 +61,7 @@ entity Microdisc is
 			 fdc_DRQ: inout std_logic;
 			 fdc_IRQ: inout std_logic;
           fdc_A:   out std_logic_vector(1 downto 0);         
-          fdc_DALin: out std_logic_vector(7 downto 0);       
+          fdc_DALin: buffer std_logic_vector(7 downto 0);       
           fdc_DALout: in std_logic_vector(7 downto 0)         
       
          );
@@ -101,6 +101,8 @@ begin
     -- WD1793 Signals
     fdc_A <= A(1 downto 0);
     fdc_nCS <= '0' when fdc_sel = '1' and A(3 downto 2) = "00" else '1';
+	 --fdc_nCS <='0' when (A(7 downto 2) = "000100" and IO='0') else '1';
+	 --A2=0, A3=0, A4=1, A5=0, A6=0, A7=0 y /IO=0
 	 fdc_nRE <= IO or not RnW;
     fdc_nWE <= IO or RnW;
     fdc_CLK <= not PH2_2;
@@ -125,18 +127,36 @@ begin
     begin 
         if RnW = '1' then      
             if A(3 downto 2) = "10" then 
-                DO <= (not fdc_DRQ) & "-------";
+                DO <= (not fdc_DRQ) & fdc_DALin (6 downto 0);
             elsif A(3 downto 2) = "01" then 
-                DO <= (not fdc_IRQ) & "-------"; 
+                DO <= (not fdc_IRQ) & fdc_DALin (6 downto 0); 
             elsif fdc_nRE = '0' and fdc_nCS = '0' then
                 DO <= fdc_DALout;            
             else 
-                DO <= "--------";    
+                DO <= fdc_DALin;    
             end if;
         else 
-            DO <= "ZZZZZZZZ";    
+            DO <= fdc_DALin;    
         end if;
     end process;    
+	 
+--	  -- Data Bus Control.
+--    process (RnW, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, fdc_nCS, A)
+--    begin 
+--        if RnW = '1' then      
+--            if A(3 downto 2) = "10" then 
+--                DO <= (not fdc_DRQ) & "-------";
+--            elsif A(3 downto 2) = "01" then 
+--                DO <= (not fdc_IRQ) & "-------"; 
+--            elsif fdc_nRE = '0' and fdc_nCS = '0' then
+--                DO <= fdc_DALout;            
+--            else 
+--                DO <= "--------";    
+--            end if;
+--        else 
+--            DO <= "ZZZZZZZZ";    
+--        end if;
+--    end process;    
 --    
     fdc_nOE <= '0' when fdc_sel = '1' and PH2 = '1' else '1';
     
