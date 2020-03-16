@@ -76,19 +76,18 @@ entity oricatmos is
 	 pll_locked        : in  std_logic;
 	 disk_enable       : in std_logic;
 	 rom               : in std_logic;
-	 fdc_A				 : inout std_logic_vector (1 downto 0);
-    fdc_DALin			 : inout std_logic_vector (7 downto 0);
-    fdc_DALout			 : inout std_logic_vector (7 downto 0);
-	 fdc_CLK           : inout std_logic;
-	 fdc_nCS           : inout std_logic;
-	 fdc_nRE           : inout std_logic;
-	 fdc_nWE           : inout std_logic;
-	 fdc_nOE           : inout std_logic;
-	 fdc_DRQ           : inout std_logic;
-	 fdc_IRQ           : inout std_logic;
-	 fdc_sel           : inout std_logic;
-	 cont_DSEL         : inout std_logic_vector (1 downto 0);
-    cont_SSEL         : inout std_logic
+	 img_mounted:     in std_logic;
+	 img_wp:          in std_logic_vector (1 downto 0);
+	 img_size:        in std_logic_vector (31 downto 0);
+	 sd_lba:          out std_logic_vector (31 downto 0);
+	 sd_rd:           out std_logic_vector (1 downto 0);
+	 sd_wr:           out std_logic_vector (1 downto 0);
+	 sd_ack:          in std_logic;
+	 sd_buff_addr:    in std_logic_vector (8 downto 0);
+	 sd_dout:         in std_logic_vector (7 downto 0);
+	 sd_din:          out std_logic_vector (7 downto 0);
+	 sd_dout_strobe:  in std_logic;
+	 sd_din_strobe:   in std_logic
 	 );
 end;
 
@@ -151,8 +150,8 @@ architecture RTL of oricatmos is
 	 signal ula_VIDEO_B        : std_logic;
 	 signal ula_SYNC           : std_logic;
 	 
-	 -- ÑAPA
-	 signal display_enable     : std_logic;
+--	 -- ÑAPA
+--	 signal display_enable     : std_logic;
     
 	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
@@ -166,8 +165,10 @@ architecture RTL of oricatmos is
 
 
 	 signal SRAM_DO            : std_logic_vector(7 downto 0);
+	 
 	 signal swnmi           	: std_logic;
 	 signal swrst              : std_logic;
+	 
 	 signal joya               : std_logic_vector(6 downto 0);
 	 signal joyb               : std_logic_vector(6 downto 0);
 	 
@@ -177,13 +178,12 @@ architecture RTL of oricatmos is
     signal cont_D_OUT         : std_logic_vector(7 downto 0);
     signal cont_IOCONTROLn    : std_logic :='1';
 	 signal cont_ECE           : std_logic;
-	 signal cont_u16k          : std_logic;
-	 signal cont_ROMENn        : std_logic;
 	 signal cont_RESETn        : std_logic;
-    --signal cont_DSEL          : std_logic_vector(1 downto 0);
-	 --signal cont_SSEL          : std_logic;
-	 signal cont_IRQEN         : std_logic;
+    signal cont_DSEL          : std_logic_vector(1 downto 0);
+	 signal cont_SSEL          : std_logic;
 	 signal cont_irq           : std_logic;
+	 
+	
 	 
 	 -- Controller derived clocks
 	 signal PH2_1              : std_logic;                                
@@ -192,10 +192,7 @@ architecture RTL of oricatmos is
     signal PH2_old            : std_logic_vector(3 downto 0);   
     signal PH2_cntr           : std_logic_vector(4 downto 0);
 	 
-	 -- Ram 16K upper bank
-	 signal ram16k_do          : std_logic_vector(7 downto 0);
-
-
+	 
 	 
 	 
 COMPONENT keyboard
@@ -364,7 +361,7 @@ inst_key : keyboard
 inst_microdisc: work.Microdisc 
     port map( 
           CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
-          
+          CLK_SYS   => clk_in,
                                                             -- Oric Expansion Port Signals
           DI        => cpu_do,                              -- 6502 Data Bus
           DO        => cont_D_OUT,                          -- 6502 Data Bus			 
@@ -377,19 +374,7 @@ inst_microdisc: work.Microdisc
           IO        => ula_CSIOn,                           -- Oric I/O 
           IOCTRL    => cont_IOCONTROLn,                     -- Oric I/O Control           
           nHOSTRST  => cont_RESETn,                         -- Oric RESET 
-                  
-                                                            -- Data Bus Buffer Control Signals
-          --nOE     => cont_nOE,                            -- Output Enable
-          --DIR     => cont_DIR,                            -- Direction
-          
-                                                            -- CPLD-MCU Interface
-          --nMWE      => fd_nMWE,                             -- Write Enable                                                                 
-          --nMOE      => fd_nMOE,                             -- Output Enable                                                                    
-          --MFS       => fd_MFS,                              -- Function Select
-          --MD_DI     => fd_DO,                               -- Data Bus     
-          --nMCRQ     => fd_nMCRQ,                            -- Command Request
-          
-                                                            -- Additional MCU Interface Lines
+                                                              -- Additional MCU Interface Lines
           nRESET    => RESETn and not swrst,                -- RESET from MCU
           DSEL      => cont_DSEL,                           -- Drive Select
           SSEL      => cont_SSEL,                           -- Side Select
@@ -398,18 +383,19 @@ inst_microdisc: work.Microdisc
           nECE      => cont_ECE,                             -- Chip Enable
  
 			 ENA       => disk_enable,
-			 u16k      => cont_u16k,
-			 fdc_nCS   => fdc_nCS,                            -- Chip Select
-          fdc_nRE   => fdc_nRE,                            -- Read Enable
-          fdc_nWE   => fdc_nWE,                            -- Write Enable
-			 fdc_nOE   => fdc_nOE,
-			 fdc_DRQ   => fdc_DRQ,
-			 fdc_IRQ   => fdc_IRQ,
-          fdc_A     => fdc_A,           						  -- Register Select
-          fdc_DALin => fdc_DALin,								  -- Data Bus 
-          fdc_DALout=> fdc_DALout,                          -- Data Bus
-			 fdc_sel   => fdc_sel,
-			 fdc_CLK   => fdc_CLK  
+			 
+			 img_mounted    => img_mounted,
+			 img_wp         => img_wp,
+			 img_size       => img_size,
+			 sd_lba         => sd_lba,
+			 sd_rd          => sd_rd,
+			 sd_wr          => sd_wr,
+			 sd_ack         => sd_ack,
+			 sd_buff_addr   => sd_buff_addr,
+			 sd_dout        => sd_dout,
+			 sd_din         => sd_din,
+			 sd_dout_strobe => sd_dout_strobe,
+			 sd_din_strobe  => sd_din_strobe
          );
 
 

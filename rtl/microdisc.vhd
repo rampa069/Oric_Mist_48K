@@ -1,9 +1,8 @@
--- Microdisc CPLD Core 
+-- Cumulus CPLD Core 
+-- Top Level Entity
 -- Copyright 2010 Retromaster
--- Copyright 2020 rampa@encomix.org
 --
---  This file was part of Cumulus CPLD Core. <http://miniserve.defence-force.org/svn/public/oric/hardware/cumulus/cpld/>
---  and was adapted to behave as a real microdisc controller (based on Slicebit and chema advice)
+--  This file is part of Cumulus CPLD Core.
 --
 --  Cumulus CPLD Core is free software: you can redistribute it and/or modify
 --  it under the terms of the GNU General Public License as published by
@@ -27,10 +26,11 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 entity Microdisc is
     port( 
           CLK: in std_logic;                                -- 32 Mhz input clock
-          
+          CLK_SYS: in std_logic;
                                                             -- Oric Expansion Port Signals
-          DI: in std_logic_vector(7 downto 0);               -- 6502 Data Bus
-          DO: out std_logic_vector(7 downto 0);             -- 6502 Data Bus			 
+          DI: in std_logic_vector(7 downto 0);            -- 6502 Data Bus
+          DO: out std_logic_vector(7 downto 0);            -- 6502 Data Bus
+			 
           A: in std_logic_vector(15 downto 0);              -- 6502 Address Bus
           RnW: in std_logic;                                -- 6502 Read-/Write
           nIRQ: out std_logic;                              -- 6502 /IRQ
@@ -40,38 +40,102 @@ entity Microdisc is
           IO: in std_logic;                                 -- Oric I/O 
           IOCTRL: out std_logic;                            -- Oric I/O Control           
           nHOSTRST: out std_logic;                          -- Oric RESET 
-
-          nRESET: in std_logic;                             -- RESET from MCU
-
-          DSEL: out std_logic_vector(1 downto 0);           -- Drive Select
-          SSEL: out std_logic;                              -- Side Select
+                  
+                                                            -- Data Bus Buffer Control Signals
+          nOE: out std_logic;                               -- Output Enable
+          DIR: out std_logic;                               -- Direction
           
-  		    u16k: buffer std_logic;                           -- signal when using overlay/rom
-			 ENA:  in std_logic;                               -- Controller enable
+
+                                                            -- Additional MCU Interface Lines
+ 			 nRESET: in std_logic;                             -- RESET from MCU
+          DSEL: buffer std_logic_vector(1 downto 0);           -- Drive Select
+          SSEL: buffer std_logic;                              -- Side Select
+          
                                                             -- EEPROM Control Lines.
-          nECE: out std_logic;                               -- Chip Enable
-			 -- WD
+          nECE: out std_logic;                              -- Chip Enable
+          nEOE: out std_logic;                              -- Output Enable
+          ENA:  in std_logic;
 			 
-			 fdc_nCS: inout std_logic;                            -- Chip Select
-          fdc_nRE: inout std_logic;                            -- Read Enable
-          fdc_nWE: inout std_logic;                            -- Write Enable
-			 fdc_nOE: inout std_logic;
-          fdc_CLK: out std_logic;                            
-			 fdc_sel: inout std_logic;
-			 fdc_DRQ: inout std_logic;
-			 fdc_IRQ: inout std_logic;
-          fdc_A:   out std_logic_vector(1 downto 0);         
-          fdc_DALin: buffer std_logic_vector(7 downto 0);       
-          fdc_DALout: in std_logic_vector(7 downto 0)         
-      
+			 img_mounted:     in std_logic;
+			 img_wp:          in std_logic_vector (1 downto 0);
+			 img_size:        in std_logic_vector (31 downto 0);
+			 sd_lba:          out std_logic_vector (31 downto 0);
+			 sd_rd:           out std_logic_vector (1 downto 0);
+			 sd_wr:           out std_logic_vector (1 downto 0);
+			 sd_ack:          in std_logic;
+			 sd_buff_addr:    in std_logic_vector (8 downto 0);
+			 sd_dout:         in std_logic_vector (7 downto 0);
+			 sd_din:          out std_logic_vector (7 downto 0);
+			 sd_dout_strobe:  in std_logic;
+			 sd_din_strobe:   in std_logic
          );
 end Microdisc;
 
-architecture Behavioral of microdisc is
+architecture Behavioral of Microdisc is
+    component fdc1772 
+        port(                                               
+              clkcpu:          in std_logic;
+				  clk8m_en:        in std_logic;
+				  
+				  floppy_drive:    in std_logic_vector (3 downto 0);
+				  floppy_side:     in std_logic;
+				  floppy_reset:    in std_logic;
+				  
+				  irq:             out std_logic;
+              drq:             out std_logic;
+				  
+				  cpu_addr:        in std_logic_vector (1 downto 0);
+				  cpu_sel:         in std_logic;
+				  cpu_rw:          in std_logic;
+				  cpu_din:         in  std_logic_vector (7 downto 0);
+				  cpu_dout:        out std_logic_vector (7 downto 0);
+				  
+				  img_mounted:     in std_logic;
+				  img_wp:          in std_logic_vector (1 downto 0);
+				  img_size:        in std_logic_vector (31 downto 0);
+				  sd_lba:          out std_logic_vector (31 downto 0);
+				  sd_rd:           out std_logic_vector (1 downto 0);
+				  sd_wr:           out std_logic_vector (1 downto 0);
+				  sd_ack:          in std_logic;
+				  sd_buff_addr:    in std_logic_vector (8 downto 0);
+				  sd_dout:         in std_logic_vector (7 downto 0);
+				  sd_din:          out std_logic_vector (7 downto 0);
+				  sd_dout_strobe:  in std_logic;
+				  sd_din_strobe:   in std_logic
+				  
+             );
+    end component;
+	 
+    signal data: std_logic_vector(7 downto 0);
+    signal track: std_logic_vector(6 downto 0);
+    signal sector: std_logic_vector(7 downto 0);
+    signal command: std_logic_vector(7 downto 0);
+    signal status: std_logic_vector(7 downto 0);
+    signal MST: std_logic_vector(6 downto 0);
+
+    -- Status
+    signal busy: std_logic;
+    signal lostData: std_logic;
+    signal dataRequest: std_logic;
+    signal commandRequest: std_logic;
 
 
+    
+    signal fdc_nCS: std_logic;                                  
+    signal fdc_nRE: std_logic;                              
+    signal fdc_nWE: std_logic;                                  
+    signal fdc_CLK: std_logic;                                  
+    signal fdc_A: std_logic_vector(1 downto 0);         
+    signal fdc_DALin: std_logic_vector(7 downto 0); 
+    signal fdc_DALout: std_logic_vector(7 downto 0);        
+    signal fdc_DRQ: std_logic;                              
+    signal fdc_IRQ: std_logic;                                                                                                              
+                    
+    signal sel: std_logic;                  
+    signal u16k: std_logic; 
     signal inECE: std_logic;
     signal inROMDIS: std_logic;
+    signal iDIR: std_logic;
     
     -- Control Register 
     signal nROMEN: std_logic;               -- ROM Enable
@@ -90,101 +154,118 @@ architecture Behavioral of microdisc is
                         
 begin
 
-   
+fdd1: fdc1772
+ port map
+  (
+              clkcpu         => CLK_SYS,
+				  clk8m_en       => fdc_CLK,
+				  
+				  floppy_drive   => "00" & DSEL,
+				  floppy_side    => SSEL,
+				  floppy_reset   => not nRESET,
+				  
+				  irq            => fdc_IRQ,
+              drq            => fdc_DRQ,
+				  
+				  cpu_addr       => fdc_A,
+				  cpu_sel        => not fdc_nCS,
+				  cpu_rw         => not RnW,
+				  cpu_din        => fdc_DALin,
+				  cpu_dout       => fdc_DALout,
+				  
+				  img_mounted    => img_mounted,
+				  img_wp         => img_wp,
+				  img_size       => img_size,
+				  sd_lba         => sd_lba,
+				  sd_rd          => sd_rd,
+				  sd_wr          => sd_wr,
+				  sd_ack         => sd_ack,
+				  sd_buff_addr   => sd_buff_addr,
+				  sd_dout        => sd_dout,
+				  sd_din         => sd_din,
+				  sd_dout_strobe => sd_dout_strobe,
+				  sd_din_strobe  => sd_din_strobe
+  );
+    
+  
 
     -- Reset
     nHOSTRST <= '0' when nRESET = '0' else '1';
 
     -- Select signal (Address Range 031-)
-    fdc_sel <= '1' when A(7 downto 4) = "0001" and IO = '0' and A(3 downto 2) /= "11"   else '0';
+    sel <= '1' when A(7 downto 4) = "0001" and IO = '0' and A(3 downto 2) /= "11"   else '0';
 
     -- WD1793 Signals
     fdc_A <= A(1 downto 0);
-    fdc_nCS <= '0' when fdc_sel = '1' and A(3 downto 2) = "00" else '1';
-	 --fdc_nCS <='0' when (A(7 downto 2) = "000100" and IO='0') else '1';
-	 --A2=0, A3=0, A4=1, A5=0, A6=0, A7=0 y /IO=0
-	 fdc_nRE <= IO or not RnW;
+    fdc_nCS <= '0' when sel = '1' and A(3 downto 2) = "00" else '1';
+    fdc_nRE <= IO or not RnW;
     fdc_nWE <= IO or RnW;
     fdc_CLK <= not PH2_2;
-	 
-	 fdc_DALin <= DI; -- DO?
+    fdc_DALin <= DI;
             
     -- ORIC Expansion Port Signals
-    IOCTRL <= '0' when fdc_sel = '1' else '1';
+    IOCTRL <= '0' when sel = '1' else '1';
     nROMDIS <= '0' when inROMDIS = '0' else '1';
     nIRQ <= '0' when fdc_IRQ = '1' and IRQEN = '1' else '1';
     
     -- EEPROM Control Signals
+    nEOE <= PH2_1 or not RnW;
     u16k <= '1' when (inROMDIS = '0') and (A(14) = '1') and (A(15) = '1') else '0';
     inECE <= not (A(13) and u16k and not nROMEN);
     nECE <= inECE;
-	 nMAP <= '0' when (PH2_2 and inECE and u16k) = '1' else '1'; 
-
+    nMAP <= '0' when (PH2_2 and inECE and u16k) = '1' else '1'; 
+    
+    
     --nMCRQ <= inMCRQ;        
     
+    DIR <= iDIR;
+    iDIR <= RnW;    
+    
     -- Data Bus Control.
-    process (RnW, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, fdc_nCS, A)
+    process (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
     begin 
-        if RnW = '1' then      
+        if iDIR = '1' then      
             if A(3 downto 2) = "10" then 
-                DO <= (not fdc_DRQ) & fdc_DALin (6 downto 0);
+                DO <= (not fdc_DRQ) & "-------";
             elsif A(3 downto 2) = "01" then 
-                DO <= (not fdc_IRQ) & fdc_DALin (6 downto 0); 
+                DO <= (not fdc_IRQ) & "-------"; 
             elsif fdc_nRE = '0' and fdc_nCS = '0' then
                 DO <= fdc_DALout;            
             else 
-                DO <= fdc_DALin;    
+                DO <= "--------";    
             end if;
         else 
-            DO <= fdc_DALin;    
+            DO <= "ZZZZZZZZ";    
         end if;
     end process;    
-	 
---	  -- Data Bus Control.
---    process (RnW, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, fdc_nCS, A)
---    begin 
---        if RnW = '1' then      
---            if A(3 downto 2) = "10" then 
---                DO <= (not fdc_DRQ) & "-------";
---            elsif A(3 downto 2) = "01" then 
---                DO <= (not fdc_IRQ) & "-------"; 
---            elsif fdc_nRE = '0' and fdc_nCS = '0' then
---                DO <= fdc_DALout;            
---            else 
---                DO <= "--------";    
---            end if;
---        else 
---            DO <= "ZZZZZZZZ";    
---        end if;
---    end process;    
---    
-    fdc_nOE <= '0' when fdc_sel = '1' and PH2 = '1' else '1';
+    
+    nOE <= '0' when sel = '1' and PH2 = '1' else '1';
     
     -- Control Register.
-    process (fdc_sel, A, RnW, DI,ENA,PH2_2,nRESET)
+    process (sel, A, RnW, DI)
     begin
         if nRESET = '0' then
             nROMEN <= '0';
             DSEL <= "00";
             SSEL <= '0';
-            if ENA = '0' then
-				   inROMDIS <= '0';
+				if ENA = '0' then
+				     inROMDIS <= '0';
 				else inROMDIS <= '1';
 				end if;
-            IRQEN <= '0';       
+				IRQEN <= '0';       
         elsif falling_edge(PH2_2) then 
-            if fdc_sel = '1' and A(3 downto 2) = "01" and RnW = '0' then
+            if sel = '1' and A(3 downto 2) = "01" and RnW = '0' then
                 nROMEN <= DI(7);
                 DSEL <= DI(6 downto 5);
                 SSEL <= DI(4);
-                inROMDIS <= DI(1);
+					 inROMDIS <= DI(1);
                 IRQEN <= DI(0);
             end if;
         end if;
     end process;
     
     -- PH2 derived clocks.
-    process (PH2, CLK, nRESET)
+    process (PH2, CLK)
     begin
         if nRESET = '0' then
             PH2_cntr <= "00000";
@@ -210,3 +291,4 @@ begin
     end process;        
         
 end Behavioral;
+

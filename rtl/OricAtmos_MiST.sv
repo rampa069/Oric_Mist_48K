@@ -15,6 +15,7 @@ module OricAtmos_MiST(
    input         SPI_DI,
    input         SPI_SS2,
    input         SPI_SS3,
+	input         SPI_SS4,
    input         CONF_DATA0,
 	output [12:0] SDRAM_A,
 	inout  [15:0] SDRAM_DQ,
@@ -37,9 +38,9 @@ localparam CONF_STR = {
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
-	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+   "O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
-	"V,v1.20.",`BUILD_DATE
+	"V,v2.0.",`BUILD_DATE
 };
 wire        clk_8;
 wire        clk_24;
@@ -47,6 +48,10 @@ wire        clk_72;
 wire        clk_32;
 wire        pll_locked;
 
+wire        key_pressed;
+wire [7:0]  key_code;
+wire        key_strobe;
+wire        key_extended;
 wire 			r, g, b; 
 wire 			hs, vs;
 
@@ -58,8 +63,7 @@ wire [15:0] audio;
 wire [7:0] joystick_0;
 wire [7:0] joystick_1;
 
-wire [10:0]ps2_key;
-wire 		  ps2_kbd_clk, ps2_kbd_data;
+
 
 wire       tapebits;
 wire 		  remote;
@@ -69,26 +73,12 @@ wire        rom;
 wire        old_rom;
 wire        rom_changed;
 
-wire [1:0] fdc_A;
-wire       fdc_nCS;
-wire       fdc_nRE;
-wire       fdc_nWE;
-wire       fdc_nOE;
-wire       fdc_CLK;
-wire [7:0] fdc_DALin;
-wire [7:0] fdc_DALout;
-wire       fdc_sel;
-wire       fdc_DRQ;
-wire       fdc_IRQ;
 
-wire [1:0] cont_DSEL;
-wire       cont_SSEL;
 
 //assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 //assign      LED=!remote;
-assign      LED = fdc_IRQ;
-//assign      LED = fdd1_ready;
+assign      LED = img_mounted;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1]);
 assign      rom = ~status[3] ;
@@ -107,6 +97,7 @@ user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
 	.clk_sys        	(clk_24         	),
+	.clk_sd           (clk_24           ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
 	.SPI_SS_IO      	(CONF_DATA0     	),
@@ -137,17 +128,10 @@ user_io(
 	.sd_din_strobe               (sd_din_strobe ),
 	.sd_buff_addr                (sd_buff_addr  ),
 	.img_mounted                 (img_mounted   ),
-	.img_size                    (img_size      )
+	.img_size                    (img_size      ),
 );
 
 
-	
-//	reg init_reset = 1;
-//always @(posedge clk_24) begin
-//	reg old_download;
-//	old_download <= ioctl_download;
-//	if(~ioctl_download & old_download & !ioctl_index) init_reset <= 0;
-//end
 	
 mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.clk_sys      (clk_24     ),
@@ -199,20 +183,20 @@ oricatmos oricatmos(
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
 	.rom			      (rom),
-	.fdc_A             (fdc_A),
-   .fdc_nCS				 (fdc_nCS),
-	.fdc_nRE				 (fdc_nRE),
-	.fdc_nWE           (fdc_nWE),
-	.fdc_nOE           (fdc_nOE),
-	.fdc_CLK           (fdc_CLK),
-	.fdc_DRQ           (fdc_DRQ),
-	.fdc_IRQ           (fdc_IRQ),
-	.fdc_DALin         (fdc_DALin),
-	.fdc_DALout        (fdc_DALout),
-	.fdc_sel           (fdc_sel),
-	.cont_DSEL         (cont_DSEL),
-	.cont_SSEL         (cont_SSEL)
-	);
+	.img_mounted    ( img_mounted      ), // signaling that new image has been mounted
+	.img_size       ( img_size         ), // size of image in bytes
+	.img_wp         ( status[7]    ), // write protect
+   .sd_lba         ( sd_lba           ),
+	.sd_rd          ( sd_rd            ),
+	.sd_wr          ( sd_wr            ),
+	.sd_ack         ( sd_ack           ),
+	.sd_buff_addr   ( sd_buff_addr     ),
+	.sd_dout        ( sd_dout     ),
+	.sd_din         ( sd_din      ),
+	.sd_dout_strobe ( sd_dout_strobe   ),
+	.sd_din_strobe  ( sd_din_strobe    )
+	
+);
 
 reg         port1_req, port2_req;
 wire [15:0] ram_ad;
@@ -305,69 +289,10 @@ wire  [8:0] sd_buff_addr;
 wire  [7:0] sd_dout;
 wire  [7:0] sd_din;
 wire        sd_buff_wr;
-wire  [1:0] img_mounted;
+wire        img_mounted;
 wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
-
-
-
-
-
-//// FDD1
-//wire        fdd1_busy;
-//reg         fdd1_ready;
-//
-//
-//
-//always @(posedge clk_24) begin
-//	reg old_mounted;
-//
-//	
-//	old_mounted <= img_mounted[0];
-//	//fdd1_ready <= img_mounted[0];
-//	 if(reset) fdd1_ready <= 0;
-//		else if(~old_mounted & img_mounted[0]) fdd1_ready <= 1;
-//end
-
-//parameter CLK = 32000000;
-//parameter CLK_EN = 16'd8000; // in kHz
-//parameter SECTOR_SIZE_CODE = 2'd3; // sec size 0=128, 1=256, 2=512, 3=1024
-//parameter SECTOR_BASE = 1'b0; // number of first sector on track (archie 0, dos 1)
-
-fdc1772 #(.SECTOR_SIZE_CODE(2'd2),.SECTOR_BASE(1'b0),.CLK(24000000),.CLK_EN(16'd1000)) fdc1772 (
-	.clkcpu         ( clk_24       ), // system cpu clock.
-	.clk8m_en       ( fdc_CLK      ),
-
-	// external set signals
-	.floppy_drive   (cont_DSEL ),
-	.floppy_side    (cont_SSEL      ),
-	.floppy_reset   (~reset),
-
-	// interrupts
-	.irq            ( fdc_IRQ         ),
-	.drq            ( fdc_DRQ          ),
-
-	.cpu_addr       ( fdc_A         ),
-	.cpu_sel        ( ~fdc_nCS          ),
-	.cpu_rw         ( fdc_nWE          ),
-	.cpu_din        ( fdc_DALin         ),
-	.cpu_dout       ( fdc_DALout        ),
-
-	// place any signals that need to be passed up to the top after here.
-	.img_mounted    ( img_mounted      ), // signaling that new image has been mounted
-	.img_wp         ( status[7]        ), // write protect
-	.img_size       ( img_size         ), // size of image in bytes
-	.sd_lba         ( sd_lba           ),
-	.sd_rd          ( sd_rd            ),
-	.sd_wr          ( sd_wr            ),
-	.sd_ack         ( sd_ack           ),
-	.sd_buff_addr   ( sd_buff_addr     ),
-	.sd_dout        ( sd_dout     ),
-	.sd_din         ( sd_din      ),
-	.sd_dout_strobe ( sd_dout_strobe   ),
-	.sd_din_strobe  ( sd_din_strobe    )
-);
 
 
 endmodule
