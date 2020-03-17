@@ -1,22 +1,26 @@
 module OricAtmos_MiST(
    input         CLOCK_27,
+	
    output  [5:0] VGA_R,
    output  [5:0] VGA_G,
    output  [5:0] VGA_B,
    output        VGA_HS,
    output        VGA_VS,
    output        LED,
+	
    input         UART_RXD,
    output        UART_TXD,
+	
    output        AUDIO_L,
    output        AUDIO_R,
+	
    input         SPI_SCK,
    output        SPI_DO,
    input         SPI_DI,
    input         SPI_SS2,
    input         SPI_SS3,
-	input         SPI_SS4,
    input         CONF_DATA0,
+	
 	output [12:0] SDRAM_A,
 	inout  [15:0] SDRAM_DQ,
 	output        SDRAM_DQML,
@@ -33,8 +37,8 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;;",
-	"S0,IMG,Mount Drive A:;",
-	"S1,IMG,Mount Drive B:;",
+	"S0,IMGDSK,Mount Drive A:;",
+	"S1,IMGDSK,Mount Drive B:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
@@ -75,10 +79,8 @@ wire        rom_changed;
 
 
 
-//assign 		LED = 1'b0;
 assign 		AUDIO_R = AUDIO_L;
 //assign      LED=!remote;
-assign      LED = img_mounted;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1]);
 assign      rom = ~status[3] ;
@@ -128,7 +130,7 @@ user_io(
 	.sd_din_strobe               (sd_din_strobe ),
 	.sd_buff_addr                (sd_buff_addr  ),
 	.img_mounted                 (img_mounted   ),
-	.img_size                    (img_size      ),
+	.img_size                    (img_size      )
 );
 
 
@@ -179,13 +181,15 @@ oricatmos oricatmos(
 	.ram_we           (ram_we       ),
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
+	.fd_led           (LED),
+	.fdd_ready        (fdd_ready    ),
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
 	.rom			      (rom),
 	.img_mounted    ( img_mounted      ), // signaling that new image has been mounted
 	.img_size       ( img_size         ), // size of image in bytes
-	.img_wp         ( status[7]    ), // write protect
+	.img_wp         ( status[7]        ), // write protect
    .sd_lba         ( sd_lba           ),
 	.sd_rd          ( sd_rd            ),
 	.sd_wr          ( sd_wr            ),
@@ -275,7 +279,13 @@ audiodac(
   );
 
 
-
+always @(posedge clk_24) begin
+	reg old_mounted;
+   reg fdd_ready;
+	old_mounted <= img_mounted;
+	if(reset) fdd_ready <= 0;
+		else if(~old_mounted & img_mounted) fdd_ready <= 1;
+end
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;

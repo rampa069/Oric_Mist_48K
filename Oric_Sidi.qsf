@@ -243,10 +243,8 @@ set_global_assignment -name USE_SIGNALTAP_FILE rtl/stp1.stp
 set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS OFF
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/wd1793.sv
 set_global_assignment -name VERILOG_FILE mist/sd_card.v
-set_global_assignment -name VERILOG_FILE "fdc1772-verilator/fdc1772.v"
-set_global_assignment -name VERILOG_FILE "fdc1772-verilator/floppy.v"
-set_global_assignment -name VERILOG_FILE mist/mist_io.v
 set_global_assignment -name VHDL_FILE rtl/rom/MICRODIS.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE mist/sdram.sv
 set_global_assignment -name QIP_FILE mist/mist.qip

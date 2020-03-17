@@ -26,7 +26,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 entity Microdisc is
     port( 
           CLK: in std_logic;                                -- 32 Mhz input clock
-          CLK_SYS: in std_logic;
+          CLK_SYS: in std_logic;                            -- 24 Mhz input clock
                                                             -- Oric Expansion Port Signals
           DI: in std_logic_vector(7 downto 0);            -- 6502 Data Bus
           DO: out std_logic_vector(7 downto 0);            -- 6502 Data Bus
@@ -67,41 +67,49 @@ entity Microdisc is
 			 sd_dout:         in std_logic_vector (7 downto 0);
 			 sd_din:          out std_logic_vector (7 downto 0);
 			 sd_dout_strobe:  in std_logic;
-			 sd_din_strobe:   in std_logic
+			 sd_din_strobe:   in std_logic;
+			 
+			 fdd_ready:       in std_logic;
+			 fd_led:          out std_logic
          );
 end Microdisc;
 
 architecture Behavioral of Microdisc is
-    component fdc1772 
+    component wd1793 
         port(                                               
-              clkcpu:          in std_logic;
-				  clk8m_en:        in std_logic;
+              clk_sys:          in std_logic;
+				  ce:               in std_logic;
 				  
-				  floppy_drive:    in std_logic_vector (3 downto 0);
-				  floppy_side:     in std_logic;
-				  floppy_reset:    in std_logic;
+				  reset:            in std_logic;
+				  io_en:            in std_logic;
+				  rd:               in std_logic;
+				  wr:               in std_logic;
+				  addr:             in std_logic_vector (1 downto 0);
+				  din:              in  std_logic_vector (7 downto 0);
+				  dout:             out std_logic_vector (7 downto 0);
 				  
-				  irq:             out std_logic;
-              drq:             out std_logic;
+				  intrq:            out std_logic;
+              drq:              out std_logic;
 				  
-				  cpu_addr:        in std_logic_vector (1 downto 0);
-				  cpu_sel:         in std_logic;
-				  cpu_rw:          in std_logic;
-				  cpu_din:         in  std_logic_vector (7 downto 0);
-				  cpu_dout:        out std_logic_vector (7 downto 0);
+				  busy:             out std_logic;
+				  ready:            in std_logic;
+				  layout:          in std_logic;
+				  side:            in std_logic;
 				  
 				  img_mounted:     in std_logic;
-				  img_wp:          in std_logic_vector (1 downto 0);
-				  img_size:        in std_logic_vector (31 downto 0);
+				  wp:              in std_logic;
+				  img_size:        in std_logic_vector (19 downto 0);
 				  sd_lba:          out std_logic_vector (31 downto 0);
-				  sd_rd:           out std_logic_vector (1 downto 0);
-				  sd_wr:           out std_logic_vector (1 downto 0);
+				  sd_rd:           out std_logic;
+				  sd_wr:           out std_logic;
 				  sd_ack:          in std_logic;
 				  sd_buff_addr:    in std_logic_vector (8 downto 0);
-				  sd_dout:         in std_logic_vector (7 downto 0);
-				  sd_din:          out std_logic_vector (7 downto 0);
-				  sd_dout_strobe:  in std_logic;
-				  sd_din_strobe:   in std_logic
+				  sd_buff_dout:    in std_logic_vector (7 downto 0);
+				  sd_buff_din:     out std_logic_vector (7 downto 0);
+				  
+				  size_code:       in std_logic_vector (2 downto 0)
+				  --sd_dout_strobe:  in std_logic;
+				  --sd_din_strobe:   in std_logic
 				  
              );
     end component;
@@ -154,37 +162,42 @@ architecture Behavioral of Microdisc is
                         
 begin
 
-fdd1: fdc1772
+fdd1: wd1793
  port map
   (
-              clkcpu         => CLK_SYS,
-				  clk8m_en       => fdc_CLK,
+              clk_sys         => CLK_SYS,
+				  ce              => fdc_CLK,
 				  
-				  floppy_drive   => "00" & DSEL,
-				  floppy_side    => SSEL,
-				  floppy_reset   => not nRESET,
+				  reset           => not nRESET,
+				  io_en           => not fdc_nCS,
+				  rd              => not fdc_nRE,
+				  wr              => not fdc_nWE,
+				  addr            => fdc_A,
+				  din             => fdc_DALin,
+				  dout            => fdc_DALout,
 				  
-				  irq            => fdc_IRQ,
+				  intrq          => fdc_IRQ,
               drq            => fdc_DRQ,
 				  
-				  cpu_addr       => fdc_A,
-				  cpu_sel        => not fdc_nCS,
-				  cpu_rw         => not RnW,
-				  cpu_din        => fdc_DALin,
-				  cpu_dout       => fdc_DALout,
+				  ready          => fdd_ready, --img_mounted,
+				  --busy           => 
 				  
+				  layout         => '1',
+				  size_code      => "001",
+				  side           => SSEL,
+				  --prepare        => 
 				  img_mounted    => img_mounted,
-				  img_wp         => img_wp,
-				  img_size       => img_size,
+				  wp             => img_wp(0),
+				  img_size       => img_size (19 downto 0),
 				  sd_lba         => sd_lba,
-				  sd_rd          => sd_rd,
-				  sd_wr          => sd_wr,
+				  sd_rd          => sd_rd(0),
+				  sd_wr          => sd_wr(0),
 				  sd_ack         => sd_ack,
 				  sd_buff_addr   => sd_buff_addr,
-				  sd_dout        => sd_dout,
-				  sd_din         => sd_din,
-				  sd_dout_strobe => sd_dout_strobe,
-				  sd_din_strobe  => sd_din_strobe
+				  sd_buff_dout   => sd_dout,
+				  sd_buff_din    => sd_din
+				  --sd_dout_strobe => sd_dout_strobe,
+				  --sd_din_strobe  => sd_din_strobe
   );
     
   
@@ -202,7 +215,9 @@ fdd1: fdc1772
     fdc_nWE <= IO or RnW;
     fdc_CLK <= not PH2_2;
     fdc_DALin <= DI;
-            
+    -- DEBUG led
+    fd_led <= not fdc_DRQ;
+	 
     -- ORIC Expansion Port Signals
     IOCTRL <= '0' when sel = '1' else '1';
     nROMDIS <= '0' when inROMDIS = '0' else '1';

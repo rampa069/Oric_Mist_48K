@@ -71,9 +71,11 @@ entity oricatmos is
 	 ram_oe            : out std_logic;
 	 ram_we            : out std_logic;
 	 phi2              : out std_logic;
-	 joystick_0        : in  std_logic_vector( 7 downto 0);
-	 joystick_1        : in  std_logic_vector( 7 downto 0);
-	 pll_locked        : in  std_logic;
+	 fd_led            : out std_logic;
+	 fdd_ready         : in std_logic;
+	 joystick_0        : in std_logic_vector( 7 downto 0);
+	 joystick_1        : in std_logic_vector( 7 downto 0);
+	 pll_locked        : in std_logic;
 	 disk_enable       : in std_logic;
 	 rom               : in std_logic;
 	 img_mounted:     in std_logic;
@@ -150,10 +152,8 @@ architecture RTL of oricatmos is
 	 signal ula_VIDEO_B        : std_logic;
 	 signal ula_SYNC           : std_logic;
 	 
---	 -- ÑAPA
---	 signal display_enable     : std_logic;
-    
-	 signal lSRAM_D            : std_logic_vector(7 downto 0);
+
+--	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
     signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
 	 signal ROM_1_DO     	   : std_logic_vector(7 downto 0);
@@ -361,7 +361,7 @@ inst_key : keyboard
 inst_microdisc: work.Microdisc 
     port map( 
           CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
-          CLK_SYS   => clk_in,
+          CLK_SYS   => CLK_IN,
                                                             -- Oric Expansion Port Signals
           DI        => cpu_do,                              -- 6502 Data Bus
           DO        => cont_D_OUT,                          -- 6502 Data Bus			 
@@ -395,7 +395,9 @@ inst_microdisc: work.Microdisc
 			 sd_dout        => sd_dout,
 			 sd_din         => sd_din,
 			 sd_dout_strobe => sd_dout_strobe,
-			 sd_din_strobe  => sd_din_strobe
+			 sd_din_strobe  => sd_din_strobe,
+			 fdd_ready      => fdd_ready,
+			 fd_led         => fd_led
          );
 
 
