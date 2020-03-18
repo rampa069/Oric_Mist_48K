@@ -42,10 +42,10 @@ localparam CONF_STR = {
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
-	"O8,FD Ready,Off,On;",
-   "O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
-	"V,v2.0.",`BUILD_DATE
+	"T8,Reset FD;",
+  	"V,v2.0.",`BUILD_DATE
 };
 wire        clk_8;
 wire        clk_24;
@@ -79,8 +79,9 @@ wire        old_rom;
 wire        rom_changed;
 
 wire        led_value;
-wire        fdd_ready;
+reg         fdd_ready ;
 wire        fdd_busy;
+
 
 assign 		AUDIO_R = AUDIO_L;
 assign      disk_enable = ~status[6];
@@ -189,6 +190,7 @@ oricatmos oricatmos(
 	.fd_led           (led_value),
 	.fdd_ready        (fdd_ready    ),
 	.fdd_busy         (fdd_busy     ),
+	.fdd_reset        (status[8]   ),
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
@@ -265,14 +267,24 @@ sdram sdram(
 	.port1_q       ( ram_q          ),
 
 
-	// port2 is wired to the FDC controller
+//	// port2 is wired to the FDC controller
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
 	.port2_a       ( ioctl_addr ),
-	.port2_ds      ( ioctl_wr),
-	.port2_we      ( ioctl_wr),
+	.port2_ds      ( ),
+	.port2_we      ( ioctl_download),
 	.port2_d       ( ioctl_dout),
 	.port2_q       ( )
+	
+//		// port2 is wired to the FDC controller
+//	.port2_req     ( port2_req ),
+//	.port2_ack     ( ),
+//	.port2_a       ( ),
+//	.port2_ds      ( ),
+//	.port2_we      ( ),
+//	.port2_d       ( ),
+//	.port2_q       ( )
+
 );
 
 
@@ -286,12 +298,19 @@ audiodac(
   );
 
 
-always @(posedge clk_24) begin
-	reg old_mounted;
-	old_mounted <= img_mounted[0];
-	if(!pll_locked) fdd_ready <= 0;
-		else if(~old_mounted & img_mounted[0]) fdd_ready <= 1;
-end
+ //assign fdd_ready=status[8];
+ 
+//always @(posedge clk_24) begin
+//	reg old_mounted;
+//	old_mounted <= img_mounted[0];
+//	assign fdd_ready=status[8];
+//	if(cold_reset == 0) fdd_ready <= 0;
+//		else if(status[8])
+//	  	       begin
+//				    fdd_ready <= 1;
+//					 cold_reset <= 1;
+//				end
+//end
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
@@ -318,6 +337,20 @@ wire        ioctl_download;
 wire  [7:0] ioctl_index;
 
 
+reg init_reset = 1;
+always @(posedge clk_24) begin
+	reg old_download;
+	old_download <= ioctl_download;
+	if(~ioctl_download & old_download & !ioctl_index) init_reset <= 0;
+end
+
+always @(posedge clk_24) begin
+	reg old_mounted;
+
+	old_mounted <= img_mounted[0];
+	if(init_reset) fdd_ready <= 0;
+		else if(~old_mounted & img_mounted[0]) fdd_ready <= 1;
+end
 
 data_io data_io (
  
@@ -329,8 +362,11 @@ data_io data_io (
 		.ioctl_wr  (ioctl_wr),
 		.ioctl_addr(ioctl_addr),
 		.ioctl_dout(ioctl_dout),
-		.ioctl_index(ioctl_index)
+		.ioctl_index(ioctl_index),
+		.ioctl_download (ioctl_download)
 );
+
+
 
 //sd_card sd_card(
 //      .clk_sys		(clk_24),

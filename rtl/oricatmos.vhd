@@ -74,6 +74,7 @@ entity oricatmos is
 	 fd_led            : out std_logic;
 	 fdd_ready         : in std_logic;
 	 fdd_busy          : out std_logic;
+	 fdd_reset         : in std_logic;
 	 joystick_0        : in std_logic_vector( 7 downto 0);
 	 joystick_1        : in std_logic_vector( 7 downto 0);
 	 pll_locked        : in std_logic;
@@ -399,6 +400,7 @@ inst_microdisc: work.Microdisc
 			 sd_din_strobe  => sd_din_strobe,
 			 fdd_ready      => fdd_ready,
 			 fdd_busy       => fdd_busy,
+			 fdd_reset      => fdd_reset,
 			 fd_led         => fd_led
          );
 
