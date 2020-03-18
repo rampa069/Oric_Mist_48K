@@ -22,7 +22,7 @@
 //
 //============================================================================
 
-module wd1793 #(parameter RWMODE=1, EDSK=1)
+module wd1793 //#(parameter RWMODE=1, EDSK=1)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -66,7 +66,8 @@ module wd1793 #(parameter RWMODE=1, EDSK=1)
 	output       buff_read,	  // buffer RAM read enable
 	input  [7:0] buff_din     // buffer RAM data input
 );
-
+parameter RWMODE = 1;
+parameter EDSK = 1;
 // Possible track configs:
 // 0: 26 x 128  = 3.3KB
 // 1: 16 x 256  = 4.0KB

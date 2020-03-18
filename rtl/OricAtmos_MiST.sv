@@ -19,6 +19,7 @@ module OricAtmos_MiST(
    input         SPI_DI,
    input         SPI_SS2,
    input         SPI_SS3,
+	input         SPI_SS4,
    input         CONF_DATA0,
 	
 	output [12:0] SDRAM_A,
@@ -37,11 +38,11 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;;",
-	"S0,IMGDSK,Mount Drive A:;",
-	"S1,IMGDSK,Mount Drive B:;",
+	"S0,DSK,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
+	"O8,FD Ready,Off,On;",
    "O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
 	"V,v2.0.",`BUILD_DATE
@@ -77,14 +78,16 @@ wire        rom;
 wire        old_rom;
 wire        rom_changed;
 
-
+wire        led_value;
+wire        fdd_ready;
+wire        fdd_busy;
 
 assign 		AUDIO_R = AUDIO_L;
-//assign      LED=!remote;
 assign      disk_enable = ~status[6];
 assign      reset = (status[0] | buttons[1]);
 assign      rom = ~status[3] ;
 
+assign LED = fdd_ready;
 
 pll pll (
 	.inclk0	 (CLOCK_27   ),
@@ -95,6 +98,8 @@ pll pll (
 	.locked   (pll_locked )
 	);
 
+	
+	
 user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
@@ -116,7 +121,7 @@ user_io(
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
 	.status         	(status         	),
-   // SD CARD
+	// SD CARD
    .sd_lba                      (sd_lba        ),
 	.sd_rd                       (sd_rd         ),
 	.sd_wr                       (sd_wr         ),
@@ -181,8 +186,9 @@ oricatmos oricatmos(
 	.ram_we           (ram_we       ),
 	.joystick_0       ( joystick_0      ),
 	.joystick_1       ( joystick_1      ),
-	.fd_led           (LED),
+	.fd_led           (led_value),
 	.fdd_ready        (fdd_ready    ),
+	.fdd_busy         (fdd_busy     ),
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
 	.disk_enable      (disk_enable),
@@ -233,6 +239,7 @@ always @(posedge clk_72) begin
 
 	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
 		port1_req <= ~port1_req;
+		port2_req <= ~port2_req;
 		sdram_ad <= ram_ad;
 		sdram_we <= ram_we;
 	end
@@ -261,10 +268,10 @@ sdram sdram(
 	// port2 is wired to the FDC controller
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
-	.port2_a       ( ),
-	.port2_ds      ( ),
-	.port2_we      ( ),
-	.port2_d       ( ),
+	.port2_a       ( ioctl_addr ),
+	.port2_ds      ( ioctl_wr),
+	.port2_we      ( ioctl_wr),
+	.port2_d       ( ioctl_dout),
 	.port2_q       ( )
 );
 
@@ -281,10 +288,9 @@ audiodac(
 
 always @(posedge clk_24) begin
 	reg old_mounted;
-   reg fdd_ready;
-	old_mounted <= img_mounted;
-	if(reset) fdd_ready <= 0;
-		else if(~old_mounted & img_mounted) fdd_ready <= 1;
+	old_mounted <= img_mounted[0];
+	if(!pll_locked) fdd_ready <= 0;
+		else if(~old_mounted & img_mounted[0]) fdd_ready <= 1;
 end
   
   ///////////////////   FDC   ///////////////////
@@ -299,10 +305,53 @@ wire  [8:0] sd_buff_addr;
 wire  [7:0] sd_dout;
 wire  [7:0] sd_din;
 wire        sd_buff_wr;
-wire        img_mounted;
+wire  [1:0] img_mounted;
 wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
 
+
+wire        ioctl_wr;
+wire [24:0] ioctl_addr;
+wire  [7:0] ioctl_dout;
+wire        ioctl_download;
+wire  [7:0] ioctl_index;
+
+
+
+data_io data_io (
+ 
+		.clk_sys   (clk_24),
+		.SPI_SS2   (SPI_SS2),
+		.SPI_SS4   (SPI_SS4),
+		.SPI_DI    (SPI_DI),
+		.SPI_DO    (SPI_DO),
+		.ioctl_wr  (ioctl_wr),
+		.ioctl_addr(ioctl_addr),
+		.ioctl_dout(ioctl_dout),
+		.ioctl_index(ioctl_index)
+);
+
+//sd_card sd_card(
+//      .clk_sys		(clk_24),
+//		.sd_rd      (sd_rd),
+//		.sd_wr      (sd_wr),
+//		.sd_ack     (sd_ack),
+//		.sd_ack_conf(sd_ack_conf),
+//		.sd_conf    (sd_conf),
+//		.sd_sdhc    (sd_sdhc),
+//		.img_mounted(img_mounted),
+//		.img_size   (img_size),
+//		.sd_busy    (sd_busy),
+//		.sd_buff_dout(sd_dout),
+//		.sd_buff_wr  (sd_buff_wr),
+//		.sd_buff_din (sd_din),
+//		.sd_buff_addr(sd_buff_addr),
+//		//.allow_sdhc  (allow_sdhc),
+//		//.sd_cs       (sd_cs),
+//		//.sd_sck      (sd_sck),
+//		//.sd_sdi      (sd_sdi),
+//		//.sd_sdo      (sd_sdo)
+//);
 
 endmodule

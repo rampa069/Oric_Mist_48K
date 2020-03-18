@@ -24,6 +24,7 @@ use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity Microdisc is
+
     port( 
           CLK: in std_logic;                                -- 32 Mhz input clock
           CLK_SYS: in std_logic;                            -- 24 Mhz input clock
@@ -56,7 +57,7 @@ entity Microdisc is
           nEOE: out std_logic;                              -- Output Enable
           ENA:  in std_logic;
 			 
-			 img_mounted:     in std_logic;
+			 img_mounted:     in std_logic_vector (1 downto 0);
 			 img_wp:          in std_logic_vector (1 downto 0);
 			 img_size:        in std_logic_vector (31 downto 0);
 			 sd_lba:          out std_logic_vector (31 downto 0);
@@ -70,13 +71,17 @@ entity Microdisc is
 			 sd_din_strobe:   in std_logic;
 			 
 			 fdd_ready:       in std_logic;
+			 fdd_busy:        out std_logic;
 			 fd_led:          out std_logic
          );
 end Microdisc;
 
 architecture Behavioral of Microdisc is
-    component wd1793 
-        port(                                               
+    component wd1793
+	 GENERIC(
+        RWMODE   :INTEGER :=1;
+		  EDSK     :INTEGER :=1);
+	 port(                                               
               clk_sys:          in std_logic;
 				  ce:               in std_logic;
 				  
@@ -91,12 +96,13 @@ architecture Behavioral of Microdisc is
 				  intrq:            out std_logic;
               drq:              out std_logic;
 				  
-				  busy:             out std_logic;
-				  ready:            in std_logic;
+				  busy:            out std_logic;
+				  ready:           in std_logic;
 				  layout:          in std_logic;
 				  side:            in std_logic;
 				  
 				  img_mounted:     in std_logic;
+				  
 				  wp:              in std_logic;
 				  img_size:        in std_logic_vector (19 downto 0);
 				  sd_lba:          out std_logic_vector (31 downto 0);
@@ -107,26 +113,23 @@ architecture Behavioral of Microdisc is
 				  sd_buff_dout:    in std_logic_vector (7 downto 0);
 				  sd_buff_din:     out std_logic_vector (7 downto 0);
 				  
+				  prepare:         out std_logic;
 				  size_code:       in std_logic_vector (2 downto 0)
-				  --sd_dout_strobe:  in std_logic;
-				  --sd_din_strobe:   in std_logic
+				
 				  
              );
     end component;
 	 
-    signal data: std_logic_vector(7 downto 0);
-    signal track: std_logic_vector(6 downto 0);
-    signal sector: std_logic_vector(7 downto 0);
-    signal command: std_logic_vector(7 downto 0);
-    signal status: std_logic_vector(7 downto 0);
-    signal MST: std_logic_vector(6 downto 0);
+--    signal data: std_logic_vector(7 downto 0);
+--    signal track: std_logic_vector(6 downto 0);
+--    signal sector: std_logic_vector(7 downto 0);
+--    signal command: std_logic_vector(7 downto 0);
+--    signal status: std_logic_vector(7 downto 0);
+--    signal MST: std_logic_vector(6 downto 0);
 
     -- Status
-    signal busy: std_logic;
-    signal lostData: std_logic;
-    signal dataRequest: std_logic;
-    signal commandRequest: std_logic;
-
+   
+    
 
     
     signal fdc_nCS: std_logic;                                  
@@ -151,8 +154,7 @@ architecture Behavioral of Microdisc is
     
     signal inMCRQ: std_logic;
     
-    signal DBG_cntr: std_logic_vector(1 downto 0);
-    signal DBG_signal: std_logic;
+    
     
     signal PH2_1: std_logic;                                
     signal PH2_2: std_logic;                                
@@ -162,13 +164,17 @@ architecture Behavioral of Microdisc is
                         
 begin
 
-fdd1: wd1793
+fdc1: wd1793
+ generic map (
+               EDSK => 1,
+					RWMODE => 1
+				)
  port map
   (
               clk_sys         => CLK_SYS,
 				  ce              => fdc_CLK,
 				  
-				  reset           => not nRESET,
+				  reset           => not nRESET,--not nRESET,
 				  io_en           => not fdc_nCS,
 				  rd              => not fdc_nRE,
 				  wr              => not fdc_nWE,
@@ -180,13 +186,13 @@ fdd1: wd1793
               drq            => fdc_DRQ,
 				  
 				  ready          => fdd_ready, --img_mounted,
-				  --busy           => 
+				  busy           => fdd_busy, 
 				  
 				  layout         => '1',
 				  size_code      => "001",
 				  side           => SSEL,
-				  --prepare        => 
-				  img_mounted    => img_mounted,
+				  --prepare        => fdd_busy,
+				  img_mounted    => img_mounted(0),
 				  wp             => img_wp(0),
 				  img_size       => img_size (19 downto 0),
 				  sd_lba         => sd_lba,
@@ -196,8 +202,7 @@ fdd1: wd1793
 				  sd_buff_addr   => sd_buff_addr,
 				  sd_buff_dout   => sd_dout,
 				  sd_buff_din    => sd_din
-				  --sd_dout_strobe => sd_dout_strobe,
-				  --sd_din_strobe  => sd_din_strobe
+				 
   );
     
   
@@ -216,7 +221,8 @@ fdd1: wd1793
     fdc_CLK <= not PH2_2;
     fdc_DALin <= DI;
     -- DEBUG led
-    fd_led <= not fdc_DRQ;
+	 
+    fd_led <= fdd_ready;
 	 
     -- ORIC Expansion Port Signals
     IOCTRL <= '0' when sel = '1' else '1';
