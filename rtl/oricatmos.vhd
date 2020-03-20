@@ -75,6 +75,7 @@ entity oricatmos is
 	 fdd_ready         : in std_logic;
 	 fdd_busy          : out std_logic;
 	 fdd_reset         : in std_logic;
+	 fdd_layout        : in std_logic;
 	 joystick_0        : in std_logic_vector( 7 downto 0);
 	 joystick_1        : in std_logic_vector( 7 downto 0);
 	 pll_locked        : in std_logic;
@@ -181,8 +182,7 @@ architecture RTL of oricatmos is
     signal cont_IOCONTROLn    : std_logic :='1';
 	 signal cont_ECE           : std_logic;
 	 signal cont_RESETn        : std_logic;
-    signal cont_DSEL          : std_logic_vector(1 downto 0);
-	 signal cont_SSEL          : std_logic;
+    signal cont_nOE           : std_logic;
 	 signal cont_irq           : std_logic;
 	 
 	
@@ -237,8 +237,11 @@ inst_cpu : entity work.T65
 );
 
 
-ram_ad  <= ula_AD_SRAM when ula_PHI2 = '0' else cpu_ad(15 downto 0);
-ram_d   <= (others => '0') when RESETn = '0' else CPU_DO when ula_WE_SRAM = '1' else (others => 'Z');
+--ram_ad  <= ula_AD_SRAM when (ula_PHI2 = '0')else cpu_ad(15 downto 0);
+ram_ad  <= ula_AD_SRAM when (ula_PHI2 = '0')else cpu_ad(15 downto 0);
+
+
+ram_d   <= (others => '0') when RESETn = '0' else CPU_DO when (ula_WE_SRAM = '1') else (others => 'Z');
 SRAM_DO <= ram_q;
 ram_cs  <= '0' when RESETn = '0' else ula_CE_SRAM;
 ram_oe  <= '0' when RESETn = '0' else ula_OE_SRAM;
@@ -363,14 +366,14 @@ inst_key : keyboard
 inst_microdisc: work.Microdisc 
     port map( 
           CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
-          CLK_SYS   => CLK_IN,
+          CLK_SYS   => clk_IN,
                                                             -- Oric Expansion Port Signals
           DI        => cpu_do,                              -- 6502 Data Bus
           DO        => cont_D_OUT,                          -- 6502 Data Bus			 
           A         => cpu_ad (15 downto 0),                -- 6502 Address Bus
           RnW       => cpu_rw,                              -- 6502 Read-/Write
           nIRQ      => cont_irq,                            -- 6502 /IRQ
-          PH2       => ula_phi2,                            -- 6502 PH2 
+          PH2       => ula_PHI2,                            -- 6502 PH2 
           nROMDIS   => cont_ROMDISn,                        -- Oric ROM Disable
           nMAP      => cont_MAPn,                           -- Oric MAP 
           IO        => ula_CSIOn,                           -- Oric I/O 
@@ -378,13 +381,15 @@ inst_microdisc: work.Microdisc
           nHOSTRST  => cont_RESETn,                         -- Oric RESET 
                                                               -- Additional MCU Interface Lines
           nRESET    => RESETn and not swrst,                -- RESET from MCU
-          DSEL      => cont_DSEL,                           -- Drive Select
-          SSEL      => cont_SSEL,                           -- Side Select
+          --DSEL      => cont_DSEL,                           -- Drive Select
+          --SSEL      => cont_SSEL,                           -- Side Select
           
-                                                            -- EEPROM Control Lines.
+                                                             -- EEPROM Control Lines.
           nECE      => cont_ECE,                             -- Chip Enable
  
 			 ENA       => disk_enable,
+			 
+			 nOE       => cont_nOE,
 			 
 			 img_mounted    => img_mounted,
 			 img_wp         => img_wp,
@@ -401,7 +406,9 @@ inst_microdisc: work.Microdisc
 			 fdd_ready      => fdd_ready,
 			 fdd_busy       => fdd_busy,
 			 fdd_reset      => fdd_reset,
+			 fdd_layout     => fdd_layout,
 			 fd_led         => fd_led
+			 
          );
 
 
@@ -432,19 +439,19 @@ process begin
 	 
 	 
 		-- expansion port
-      if    cpu_rw = '1' and ula_phi2 = '1'  and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
+      if    cpu_rw = '1' and ula_PHI2 = '1' and cont_nOE = '0' then -- ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
          CPU_DI <= cont_D_OUT;
       -- VIA
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
 			cpu_di <= VIA_DO;
 		-- ROM Atmos	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_ROMDISn = '1' and rom ='1' then
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' then
 			cpu_di <= ROM_ATMOS_DO;
 		-- ROM Oric 1	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_ROMDISn = '1' and rom ='0' then
+		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' then
 			cpu_di <= ROM_1_DO;
 		--ROM Microdisc
-		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' then
+		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' then
 			cpu_di <= ROM_MD_DO;	
 		-- RAM	
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' then

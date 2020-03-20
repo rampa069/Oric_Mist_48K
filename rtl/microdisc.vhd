@@ -72,8 +72,9 @@ ENTITY Microdisc IS
 		sd_din_strobe   : IN std_logic;
  
 		fdd_ready       : IN std_logic;
-		fdd_busy        : OUT std_logic;
+		fdd_busy        : BUFFER std_logic;
 		fdd_reset       : IN std_logic;
+		fdd_layout      : IN std_logic;
 		fd_led          : OUT std_logic
 	);
 END Microdisc;
@@ -124,12 +125,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 		);
 	END COMPONENT;
  
-	-- signal data: std_logic_vector(7 downto 0);
-	-- signal track: std_logic_vector(6 downto 0);
-	-- signal sector: std_logic_vector(7 downto 0);
-	-- signal command: std_logic_vector(7 downto 0);
-	-- signal status: std_logic_vector(7 downto 0);
-	-- signal MST: std_logic_vector(6 downto 0);
+
 
 	-- Status
  
@@ -176,9 +172,9 @@ BEGIN
 		PORT MAP
 		(
 			clk_sys       => CLK_SYS, 
-			ce            => fdc_CLK, 
+			ce            => fdc_CLK, --fdc_CLK, 
  
-			reset         => '0', --not nRESET,
+			reset         => NOT nRESET ,--fdd_reset,
 			io_en         => NOT fdc_nCS, 
 			rd            => NOT fdc_nRE, 
 			wr            => NOT fdc_nWE, 
@@ -189,13 +185,13 @@ BEGIN
 			intrq         => fdc_IRQ, 
 			drq           => fdc_DRQ, 
  
-			ready         => '1', --img_mounted,
+			ready         => fdd_ready, 
 			--busy          => fdd_busy, 
  
-			layout        => '0', 
+			layout        => fdd_layout , --fdd_layout, 
 			size_code     => "001", 
 			side          => SSEL, 
-			prepare => fdd_busy,
+			prepare       => fdd_busy,
 			img_mounted   => img_mounted(0), 
 			wp            => img_wp(0), 
 			img_size      => img_size (19 DOWNTO 0), 
@@ -217,41 +213,66 @@ BEGIN
 			-- WD1793 Signals
 			fdc_A <= A(1 DOWNTO 0);
 			fdc_nCS <= '0' WHEN sel = '1' AND A(3 DOWNTO 2) = "00" ELSE '1';
-			fdc_nRE <= IO OR NOT RnW;fdc_nWE <= IO OR RnW;
-			fdc_CLK <= NOT PH2_2;fdc_DALin <= DI;
+			fdc_nRE <= IO OR NOT RnW;
+			fdc_nWE <= IO OR RnW;
+--			fdc_nRE <= IO OR NOT RnW OR PH2_2;
+--			fdc_nWE <= NOT fdc_nRE;
+			
+			fdc_CLK <= NOT PH2_2; 
+			fdc_DALin <= DI;
+			
+			
 			-- DEBUG led
  
-			fd_led <= fdd_ready; 
+			fd_led <= fdd_busy; 
 			-- ORIC Expansion Port Signals
-			IOCTRL <= '0' WHEN sel = '1' ELSE '1';nROMDIS <= '0' WHEN inROMDIS = '0' ELSE '1';
+			IOCTRL <= '0' WHEN sel = '1' ELSE '1';
+			nROMDIS <= '0' WHEN inROMDIS = '0' ELSE '1';
 			nIRQ <= '0' WHEN fdc_IRQ = '1' AND IRQEN = '1' ELSE '1'; 
 			-- EEPROM Control Signals
-			nEOE <= PH2_1 OR NOT RnW;u16k <= '1' WHEN (inROMDIS = '0') AND (A(14) = '1') AND (A(15) = '1') ELSE '0';
-			inECE <= NOT (A(13) AND u16k AND NOT nROMEN);nECE <= inECE;
+			nEOE <= PH2_1 OR NOT RnW;
+			u16k <= '1' WHEN (inROMDIS = '0') AND (A(14) = '1') AND (A(15) = '1') ELSE '0';
+			inECE <= NOT (A(13) AND u16k AND NOT nROMEN);
+			nECE <= inECE;
 			nMAP <= '0' WHEN (PH2_2 AND inECE AND u16k) = '1' ELSE '1'; 
  
 			--nMCRQ <= inMCRQ; 
  
-			DIR <= iDIR;iDIR <= RnW; 
+			DIR <= iDIR;
+			iDIR <= RnW; 
  
-			-- Data Bus Control.
-			PROCESS (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
-			BEGIN
-				IF iDIR = '1' THEN 
-					IF A(3 DOWNTO 2) = "10" THEN
-						DO <= (NOT fdc_DRQ) & "-------";
-						ELSIF A(3 DOWNTO 2) = "01" THEN
-							DO <= (NOT fdc_IRQ) & "-------";
-						ELSIF fdc_nRE = '0' AND fdc_nCS = '0' THEN
-							DO <= fdc_DALout; 
-					ELSE
-						DO <= "--------"; 
-						END IF;
-				ELSE
-					DO <= "ZZZZZZZZ"; 
-				END IF;
-			END PROCESS; 
- 
+--			-- Data Bus Control.
+--			PROCESS (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
+--			BEGIN
+--				IF iDIR = '1' THEN 
+--					IF A(3 DOWNTO 2) = "10" THEN
+--						DO <= (NOT fdc_DRQ) & "-------";
+--						ELSIF A(3 DOWNTO 2) = "01" THEN
+--							DO <= (NOT fdc_IRQ) & "-------";
+--						ELSIF fdc_nRE = '0' AND fdc_nCS = '0' THEN
+--							DO <= fdc_DALout; 
+--					ELSE
+--						DO <= "--------"; 
+--						END IF;
+--				ELSE
+--					DO <= "ZZZZZZZZ"; 
+--				END IF;
+--			END PROCESS; 
+-- 
+         
+			PROCESS BEGIN
+			WAIT UNTIL FALLING_EDGE (CLK_SYS);
+			-- PORT #318
+			 IF    RnW = '1' AND PH2 = '1' AND A = 16#318# THEN
+            DO(7) <= NOT fdc_DRQ;
+         -- PORT #314
+		    ELSIF RnW = '1' AND PH2 = '1' AND A = 16#314# THEN
+			   DO(7) <= NOT fdc_IRQ;
+			 ELSIF RnW = '1' AND PH2 = '1' AND fdc_nRE = '0' AND fdc_nCS ='0' THEN
+			   DO <= fdc_DALout;
+			 END IF; 
+			END PROCESS;
+			
 			nOE <= '0' WHEN sel = '1' AND PH2 = '1' ELSE '1';
  
 			-- Control Register.
