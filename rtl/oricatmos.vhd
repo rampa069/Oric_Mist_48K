@@ -367,6 +367,7 @@ inst_microdisc: work.Microdisc
     port map( 
           CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
           CLK_SYS   => clk_IN,
+			 CLK_1MHZ  => ENA_1MHZ,
                                                             -- Oric Expansion Port Signals
           DI        => cpu_do,                              -- 6502 Data Bus
           DO        => cont_D_OUT,                          -- 6502 Data Bus			 

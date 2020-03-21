@@ -22,7 +22,7 @@
 //
 //============================================================================
 
-module wd1793 //#(parameter RWMODE=1, EDSK=1)
+module wd1793 #(parameter RWMODE=0, EDSK=1)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
@@ -66,8 +66,7 @@ module wd1793 //#(parameter RWMODE=1, EDSK=1)
 	output       buff_read,	  // buffer RAM read enable
 	input  [7:0] buff_din     // buffer RAM data input
 );
-parameter RWMODE = 1;
-parameter EDSK = 1;
+
 // Possible track configs:
 // 0: 26 x 128  = 3.3KB
 // 1: 16 x 256  = 4.0KB
@@ -90,8 +89,6 @@ reg  [10:0] byte_addr;
 reg  [19:0] buff_a;
 reg   [1:0] wd_size_code;
 
-reg         sd_busy;
-
 wire  [7:0] buff_dout;
 reg   [1:0] sd_block = 0;
 reg         format;
@@ -103,7 +100,7 @@ generate
 
 			.address_a({sd_block, sd_buff_addr}),
 			.data_a(sd_buff_dout),
-			.wren_a(sd_buff_wr & sd_ack & sd_busy),
+			.wren_a(sd_buff_wr & sd_ack),
 			.q_a(sd_buff_din),
 
 			.address_b(scan_active ? {2'b00, scan_addr[8:0]} : byte_addr),
@@ -134,7 +131,7 @@ always @* begin
 	endcase
 	case({var_size,size_code})
 				0: sectors_per_track = 26;
-				1: sectors_per_track = 16;
+				1: sectors_per_track = 17;  //16 sectores por pista
 				2: sectors_per_track = 9;
 				3: sectors_per_track = 5;
 				4: sectors_per_track = 10;
@@ -209,6 +206,9 @@ reg			s_lostdata, s_wrfault; 			     // mode 2,3
 // Command mode 0/1 for status register
 reg 			cmd_mode;
 
+// allow write protect flag
+reg 			s_wpe;
+
 // DRQ/BUSY are always going together
 reg	[1:0]	s_drq_busy;
 wire			s_drq  = s_drq_busy[1];
@@ -219,8 +219,8 @@ reg   [7:0] wdreg_track;
 reg   [7:0] wdreg_sector;
 reg   [7:0] wdreg_data;
 wire  [7:0] wdreg_status = cmd_mode == 0 ?
-	{~ready, s_readonly, s_headloaded, s_seekerr | ~ready, s_crcerr, !disk_track, s_index, s_busy}:
-	{~ready, s_readonly, s_wrfault,    s_seekerr | ~ready, s_crcerr, s_lostdata,  s_drq,   s_busy};
+	{~ready, s_readonly & s_wpe, s_headloaded, s_seekerr | ~ready, s_crcerr, !disk_track, s_index, s_busy}:
+	{~ready, s_readonly & s_wpe, s_wrfault,    s_seekerr | ~ready, s_crcerr, s_lostdata,  s_drq,   s_busy};
 
 reg   [7:0] read_addr[6];
 reg   [7:0] q;
@@ -281,7 +281,8 @@ always @(posedge clk_sys) begin
 	reg [7:0] ra_sector;
 	reg       multisector;
 	reg       write;
-	reg       old_ack;
+	reg [5:0] ack;
+	reg       sd_busy;
 	reg       old_mounted;
 	reg [3:0] scan_state;
 	reg [1:0] scan_cnt;
@@ -325,21 +326,22 @@ always @(posedge clk_sys) begin
 		if(RWMODE) buff_wr <= 0;
 		state <= STATE_IDLE;
 		cmd_mode <= 0;
+		s_wpe <= 1;
 		{s_headloaded, s_seekerr, s_crcerr, s_intrq} <= 0;
 		{s_wrfault, s_lostdata} <= 0;
 		s_drq_busy <= 0;
 		watchdog_set <= 0;
 		seektimer <= 'h3FF;
-		{old_ack, sd_wr, sd_rd, sd_busy} <= 0;
+		{ack, sd_wr, sd_rd, sd_busy} <= 0;
 		ra_sector <= 1;
 	end else if(ce) begin
 
-		old_ack <= sd_ack;
-		if(~old_ack & sd_ack) {sd_rd,sd_wr} <= 0;
-		if(old_ack & ~sd_ack) sd_busy <= 0;
+		ack <= {ack[4:0], sd_ack};
+		if(ack[5:4] == 'b01) {sd_rd,sd_wr} <= 0;
+		if(ack[5:4] == 'b10) sd_busy <= 0;
 
 		if(RWMODE & scan_active) begin
-			if(scan_addr >= img_size[19:0]) scan_active <= 0;
+			if(scan_addr >= img_size) scan_active <= 0;
 			else begin
 				case(scan_state)
 					0:	begin
@@ -608,6 +610,7 @@ always @(posedge clk_sys) begin
 						s_intrq <= 0;
 						if((state == STATE_IDLE) | (din[7:4] == 'hD)) begin
 							cmd_mode <= din[7];
+							s_wpe    <= ~din[7];
 							case (din[7:4])
 							'h0: 	// RESTORE
 								begin
@@ -653,8 +656,7 @@ always @(posedge clk_sys) begin
 									state <= STATE_WAIT;
 								end
 							'h8, 'h9, // READ SECTORS
-							'hA, 'hB, // WRITE SECTORS
-							'hF:	    // WRITE TRACK
+							'hA, 'hB: // WRITE SECTORS
 								begin
 									// seek data
 									// 5: 0: read, 1: write
@@ -680,6 +682,7 @@ always @(posedge clk_sys) begin
 									edsk_start  <= 0;
 									edsk_addr   <= 0;
 									state       <= STATE_SEARCH;
+									s_wpe       <= din[5];
 
 									if(s_readonly & din[5]) begin
 										s_wrfault <= 1;
@@ -718,6 +721,13 @@ always @(posedge clk_sys) begin
 									cmd_mode <= 0;
 									if(state != STATE_IDLE) state <= STATE_ABORT;
 										else {s_wrfault,s_seekerr,s_crcerr,s_lostdata, s_drq_busy} <= 0;
+								end
+							'hF:  // WRITE TRACK
+								begin
+									s_wpe <= din[5];
+									{s_wrfault,s_seekerr,s_crcerr,s_lostdata} <= 0;
+									s_drq_busy <= 2'b01;
+									state <= STATE_WAIT;
 								end
 							'hE:	// READ TRACK
 								begin

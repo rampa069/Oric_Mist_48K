@@ -38,7 +38,7 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;;",
-	"S0,DSK,Mount Drive A:;",
+	"S0,DSKMGTIMG,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
@@ -47,7 +47,6 @@ localparam CONF_STR = {
 	"T8,FDC Reset;",
   	"V,v2.0.",`BUILD_DATE
 };
-wire        clk_8;
 wire        clk_24;
 wire        clk_72;
 wire        clk_32;
@@ -110,7 +109,7 @@ user_io(
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
 	.SPI_SS_IO      	(CONF_DATA0     	),
-	.SPI_MISO       	(SPI_DO         	),
+	.SPI_MISO       	(SPI_DO        	),
 	.SPI_MOSI       	(SPI_DI         	),
 	.buttons        	(buttons        	),
 	.switches       	(switches      	),
@@ -341,6 +340,8 @@ always @(posedge clk_24) begin
 
 	  end
 end
+
+
 
 data_io data_io (
  

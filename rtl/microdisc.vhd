@@ -29,6 +29,7 @@ ENTITY Microdisc IS
 	(
 		CLK             : IN std_logic; -- 32 Mhz input clock
 		CLK_SYS         : IN std_logic; -- 24 Mhz input clock
+		CLK_1MHZ        : IN std_logic;
 		-- Oric Expansion Port Signals
 		DI              : IN std_logic_vector(7 DOWNTO 0); -- 6502 Data Bus
 		DO              : OUT std_logic_vector(7 DOWNTO 0); -- 6502 Data Bus
@@ -175,9 +176,9 @@ BEGIN
 			ce            => fdc_CLK, --fdc_CLK, 
  
 			reset         => NOT nRESET ,--fdd_reset,
-			io_en         => NOT fdc_nCS, 
-			rd            => NOT fdc_nRE, 
-			wr            => NOT fdc_nWE, 
+			io_en         => NOT fdc_nCS, -- NOT
+			rd            => NOT fdc_nRE, -- NOT
+			wr            => NOT fdc_nWE, -- NOT
 			addr          => fdc_A, 
 			din           => fdc_DALin, 
 			dout          => fdc_DALout, 
@@ -202,6 +203,7 @@ BEGIN
 			sd_buff_addr  => sd_buff_addr, 
 			sd_buff_dout  => sd_dout, 
 			sd_buff_din   => sd_din 
+			
 			); 
  
 
