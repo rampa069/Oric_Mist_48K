@@ -3,7 +3,7 @@
 
 module keyboard
 (
-	input			   clk_24,
+	input			   clk_sys,
 	input			   clk_en,
 	input			   reset,
 	input          key_pressed,  // 1-make (pressed), 0-break (released)
@@ -90,7 +90,7 @@ reg swf6 = 1'b0;
 
 
 	
-always @(posedge clk_24) begin
+always @(posedge clk_sys) begin
 	
 	if(key_strobe) begin
 		casex(key_code)
@@ -173,7 +173,7 @@ wire no_key = (~sw0 & ~sw1 & ~sw2 & ~sw3 & ~sw4 & ~sw5 & ~sw6 & ~sw7 & ~sw8 & ~s
 					~sweq & ~swfcn & ~swdel & ~swrsb & ~swlsb & ~swbs & ~swdsh & ~swsq & ~swsc & ~swesc & ~swctl & ~swf1 & ~swf2 &
 					~swf3 & ~swf4 & ~swf5 & ~swf6);
 					
-always @(posedge clk_24) begin
+always @(posedge clk_sys) begin
 	if (clk_en) begin
 		if (no_key) ROWbit <= 8'b11111111;
 		else if (col == 3'b111) begin

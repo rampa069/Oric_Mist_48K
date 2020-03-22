@@ -29,7 +29,7 @@ ENTITY Microdisc IS
 	(
 		CLK             : IN std_logic; -- 32 Mhz input clock
 		CLK_SYS         : IN std_logic; -- 24 Mhz input clock
-		CLK_1MHZ        : IN std_logic;
+		
 		-- Oric Expansion Port Signals
 		DI              : IN std_logic_vector(7 DOWNTO 0); -- 6502 Data Bus
 		DO              : OUT std_logic_vector(7 DOWNTO 0); -- 6502 Data Bus
@@ -59,12 +59,12 @@ ENTITY Microdisc IS
 		nEOE            : OUT std_logic; -- Output Enable
 		ENA             : IN std_logic;
  
-		img_mounted     : IN std_logic_vector (1 DOWNTO 0);
-		img_wp          : IN std_logic_vector (1 DOWNTO 0);
+		img_mounted     : IN std_logic;
+		img_wp          : IN std_logic;
 		img_size        : IN std_logic_vector (31 DOWNTO 0);
 		sd_lba          : OUT std_logic_vector (31 DOWNTO 0);
-		sd_rd           : OUT std_logic_vector (1 DOWNTO 0);
-		sd_wr           : OUT std_logic_vector (1 DOWNTO 0);
+		sd_rd           : OUT std_logic;
+		sd_wr           : OUT std_logic;
 		sd_ack          : IN std_logic;
 		sd_buff_addr    : IN std_logic_vector (8 DOWNTO 0);
 		sd_dout         : IN std_logic_vector (7 DOWNTO 0);
@@ -121,7 +121,15 @@ ARCHITECTURE Behavioral OF Microdisc IS
 			sd_buff_din   : OUT std_logic_vector (7 DOWNTO 0);
  
 			prepare       : OUT std_logic;
-			size_code     : IN std_logic_vector (2 DOWNTO 0) 
+			size_code     : IN std_logic_vector (2 DOWNTO 0); 
+			
+			input_active  : IN std_logic;
+	      input_addr    : IN std_logic_vector (19 DOWNTO 0);
+	      input_data    : IN std_logic_vector (7 DOWNTO 0);
+	      input_wr      : IN std_logic;
+	      buff_addr     : OUT std_logic_vector (19 DOWNTO 0);	  
+	      buff_read     : OUT std_logic;	  
+	      buff_din      : IN std_logic_vector (7 DOWNTO 0)
  
 		);
 	END COMPONENT;
@@ -175,7 +183,7 @@ BEGIN
 			clk_sys       => CLK_SYS, 
 			ce            => fdc_CLK, --fdc_CLK, 
  
-			reset         => NOT nRESET ,--fdd_reset,
+			reset         => NOT nRESET, --fdd_reset ,--fdd_reset,
 			io_en         => NOT fdc_nCS, -- NOT
 			rd            => NOT fdc_nRE, -- NOT
 			wr            => NOT fdc_nWE, -- NOT
@@ -193,16 +201,22 @@ BEGIN
 			size_code     => "001", 
 			side          => SSEL, 
 			prepare       => fdd_busy,
-			img_mounted   => img_mounted(0), 
-			wp            => img_wp(0), 
+			img_mounted   => img_mounted, 
+			wp            => img_wp, 
 			img_size      => img_size (19 DOWNTO 0), 
 			sd_lba        => sd_lba, 
-			sd_rd         => sd_rd(0), 
-			sd_wr         => sd_wr(0), 
+			sd_rd         => sd_rd, 
+			sd_wr         => sd_wr, 
 			sd_ack        => sd_ack, 
 			sd_buff_addr  => sd_buff_addr, 
 			sd_buff_dout  => sd_dout, 
-			sd_buff_din   => sd_din 
+			sd_buff_din   => sd_din,
+		
+	      input_active  => '0',
+		   input_addr    => (others => '0'),	
+			input_data    => (others => '0'),
+			input_wr      => '0',
+			buff_din      => (others => '0')
 			
 			); 
  
@@ -217,9 +231,6 @@ BEGIN
 			fdc_nCS <= '0' WHEN sel = '1' AND A(3 DOWNTO 2) = "00" ELSE '1';
 			fdc_nRE <= IO OR NOT RnW;
 			fdc_nWE <= IO OR RnW;
---			fdc_nRE <= IO OR NOT RnW OR PH2_2;
---			fdc_nWE <= NOT fdc_nRE;
-			
 			fdc_CLK <= NOT PH2_2; 
 			fdc_DALin <= DI;
 			
@@ -265,13 +276,15 @@ BEGIN
 			PROCESS BEGIN
 			WAIT UNTIL FALLING_EDGE (CLK_SYS);
 			-- PORT #318
-			 IF    RnW = '1' AND PH2 = '1' AND A = 16#318# THEN
+			 IF    RnW = '1'  AND A = 16#318# THEN
             DO(7) <= NOT fdc_DRQ;
          -- PORT #314
-		    ELSIF RnW = '1' AND PH2 = '1' AND A = 16#314# THEN
+		    ELSIF RnW = '1' AND  A = 16#314# THEN
 			   DO(7) <= NOT fdc_IRQ;
-			 ELSIF RnW = '1' AND PH2 = '1' AND fdc_nRE = '0' AND fdc_nCS ='0' THEN
+			 ELSIF RnW = '1' AND  fdc_nRE = '0' AND fdc_nCS ='0' THEN
 			   DO <= fdc_DALout;
+			 ELSE 
+			   DO <= "--------"; 
 			 END IF; 
 			END PROCESS;
 			

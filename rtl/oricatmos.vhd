@@ -47,7 +47,7 @@
 entity oricatmos is
   port (
     CLK_IN            : in    std_logic;
-	 CLK_PSG           : in    std_logic;
+	 CLK_96            : in    std_logic;
 	 CLK_MICRODISC     : in    std_logic;
     RESET             : in    std_logic;
 	 key_pressed       : in    std_logic;
@@ -81,12 +81,12 @@ entity oricatmos is
 	 pll_locked        : in std_logic;
 	 disk_enable       : in std_logic;
 	 rom               : in std_logic;
-	 img_mounted:     in std_logic_vector (1 downto 0);
-	 img_wp:          in std_logic_vector (1 downto 0);
+	 img_mounted:     in std_logic;
+	 img_wp:          in std_logic;
 	 img_size:        in std_logic_vector (31 downto 0);
 	 sd_lba:          out std_logic_vector (31 downto 0);
-	 sd_rd:           out std_logic_vector (1 downto 0);
-	 sd_wr:           out std_logic_vector (1 downto 0);
+	 sd_rd:           out std_logic;
+	 sd_wr:           out std_logic;
 	 sd_ack:          in std_logic;
 	 sd_buff_addr:    in std_logic_vector (8 downto 0);
 	 sd_dout:         in std_logic_vector (7 downto 0);
@@ -128,6 +128,8 @@ architecture RTL of oricatmos is
     
     -- Clavier : émulation par port PS2
     signal KEY_ROW            : std_logic_vector( 7 downto 0);
+	 signal KEYB_RESETn        : std_logic;
+	 signal KEYB_NMIn          : std_logic;
 
     -- PSG
     signal psg_bdir           : std_logic; 
@@ -138,22 +140,17 @@ architecture RTL of oricatmos is
     signal ula_CSIOn          : std_logic;
     signal ula_CSROMn         : std_logic;
 	 signal ula_CSRAMn         : std_logic;
-    signal ula_AD_RAM         : std_logic_vector(7 downto 0);
     signal ula_AD_SRAM        : std_logic_vector(15 downto 0);
     signal ula_CE_SRAM        : std_logic;
     signal ula_OE_SRAM        : std_logic;
     signal ula_WE_SRAM        : std_logic;
 	 signal ula_LATCH_SRAM     : std_logic;
     signal ula_CLK_4          : std_logic;
-    signal ula_RASn           : std_logic;
-    signal ula_CASn           : std_logic;
     signal ula_MUX            : std_logic;
     signal ula_RW_RAM         : std_logic;
-	 signal ula_IOCONTROL      : std_logic;
 	 signal ula_VIDEO_R        : std_logic;
 	 signal ula_VIDEO_G        : std_logic;
 	 signal ula_VIDEO_B        : std_logic;
-	 signal ula_SYNC           : std_logic;
 	 
 
 --	 signal lSRAM_D            : std_logic_vector(7 downto 0);
@@ -200,7 +197,7 @@ architecture RTL of oricatmos is
 COMPONENT keyboard
 	PORT
 	(
-		clk_24		:	 IN STD_LOGIC;
+		clk_sys		:	 IN STD_LOGIC;
 		clk_en		:	 IN STD_LOGIC;
 		reset			:	 IN STD_LOGIC;
 		key_pressed	:	 IN STD_LOGIC;
@@ -218,7 +215,7 @@ END COMPONENT;
 
 begin
 
-RESETn <= not RESET;
+RESETn <= (not RESET and KEYB_RESETn);
 inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
@@ -228,7 +225,7 @@ inst_cpu : entity work.T65
       Rdy     		=> '1',
       Abort_n 		=> '1',
       IRQ_n   		=> cpu_irq and cont_irq, -- Via and disk controller
-      NMI_n   		=> not swnmi,
+      NMI_n   		=> KEYB_NMIn,
       SO_n    		=> '1',
       R_W_n   		=> cpu_rw,
       A       		=> cpu_ad,
@@ -299,7 +296,6 @@ inst_ula : entity work.ULA
 		VSYNC      	=> VIDEO_VSYNC		
 );
 
---ula_CSIO <= not(ula_CSIOn);
 inst_via : entity work.M6522
 	port map (
 		I_RS        => cpu_ad(3 downto 0),
@@ -308,7 +304,10 @@ inst_via : entity work.M6522
 		I_RW_L      => cpu_rw,
 		I_CS1       => cont_IOCONTROLn,
 		I_CS2_L     => ula_CSIOn,
-		O_IRQ_L     => cpu_irq,   
+		
+		O_IRQ_L     => cpu_irq, 
+
+      --PORT A		
 		I_CA1       => '1',       -- PRT_ACK
 		I_CA2       => '1',       -- psg_bdir
 		O_CA2       => psg_bdir,  
@@ -318,6 +317,7 @@ inst_via : entity work.M6522
 		O_PA        => via_pa_out,
 		O_PA_OE_L   => via_pa_out_oe,
 		
+		-- PORT B
 		I_CB1       => K7_TAPEIN,
 		O_CB1       => via_cb1_out,
       O_CB1_OE_L  => via_cb1_oe_l,
@@ -349,7 +349,7 @@ inst_psg : entity work.ay8912
 
 inst_key : keyboard
 	port map(
-		clk_24		=> CLK_IN,
+		clk_sys		=> CLK_96,
 		clk_en		=> ENA_1MHZ,
 		reset			=> not RESETn, --not RESETn,
 		key_pressed	=> key_pressed,
@@ -363,11 +363,13 @@ inst_key : keyboard
 		swrst       => swrst
 );
 
+KEYB_NMIn <= NOT swnmi;
+KEYB_RESETn <= NOT swrst;
+
 inst_microdisc: work.Microdisc 
     port map( 
           CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
-          CLK_SYS   => clk_IN,
-			 CLK_1MHZ  => ENA_1MHZ,
+          CLK_SYS   => clk_96,
                                                             -- Oric Expansion Port Signals
           DI        => cpu_do,                              -- 6502 Data Bus
           DO        => cont_D_OUT,                          -- 6502 Data Bus			 
@@ -381,7 +383,7 @@ inst_microdisc: work.Microdisc
           IOCTRL    => cont_IOCONTROLn,                     -- Oric I/O Control           
           nHOSTRST  => cont_RESETn,                         -- Oric RESET 
                                                               -- Additional MCU Interface Lines
-          nRESET    => RESETn and not swrst,                -- RESET from MCU
+          nRESET    => RESETn,                                -- RESET from MCU
           --DSEL      => cont_DSEL,                           -- Drive Select
           --SSEL      => cont_SSEL,                           -- Side Select
           
@@ -440,7 +442,7 @@ process begin
 	 
 	 
 		-- expansion port
-      if    cpu_rw = '1' and ula_PHI2 = '1' and cont_nOE = '0' then -- ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
+      if    cpu_rw = '1' and ula_PHI2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
          CPU_DI <= cont_D_OUT;
       -- VIA
 		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then

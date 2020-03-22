@@ -44,12 +44,12 @@ localparam CONF_STR = {
 	"O7,Drive Write,Prohibit,Allow;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
-	"T8,FDC Reset;",
+	"T1,FDC Reset;",
   	"V,v2.0.",`BUILD_DATE
 };
-wire        clk_24;
 wire        clk_72;
 wire        clk_32;
+wire        clk_24;
 wire        pll_locked;
 
 wire        key_pressed;
@@ -81,7 +81,7 @@ wire        led_value;
 reg         fdd_ready=0;
 wire        fdd_busy;
 reg         fdd_layout;
-reg         fdd_reset = 1;
+reg         fdd_reset = 0;
 
 
 assign 		AUDIO_R = AUDIO_L;
@@ -89,23 +89,30 @@ assign      disk_enable = ~status[6];
 assign      reset = (!pll_locked | status[0] | buttons[1] | rom_changed);
 assign      rom = ~status[3] ;
 
-assign      LED = led_value;
+assign      LED = fdd_ready;
+
+
+
 
 pll pll (
 	.inclk0	 (CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
 	.c2       (clk_32     ),
+	.c3       (clk_96     ),
 	.locked   (pll_locked )
 	);
 
-	
+
+
+
+
 	
 user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
-	.clk_sys        	(clk_24         	),
-	.clk_sd           (clk_24           ),
+	.clk_sys        	(clk_96         	),
+	.clk_sd           (SPI_SCK          ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
 	.SPI_SS_IO      	(CONF_DATA0     	),
@@ -165,6 +172,7 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 oricatmos oricatmos(
 	.clk_in           (clk_24       ),
 	.clk_microdisc    (clk_32       ),
+	.clk_96           (clk_96       ),
 	.RESET            (reset),
 	.key_pressed      (key_pressed  ),
 	.key_code         (key_code     ),
@@ -190,7 +198,7 @@ oricatmos oricatmos(
 	.fd_led           (led_value),
 	.fdd_ready        (fdd_ready    ),
 	.fdd_busy         (fdd_busy     ),
-	.fdd_reset        (fdd_reset | status[8]  ),
+	.fdd_reset        (fdd_reset    ),
 	.fdd_layout       (fdd_layout   ),
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked),
@@ -266,17 +274,6 @@ sdram sdram(
 	.port1_we      ( sdram_we       ),
 	.port1_d       ( {ram_d, ram_d} ),
 	.port1_q       ( ram_q          ),
-
-
-////	// port2 is wired to the FDC controller
-//	.port2_req     ( port2_req ),
-//	.port2_ack     ( ),
-//	.port2_a       ( ioctl_addr ),
-//	.port2_ds      ( ),
-//	.port2_we      ( ioctl_download),
-//	.port2_d       ( ioctl_dout),
-//	.port2_q       ( )
-	
 		// port2 is wired to the FDC controller
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
@@ -292,7 +289,7 @@ sdram sdram(
 dac #(
    .c_bits				(16					))
 audiodac(
-   .clk_i				(clk_24				),
+   .clk_i				(clk_96				),
    .res_n_i				(1						),
    .dac_i				(audio				),
    .dac_o				(AUDIO_L				)
@@ -301,8 +298,8 @@ audiodac(
   
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
-wire [1:0]  sd_rd;
-wire [1:0]  sd_wr;
+wire        sd_rd;
+wire        sd_wr;
 wire        sd_ack;
 wire        sd_ack_conf;
 wire        sd_conf;
@@ -311,7 +308,7 @@ wire  [8:0] sd_buff_addr;
 wire  [7:0] sd_dout;
 wire  [7:0] sd_din;
 wire        sd_buff_wr;
-wire  [1:0] img_mounted;
+wire        img_mounted;
 wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
@@ -324,41 +321,21 @@ wire        ioctl_download;
 wire  [7:0] ioctl_index;
 
 
-
-always @(posedge clk_24) begin
+assign fdd_reset =  status[1];
+	
+always @(posedge clk_96) begin
 	reg old_mounted;
 
-	old_mounted <= img_mounted[0];
+	old_mounted <= img_mounted;
 	if(reset) begin 
-	   fdd_ready <= 0;
-		fdd_reset <= #5 1;
-	  end	
-	  else if(~old_mounted & img_mounted[0]) begin
+          fdd_ready <= 0;
+      end   
+
+	else if(~old_mounted & img_mounted) begin
 	     fdd_ready <= 1;
-		  fdd_reset <= #5 0;
 		  fdd_layout <= (ioctl_index[7:6] == 2);
-
-	  end
+   end
 end
-
-
-
-data_io data_io (
- 
-		.clk_sys   (clk_24),
-		.SPI_SS2   (SPI_SS2),
-		.SPI_SS4   (SPI_SS4),
-		.SPI_DI    (SPI_DI),
-		.SPI_DO    (SPI_DO),
-		.ioctl_wr  (ioctl_wr),
-		.ioctl_addr(ioctl_addr),
-		.ioctl_dout(ioctl_dout),
-		.ioctl_index(ioctl_index),
-		.ioctl_download (ioctl_download)
-);
-
-
-
 
 
 endmodule
