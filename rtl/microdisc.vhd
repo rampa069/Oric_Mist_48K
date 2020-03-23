@@ -142,6 +142,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 
  
 	SIGNAL fdc_nCS : std_logic; 
+	SIGNAL nCS     : std_logic;
 	SIGNAL fdc_nRE : std_logic; 
 	SIGNAL fdc_nWE : std_logic; 
 	SIGNAL fdc_CLK : std_logic; 
@@ -183,8 +184,8 @@ BEGIN
 			clk_sys       => CLK_SYS, 
 			ce            => fdc_CLK, --fdc_CLK, 
  
-			reset         => NOT nRESET, --fdd_reset ,--fdd_reset,
-			io_en         => NOT fdc_nCS, -- NOT
+			reset         => NOT nRESET, --fdd_reset ,
+			io_en         => nCS, --NOT fdc_nCS, 
 			rd            => NOT fdc_nRE, -- NOT
 			wr            => NOT fdc_nWE, -- NOT
 			addr          => fdc_A, 
@@ -229,6 +230,7 @@ BEGIN
 			-- WD1793 Signals
 			fdc_A <= A(1 DOWNTO 0);
 			fdc_nCS <= '0' WHEN sel = '1' AND A(3 DOWNTO 2) = "00" ELSE '1';
+			nCS <= '1' when IO= '0' AND (A (15 DOWNTO 2) = "00000011000100") ELSE '0';
 			fdc_nRE <= IO OR NOT RnW;
 			fdc_nWE <= IO OR RnW;
 			fdc_CLK <= NOT PH2_2; 
@@ -276,12 +278,15 @@ BEGIN
 			PROCESS BEGIN
 			WAIT UNTIL FALLING_EDGE (CLK_SYS);
 			-- PORT #318
-			 IF    RnW = '1'  AND A = 16#318# THEN
+			 IF    RnW = '1'  AND PH2 = '1' AND A = 16#318# THEN
             DO(7) <= NOT fdc_DRQ;
          -- PORT #314
-		    ELSIF RnW = '1' AND  A = 16#314# THEN
+		    ELSIF RnW = '1' AND PH2 = '1' AND A = 16#314# THEN
 			   DO(7) <= NOT fdc_IRQ;
-			 ELSIF RnW = '1' AND  fdc_nRE = '0' AND fdc_nCS ='0' THEN
+			 ELSIF RnW = '1' AND PH2 = '1' AND  fdc_nRE = '0' AND fdc_nCS ='0' and A= 16#313# THEN
+			   DO <= fdc_DALout;
+				
+			 ELSIF RnW = '1' AND PH2 = '1' AND  fdc_nRE = '0' AND fdc_nCS ='0' THEN
 			   DO <= fdc_DALout;
 			 ELSE 
 			   DO <= "--------"; 
