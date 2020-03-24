@@ -123,7 +123,10 @@ wire  [7:0] dts = {disk_track[6:0], side} >> layout_r;
 always @* begin
 	case({var_size,size_code})
 				0: buff_a = hs + {{1'b0, dts, 4'b0000} + {dts, 3'b000} + {dts, 1'b0} + wdreg_sector - 1'd1,  7'd0};
-				1: buff_a = hs + {{dts, 4'b0000}                                     + wdreg_sector - 1'd1,  8'd0};
+		 	   //1: buff_a = hs + {{dts, 4'b0000}                                     + wdreg_sector - 1'd1,  8'd0};
+				1: buff_a = hs + {{dts, 4'b0000}       +  dts                        + wdreg_sector - 1'd1,  8'd0};
+			 //1: buff_a = hs + {{dts, 4'b0000} +{dts, 1'b0}                          + wdreg_sector - 1'd1,  8'd0};
+			   //1: buff_a = hs + {{dts, 4'b0000} +  dts                              + wdreg_sector - 1'd1,  8'd0};
 				2: buff_a = hs + {{dts, 3'b000}  + dts                               + wdreg_sector - 1'd1,  9'd0};
 				3: buff_a = hs + {{dts, 2'b00}   + dts                               + wdreg_sector - 1'd1, 10'd0};
 				4: buff_a = hs + {{dts, 3'b000}  +{dts, 1'b0}                        + wdreg_sector - 1'd1,  9'd0};
@@ -131,7 +134,7 @@ always @* begin
 	endcase
 	case({var_size,size_code})
 				0: sectors_per_track = 26;
-				1: sectors_per_track = 16;  //16 sectores por pista
+				1: sectors_per_track = 17;  //16 sectores por pista
 				2: sectors_per_track = 9;
 				3: sectors_per_track = 5;
 				4: sectors_per_track = 10;

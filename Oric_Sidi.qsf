@@ -243,6 +243,7 @@ set_global_assignment -name USE_SIGNALTAP_FILE rtl/stp1.stp
 set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS OFF
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
+set_global_assignment -name QIP_FILE jt49/hdl/jt49.qip
 set_global_assignment -name VHDL_FILE rtl/rom/testsector.vhd
 set_global_assignment -name VERILOG_FILE "mist-modules/sd_card.v"
 set_global_assignment -name SYSTEMVERILOG_FILE misc/sdram.sv
@@ -259,7 +260,6 @@ set_global_assignment -name VHDL_FILE rtl/rom/BASIC11A.vhdl
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/OricAtmos_MiST.sv
 set_global_assignment -name VHDL_FILE rtl/oricatmos.vhd
 set_global_assignment -name VHDL_FILE rtl/ula.vhd
-set_global_assignment -name VHDL_FILE rtl/ay8912.vhd
 set_global_assignment -name VHDL_FILE rtl/m6522.vhd
 set_global_assignment -name VHDL_FILE rtl/video.vhd
 set_global_assignment -name VHDL_FILE rtl/spram.vhd
