@@ -261,7 +261,7 @@ inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
 		data 			=> ROM_1_DO
 );
 
-inst_rom2 : entity work.testsector --work.ORICDOS06 -- Microdisc ROM
+inst_rom2 : entity work.ORICDOS06 --work.ORICDOS06 -- Microdisc ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(12 downto 0),
@@ -328,7 +328,7 @@ inst_via : entity work.M6522
 		
 		I_PB        => via_pb_in,
 		O_PB        => via_pb_out,
-		RESET_L     => RESETn, --RESETn,
+		RESET_L     => RESETn, 
 		I_P2_H      => ula_phi2,
 		ENA_4       => '1',
 		CLK         => ula_CLK_4

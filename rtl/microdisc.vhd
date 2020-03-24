@@ -51,8 +51,8 @@ ENTITY Microdisc IS
 
 		-- Additional MCU Interface Lines
 		nRESET          : IN std_logic; -- RESET from MCU
-		DSEL            : BUFFER std_logic_vector(1 DOWNTO 0); -- Drive Select
-		SSEL            : BUFFER std_logic; -- Side Select
+--		DSEL            : OUT std_logic_vector(1 DOWNTO 0); -- Drive Select
+--		SSEL            : OUT  std_logic; -- Side Select
  
 		-- EEPROM Control Lines.
 		nECE            : OUT std_logic; -- Chip Enable
@@ -119,6 +119,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 			sd_buff_addr  : IN std_logic_vector (8 DOWNTO 0);
 			sd_buff_dout  : IN std_logic_vector (7 DOWNTO 0);
 			sd_buff_din   : OUT std_logic_vector (7 DOWNTO 0);
+			sd_buff_wr    : IN std_logic;
  
 			prepare       : OUT std_logic;
 			size_code     : IN std_logic_vector (2 DOWNTO 0); 
@@ -157,6 +158,9 @@ ARCHITECTURE Behavioral OF Microdisc IS
 	SIGNAL inECE : std_logic;
 	SIGNAL inROMDIS : std_logic;
 	SIGNAL iDIR : std_logic;
+
+	SIGNAL DSEL : std_logic_vector(1 DOWNTO 0); -- Drive Select
+	SIGNAL SSEL : std_logic; -- Side Select
  
 	-- Control Register
 	SIGNAL nROMEN : std_logic; -- ROM Enable
@@ -181,13 +185,13 @@ BEGIN
 		)
 		PORT MAP
 		(
-			clk_sys       => CLK_SYS, 
-			ce            => fdc_CLK, --fdc_CLK, 
+			clk_sys       => clk_sys, 
+			ce            => fdc_CLK, 
  
-			reset         => NOT nRESET, --fdd_reset ,
-			io_en         => nCS, --NOT fdc_nCS, 
-			rd            => NOT fdc_nRE, -- NOT
-			wr            => NOT fdc_nWE, -- NOT
+			reset         => NOT nRESET, 
+			io_en         => NOT fdc_nCS, 
+			rd            => NOT fdc_nRE,
+			wr            => NOT fdc_nWE,
 			addr          => fdc_A, 
 			din           => fdc_DALin, 
 			dout          => fdc_DALout, 
@@ -212,6 +216,7 @@ BEGIN
 			sd_buff_addr  => sd_buff_addr, 
 			sd_buff_dout  => sd_dout, 
 			sd_buff_din   => sd_din,
+			sd_buff_wr    => sd_dout_strobe,
 		
 	      input_active  => '0',
 		   input_addr    => (others => '0'),	
@@ -230,7 +235,7 @@ BEGIN
 			-- WD1793 Signals
 			fdc_A <= A(1 DOWNTO 0);
 			fdc_nCS <= '0' WHEN sel = '1' AND A(3 DOWNTO 2) = "00" ELSE '1';
-			nCS <= '1' when IO= '0' AND (A (15 DOWNTO 2) = "00000011000100") ELSE '0';
+			
 			fdc_nRE <= IO OR NOT RnW;
 			fdc_nWE <= IO OR RnW;
 			fdc_CLK <= NOT PH2_2; 
@@ -256,42 +261,26 @@ BEGIN
 			DIR <= iDIR;
 			iDIR <= RnW; 
  
---			-- Data Bus Control.
---			PROCESS (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
---			BEGIN
---				IF iDIR = '1' THEN 
---					IF A(3 DOWNTO 2) = "10" THEN
---						DO <= (NOT fdc_DRQ) & "-------";
---						ELSIF A(3 DOWNTO 2) = "01" THEN
---							DO <= (NOT fdc_IRQ) & "-------";
---						ELSIF fdc_nRE = '0' AND fdc_nCS = '0' THEN
---							DO <= fdc_DALout; 
---					ELSE
---						DO <= "--------"; 
---						END IF;
---				ELSE
---					DO <= "ZZZZZZZZ"; 
---				END IF;
---			END PROCESS; 
--- 
+			-- Data Bus Control.
+			PROCESS (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
+			BEGIN
+				IF iDIR = '1' THEN 
+					IF A(3 DOWNTO 2) = "10" THEN
+						DO <= (NOT fdc_DRQ) & "-------";
+						ELSIF A(3 DOWNTO 2) = "01" THEN
+							DO <= (NOT fdc_IRQ) & "-------";
+						ELSIF fdc_nRE = '0' AND fdc_nCS = '0' THEN
+							DO <= fdc_DALout; 
+					ELSE
+						DO <= "--------"; 
+						END IF;
+				ELSE
+					DO <= "ZZZZZZZZ"; 
+				END IF;
+			END PROCESS; 
+ 
          
-			PROCESS BEGIN
-			WAIT UNTIL FALLING_EDGE (CLK_SYS);
-			-- PORT #318
-			 IF    RnW = '1'  AND PH2 = '1' AND A = 16#318# THEN
-            DO(7) <= NOT fdc_DRQ;
-         -- PORT #314
-		    ELSIF RnW = '1' AND PH2 = '1' AND A = 16#314# THEN
-			   DO(7) <= NOT fdc_IRQ;
-			 ELSIF RnW = '1' AND PH2 = '1' AND  fdc_nRE = '0' AND fdc_nCS ='0' and A= 16#313# THEN
-			   DO <= fdc_DALout;
-				
-			 ELSIF RnW = '1' AND PH2 = '1' AND  fdc_nRE = '0' AND fdc_nCS ='0' THEN
-			   DO <= fdc_DALout;
-			 ELSE 
-			   DO <= "--------"; 
-			 END IF; 
-			END PROCESS;
+
 			
 			nOE <= '0' WHEN sel = '1' AND PH2 = '1' ELSE '1';
  

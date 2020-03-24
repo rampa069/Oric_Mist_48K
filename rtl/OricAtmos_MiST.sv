@@ -50,6 +50,7 @@ localparam CONF_STR = {
 wire        clk_72;
 wire        clk_32;
 wire        clk_24;
+wire        clk_96;
 wire        pll_locked;
 
 wire        key_pressed;
@@ -112,7 +113,7 @@ user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
 	.clk_sys        	(clk_96         	),
-	.clk_sd           (SPI_SCK          ),
+	.clk_sd           (clk_96           ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
 	.SPI_SS_IO      	(CONF_DATA0     	),

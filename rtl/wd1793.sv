@@ -131,7 +131,7 @@ always @* begin
 	endcase
 	case({var_size,size_code})
 				0: sectors_per_track = 26;
-				1: sectors_per_track = 17;  //16 sectores por pista
+				1: sectors_per_track = 16;  //16 sectores por pista
 				2: sectors_per_track = 9;
 				3: sectors_per_track = 5;
 				4: sectors_per_track = 10;
@@ -318,7 +318,7 @@ always @(posedge clk_sys) begin
 		step_direction <= 0;
 		disk_track <= 0;
 		wdreg_track <= 0;
-		wdreg_sector <= 0;
+		wdreg_sector <= 1;  //rampa
 		wdreg_data <= 0;
 		data_length <= 0;
 		byte_addr <=0;
@@ -752,10 +752,10 @@ reg        scan_active = 0;
 reg [19:0] scan_addr;
 reg        scan_wr;
 
-reg  [1:0] edsk_sizecode = 0;      // sector size: 0=128K, 1=256K, 2=512K, 3=1024K
+reg  [1:0] edsk_sizecode = 1;      // sector size: 0=128K, 1=256K, 2=512K, 3=1024K
 reg        edsk_side = 0;          // Side number (0 or 1)
 reg  [6:0] edsk_track = 0;         // Track number
-reg  [7:0] edsk_sector = 0;        // Sector number 0..15
+reg  [7:0] edsk_sector = 0;        // Sector number 0..15 //rampa
 reg [19:0] edsk_offset = 0;
 reg  [7:0] edsk_trackf = 0, edsk_sidef = 0;
 
