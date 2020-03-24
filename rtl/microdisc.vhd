@@ -85,7 +85,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 		GENERIC 
 		(
 			RWMODE          : INTEGER := 1;
-			EDSK            : INTEGER := 1
+			EDSK            : INTEGER := 0
 		);
 		PORT 
 		(
@@ -262,7 +262,7 @@ BEGIN
 			iDIR <= RnW; 
  
 			-- Data Bus Control.
-			PROCESS (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A)
+			PROCESS (iDIR, fdc_DALout, fdc_DRQ, fdc_IRQ, fdc_nRE, A, fdc_nCS )
 			BEGIN
 				IF iDIR = '1' THEN 
 					IF A(3 DOWNTO 2) = "10" THEN
@@ -285,7 +285,7 @@ BEGIN
 			nOE <= '0' WHEN sel = '1' AND PH2 = '1' ELSE '1';
  
 			-- Control Register.
-			PROCESS (sel, A, RnW, DI)
+			PROCESS (sel, A, RnW, DI, ENA,  nRESET, DSEL, SSEL, PH2_2)
 				BEGIN
 					IF nRESET = '0' THEN
 						nROMEN <= '0';

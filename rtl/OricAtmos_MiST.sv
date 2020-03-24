@@ -38,13 +38,12 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;;",
-	"S0,DSKMGTIMG,Mount Drive A:;",
+	"S0,IMG,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Prohibit,Allow;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
-	"T1,FDC Reset;",
   	"V,v2.0.",`BUILD_DATE
 };
 wire        clk_72;
