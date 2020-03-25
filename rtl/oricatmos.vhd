@@ -57,7 +57,7 @@ entity oricatmos is
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
     K7_REMOTE         : out   std_logic;
-	 PSG_OUT           : out   std_logic_vector(9 downto 0);
+	 PSG_OUT           : out   std_logic_vector(7 downto 0);
     VIDEO_R           : out   std_logic;
     VIDEO_G           : out   std_logic;
     VIDEO_B           : out   std_logic;
@@ -212,27 +212,27 @@ COMPONENT keyboard
 	);
 END COMPONENT;
 	 
-COMPONENT jt49_bus
-	PORT
-	(
-		clk   		:	 IN STD_LOGIC;
-		clk_en		:	 IN STD_LOGIC;
-		rst_n			:	 IN STD_LOGIC;
-		bdir	      :	 IN STD_LOGIC;
-		bc1         :	 IN STD_LOGIC;
-		sel         :   IN STD_LOGIC;
-		din		   :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		dout			:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		A			   :	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		B		      :	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		C           :   OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		sound       :   OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
-		IOA_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		IOA_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		IOB_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		IOB_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
-		);
-END COMPONENT;
+--COMPONENT jt49_bus
+--	PORT
+--	(
+--		clk   		:	 IN STD_LOGIC;
+--		clk_en		:	 IN STD_LOGIC;
+--		rst_n			:	 IN STD_LOGIC;
+--		bdir	      :	 IN STD_LOGIC;
+--		bc1         :	 IN STD_LOGIC;
+--		sel         :   IN STD_LOGIC;
+--		din		   :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		dout			:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		A			   :	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		B		      :	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		C           :   OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		sound       :   OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
+--		IOA_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		IOA_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		IOB_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+--		IOB_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+--		);
+--END COMPONENT;
 begin
 
 RESETn <= (not RESET and KEYB_RESETn);
@@ -354,21 +354,50 @@ inst_via : entity work.M6522
 		CLK         => ula_CLK_4
 );
 	
-inst_psg : jt49_bus
+inst_psg : entity work.YM2149
 	port map (
-		clk      => CLK_IN,
-		clk_en   => ENA_1MHZ,
-		sel      => '0',
-		rst_n   	=> RESETn and KEYB_RESETn, --RESETn,
-		--cs_n    	=> '0',
-		bc1      	=> psg_bdir,
-		bdir     	=> via_cb2_out,
-		din         => via_pa_out,
-		dout        => via_pa_in_from_psg,
-		IOA_In  		=> ym_o_ioa,
-		IOB_In      => (others => '0'),
-		sound       => PSG_OUT (9 downto 0)
-);
+		I_DA       => via_pa_out,
+		O_DA       => via_pa_in_from_psg,
+		O_DA_OE_L  => open,
+		-- control
+		I_A9_L     => '0',
+		I_A8       => '1',
+		I_BDIR     => via_cb2_out,
+		I_BC2      => '1',
+		I_BC1      => psg_bdir,
+		I_SEL_L    => '1',
+
+		O_AUDIO    => PSG_OUT,
+		-- port a
+--		I_IOA      => x"00",
+--		O_IOA      => open,
+--		O_IOA_OE_L => open,
+		-- port b
+--		I_IOB      => x"00",
+--		O_IOB      => open,
+--		O_IOB_OE_L => open,
+
+		RESET_L    => RESETn and KEYB_RESETn,
+		ENA        => '1',
+		CLK        => ula_PHI2
+	);
+	
+--inst_psg : jt49_bus
+--	port map (
+--		clk      => CLK_96,
+--		clk_en   => ENA_1MHZ,
+--		sel      => '0',
+--		rst_n   	=> RESETn and KEYB_RESETn, --RESETn,
+--		--wr_n     => cpu_rw,
+--		--cs_n    	=> '0',
+--		bc1      	=> psg_bdir,
+--		bdir     	=> via_cb2_out,
+--		din         => via_pa_out,
+--		dout        => via_pa_in_from_psg,
+--		IOA_In  		=> ym_o_ioa,
+--		IOB_In      => (others => '0'),
+--		sound       => PSG_OUT (9 downto 0)
+--);
 
 inst_key : keyboard
 	port map(

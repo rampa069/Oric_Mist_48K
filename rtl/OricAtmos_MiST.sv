@@ -41,7 +41,7 @@ localparam CONF_STR = {
 	"S0,IMG,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
-	"O7,Drive Write,Prohibit,Allow;",
+	"O7,Drive Write,Allow,Prohibit;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"T0,Reset;",
   	"V,v2.0.",`BUILD_DATE
@@ -287,7 +287,7 @@ sdram sdram(
 
 
 dac #(
-   .c_bits				(16					))
+   .c_bits				(8					))
 audiodac(
    .clk_i				(clk_96				),
    .res_n_i				(1						),
