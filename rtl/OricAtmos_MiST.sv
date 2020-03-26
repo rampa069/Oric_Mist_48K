@@ -43,6 +43,7 @@ localparam CONF_STR = {
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Allow,Prohibit;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
+	"O8,Stereo MOD,Off,On;",
 	"T0,Reset;",
   	"V,v2.0.",`BUILD_DATE
 };
@@ -63,7 +64,10 @@ wire  [1:0] buttons, switches;
 wire			ypbpr;
 wire        scandoublerD;
 wire [31:0] status;
-wire [15:0] audio;
+
+wire [9:0] psg_l;
+wire [9:0] psg_r;
+
 wire [7:0] joystick_0;
 wire [7:0] joystick_1;
 
@@ -84,7 +88,7 @@ reg         fdd_layout;
 reg         fdd_reset = 0;
 
 
-assign 		AUDIO_R = AUDIO_L;
+//assign 		AUDIO_R = AUDIO_L;
 assign      disk_enable = ~status[6];
 assign      reset = (!pll_locked | status[0] | buttons[1] | rom_changed);
 assign      rom = ~status[3] ;
@@ -178,7 +182,9 @@ oricatmos oricatmos(
 	.key_code         (key_code     ),
 	.key_extended     (key_extended ),
 	.key_strobe       (key_strobe   ),
-	.PSG_OUT				(audio		),
+	.PSG_OUT_L			(psg_l		),
+	.PSG_OUT_R			(psg_r		),
+	.STEREO           (status[8]  ),
 	.VIDEO_R				(r			   ),
 	.VIDEO_G				(g				),
 	.VIDEO_B				(b				),
@@ -287,15 +293,22 @@ sdram sdram(
 
 
 dac #(
-   .c_bits				(8					))
-audiodac(
+   .c_bits				(10					))
+audiodac_l(
    .clk_i				(clk_96				),
    .res_n_i				(1						),
-   .dac_i				(audio				),
+   .dac_i				(psg_l				),
    .dac_o				(AUDIO_L				)
   );
 
-  
+dac #(
+   .c_bits				(10				))
+audiodac_r(
+   .clk_i				(clk_96				),
+   .res_n_i				(1						),
+   .dac_i				(psg_r				),
+   .dac_o				(AUDIO_R				)
+  );
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
 wire        sd_rd;

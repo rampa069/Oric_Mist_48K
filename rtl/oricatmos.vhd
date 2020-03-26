@@ -57,7 +57,9 @@ entity oricatmos is
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
     K7_REMOTE         : out   std_logic;
-	 PSG_OUT           : out   std_logic_vector(7 downto 0);
+	 PSG_OUT_L         : out   std_logic_vector(9 downto 0);
+    PSG_OUT_R         : out   std_logic_vector(9 downto 0);
+	 STEREO            : in    std_logic;
     VIDEO_R           : out   std_logic;
     VIDEO_G           : out   std_logic;
     VIDEO_B           : out   std_logic;
@@ -114,8 +116,8 @@ architecture RTL of oricatmos is
 	 -- VIA
     signal via_pa_out_oe      : std_logic_vector( 7 downto 0);
     signal via_pa_in          : std_logic_vector( 7 downto 0);
+	 signal via_pa_out         : std_logic_vector( 7 downto 0);
     signal via_pa_in_from_psg : std_logic_vector( 7 downto 0);
-    signal via_pa_out         : std_logic_vector( 7 downto 0);
     signal via_cb1_out        : std_logic;
     signal via_cb1_oe_l       : std_logic;
     signal via_cb2_out        : std_logic;
@@ -233,6 +235,30 @@ END COMPONENT;
 --		IOB_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
 --		);
 --END COMPONENT;
+
+COMPONENT ym2149
+	PORT
+	(
+		clk   		:	 IN STD_LOGIC;
+		ce		      :	 IN STD_LOGIC;
+		RESET			:	 IN STD_LOGIC;
+		bdir	      :	 IN STD_LOGIC;
+		bc          :	 IN STD_LOGIC;
+		sel         :   IN STD_LOGIC;
+		mode        :   IN STD_LOGIC;
+		di 		   :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		do 			:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		AUDIO_L     :	 OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
+		AUDIO_R     :	 OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
+		STEREO      :   IN STD_LOGIC;
+		ACTIVE      :   OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+		IOA_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		IOA_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		IOB_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		IOB_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+		);
+END COMPONENT;
+
 begin
 
 RESETn <= (not RESET and KEYB_RESETn);
@@ -281,7 +307,7 @@ inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
 		data 			=> ROM_1_DO
 );
 
-inst_rom2 : entity work.ORICDOS06 --work.ORICDOS06 -- Microdisc ROM
+inst_rom2 : entity work.ORICDOS06  -- Microdisc ROM
 	port map (
 		clk  			=> CLK_IN,
 		addr 			=> cpu_ad(12 downto 0),
@@ -354,33 +380,7 @@ inst_via : entity work.M6522
 		CLK         => ula_CLK_4
 );
 	
-inst_psg : entity work.YM2149
-	port map (
-		I_DA       => via_pa_out,
-		O_DA       => via_pa_in_from_psg,
-		O_DA_OE_L  => open,
-		-- control
-		I_A9_L     => '0',
-		I_A8       => '1',
-		I_BDIR     => via_cb2_out,
-		I_BC2      => '1',
-		I_BC1      => psg_bdir,
-		I_SEL_L    => '1',
 
-		O_AUDIO    => PSG_OUT,
-		-- port a
---		I_IOA      => x"00",
---		O_IOA      => open,
---		O_IOA_OE_L => open,
-		-- port b
---		I_IOB      => x"00",
---		O_IOB      => open,
---		O_IOB_OE_L => open,
-
-		RESET_L    => RESETn and KEYB_RESETn,
-		ENA        => '1',
-		CLK        => ula_PHI2
-	);
 	
 --inst_psg : jt49_bus
 --	port map (
@@ -399,9 +399,44 @@ inst_psg : entity work.YM2149
 --		sound       => PSG_OUT (9 downto 0)
 --);
 
+inst_psg : ym2149
+	port map (
+		clk      => ula_PHI2,
+		ce       => '1',
+		sel      => '0',
+		mode     => '1',
+		stereo   => STEREO,
+		RESET   	=> NOT(RESETn and KEYB_RESETn), --RESETn,
+		bc       	=> psg_bdir,
+		bdir     	=> via_cb2_out,
+		di          => via_pa_out,
+		do          => via_pa_in_from_psg,
+		AUDIO_L     => PSG_OUT_L,
+		AUDIO_R     => PSG_OUT_R,
+		IOA_In  		=> (others => '0'),
+		IOA_Out     => ym_o_ioa,
+		IOB_In      => (others => '0')
+		
+      
+);
+
+
+--inst_psg : entity work.ay8912
+--	port map (
+--		cpuclk      => CLK_IN,
+--		reset    	=> RESETn, --RESETn,
+--		cs        	=> '1',
+--		bc0      	=> psg_bdir,
+--		bdir     	=> via_cb2_out,
+--		Data_in     => via_pa_out,
+--		Data_out    => via_pa_in_from_psg,
+--		IO_A    		=> ym_o_ioa,
+--		Amono       => PSG_OUT_L
+--);
+
 inst_key : keyboard
 	port map(
-		clk_sys		=> CLK_96,
+		clk_sys		=> clk_96,
 		clk_en		=> ENA_1MHZ,
 		reset			=> not RESETn, --not RESETn,
 		key_pressed	=> key_pressed,
