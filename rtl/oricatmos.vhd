@@ -367,7 +367,7 @@ inst_psg : ym2149
 	port map (
 		clk      => ULA_PHI2,
 		ce       => '1',
-		sel      => '1',
+		sel      => '0',
 		mode     => '1',
 		stereo   => STEREO,
 		RESET   	=> NOT(RESETn and KEYB_RESETn), --RESETn,
