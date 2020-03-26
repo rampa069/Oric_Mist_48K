@@ -91,6 +91,7 @@ reg         fdd_reset = 0;
 assign      disk_enable = ~status[6];
 assign      reset = (!pll_locked | status[0] | buttons[1] | rom_changed);
 assign      rom = ~status[3] ;
+assign      stereo = status[8];
 
 assign      LED = fdd_ready;
 
@@ -181,7 +182,7 @@ oricatmos oricatmos(
 	.key_strobe       (key_strobe   ),
 	.PSG_OUT_L			(psg_l		),
 	.PSG_OUT_R			(psg_r		),
-	.STEREO           (status[8]  ),
+	.STEREO           (stereo  ),
 	.VIDEO_R				(r			   ),
 	.VIDEO_G				(g				),
 	.VIDEO_B				(b				),
@@ -290,7 +291,7 @@ sdram sdram(
 
 
 dac #(
-   .c_bits				(12					))
+   .c_bits				(11					))
 audiodac_l(
    .clk_i				(clk_32				),
    .res_n_i				(1						),
@@ -299,7 +300,7 @@ audiodac_l(
   );
 
 dac #(
-   .c_bits				(12				))
+   .c_bits				(11				))
 audiodac_r(
    .clk_i				(clk_32				),
    .res_n_i				(1						),

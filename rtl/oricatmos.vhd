@@ -400,9 +400,9 @@ inst_via : entity work.M6522
 
 inst_psg : ym2149
 	port map (
-		clk      => ula_PHI2,
+		clk      => ENA_1MHZ,
 		ce       => '1',
-		sel      => '0',
+		sel      => '1',
 		mode     => '1',
 		stereo   => STEREO,
 		RESET   	=> NOT(RESETn and KEYB_RESETn), --RESETn,
@@ -469,7 +469,7 @@ inst_microdisc: work.Microdisc
           IOCTRL    => cont_IOCONTROLn,                     -- Oric I/O Control           
           nHOSTRST  => cont_RESETn,                         -- Oric RESET 
                                                               -- Additional MCU Interface Lines
-          nRESET    => RESETn,                                -- RESET from MCU
+          nRESET    => RESETn and pll_locked,             -- RESET from MCU
           --DSEL      => cont_DSEL,                           -- Drive Select
           --SSEL      => cont_SSEL,                           -- Side Select
           
