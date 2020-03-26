@@ -118,7 +118,7 @@ set_location_assignment PIN_33 -to SDRAM_CKE
 set_location_assignment PIN_43 -to SDRAM_CLK
 set_location_assignment PIN_31 -to UART_RXD
 set_location_assignment PIN_46 -to UART_TXD
-set_location_assignment PLL_1 -to clkmgr|altpll_component|auto_generated|pll1
+set_location_assignment PLL_1 -to "pll:pll|altpll:altpll_component"
 
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_DQ[*]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_A[*]
@@ -155,7 +155,7 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SPI_DO
 
 # Changes for SiDi FPGA
 # =====================
-set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCK
+#set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCK
 
 
 # Classic Timing Assignments

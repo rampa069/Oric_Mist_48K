@@ -213,27 +213,7 @@ COMPONENT keyboard
 	);
 END COMPONENT;
 	 
---COMPONENT jt49_bus
---	PORT
---	(
---		clk   		:	 IN STD_LOGIC;
---		clk_en		:	 IN STD_LOGIC;
---		rst_n			:	 IN STD_LOGIC;
---		bdir	      :	 IN STD_LOGIC;
---		bc1         :	 IN STD_LOGIC;
---		sel         :   IN STD_LOGIC;
---		din		   :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
---		dout			:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
---		A			   :	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
---		B		      :	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
---		C           :   OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
---		sound       :   OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
---		IOA_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
---		IOA_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
---		IOB_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
---		IOB_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
---		);
---END COMPONENT;
+
 
 COMPONENT ym2149
 	PORT
@@ -381,26 +361,11 @@ inst_via : entity work.M6522
 	
 
 	
---inst_psg : jt49_bus
---	port map (
---		clk      => CLK_32,
---		clk_en   => ENA_1MHZ,
---		sel      => '0',
---		rst_n   	=> RESETn and KEYB_RESETn, --RESETn,
---		--wr_n     => cpu_rw,
---		--cs_n    	=> '0',
---		bc1      	=> psg_bdir,
---		bdir     	=> via_cb2_out,
---		din         => via_pa_out,
---		dout        => via_pa_in_from_psg,
---		IOA_In  		=> ym_o_ioa,
---		IOB_In      => (others => '0'),
---		sound       => PSG_OUT (9 downto 0)
---);
+
 
 inst_psg : ym2149
 	port map (
-		clk      => ENA_1MHZ,
+		clk      => ULA_PHI2,
 		ce       => '1',
 		sel      => '1',
 		mode     => '1',
@@ -420,18 +385,6 @@ inst_psg : ym2149
 );
 
 
---inst_psg : entity work.ay8912
---	port map (
---		cpuclk      => CLK_IN,
---		reset    	=> RESETn, --RESETn,
---		cs        	=> '1',
---		bc0      	=> psg_bdir,
---		bdir     	=> via_cb2_out,
---		Data_in     => via_pa_out,
---		Data_out    => via_pa_in_from_psg,
---		IO_A    		=> ym_o_ioa,
---		Amono       => PSG_OUT_L
---);
 
 inst_key : keyboard
 	port map(

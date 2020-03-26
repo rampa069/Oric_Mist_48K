@@ -32,18 +32,18 @@ asm:
 	@$(ASM) $(PROJECT)
 
 run: 
-	@$(PGM) -c USB-Blaster -m jtag -o "p;./out/$(PROJECT).sof"
+	@$(PGM) -c USB-Blaster -m jtag -o "p;./output_files/$(PROJECT).sof"
 
 run2: 
-	@$(PGM) -c USB-Blaster\(Altera\) -m jtag -o "p;./out/$(PROJECT).sof"
+	@$(PGM) -c USB-Blaster\(Altera\) -m jtag -o "p;./output_files/$(PROJECT).sof"
 
 # clean
 clean:
 	@echo clean
-	@rm -rf ./out/
+	@rm -rf ./output_files/
 	@rm -rf ./db/
 	@rm -rf ./incremental_db/
 
 release:
 	make
-	cd ./out; cp mist.rbf ../../../bin/cores/mist/core.rbf
+	cd ./output_files; cp mist.rbf ../../../bin/cores/mist/core.rbf
