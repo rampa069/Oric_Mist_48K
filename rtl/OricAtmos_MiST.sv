@@ -50,7 +50,6 @@ localparam CONF_STR = {
 wire        clk_72;
 wire        clk_32;
 wire        clk_24;
-wire        clk_96;
 wire        pll_locked;
 
 wire        key_pressed;
@@ -103,7 +102,6 @@ pll pll (
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
 	.c2       (clk_32     ),
-	.c3       (clk_96     ),
 	.locked   (pll_locked )
 	);
 
@@ -115,8 +113,8 @@ pll pll (
 user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
-	.clk_sys        	(clk_96         	),
-	.clk_sd           (clk_96           ),
+	.clk_sys        	(clk_32         	),
+	.clk_sd           (clk_32           ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
 	.SPI_SS_IO      	(CONF_DATA0     	),
@@ -175,8 +173,7 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 
 oricatmos oricatmos(
 	.clk_in           (clk_24       ),
-	.clk_microdisc    (clk_32       ),
-	.clk_96           (clk_96       ),
+	.clk_32           (clk_32       ),
 	.RESET            (reset),
 	.key_pressed      (key_pressed  ),
 	.key_code         (key_code     ),
@@ -293,18 +290,18 @@ sdram sdram(
 
 
 dac #(
-   .c_bits				(10					))
+   .c_bits				(12					))
 audiodac_l(
-   .clk_i				(clk_96				),
+   .clk_i				(clk_32				),
    .res_n_i				(1						),
    .dac_i				(psg_l				),
    .dac_o				(AUDIO_L				)
   );
 
 dac #(
-   .c_bits				(10				))
+   .c_bits				(12				))
 audiodac_r(
-   .clk_i				(clk_96				),
+   .clk_i				(clk_32				),
    .res_n_i				(1						),
    .dac_i				(psg_r				),
    .dac_o				(AUDIO_R				)
@@ -336,7 +333,7 @@ wire  [7:0] ioctl_index;
 
 assign fdd_reset =  status[1];
 	
-always @(posedge clk_96) begin
+always @(posedge clk_32) begin
 	reg old_mounted;
 
 	old_mounted <= img_mounted;

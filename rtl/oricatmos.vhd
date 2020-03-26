@@ -47,8 +47,7 @@
 entity oricatmos is
   port (
     CLK_IN            : in    std_logic;
-	 CLK_96            : in    std_logic;
-	 CLK_MICRODISC     : in    std_logic;
+	 CLK_32            : in    std_logic;
     RESET             : in    std_logic;
 	 key_pressed       : in    std_logic;
 	 key_extended      : in    std_logic;
@@ -384,7 +383,7 @@ inst_via : entity work.M6522
 	
 --inst_psg : jt49_bus
 --	port map (
---		clk      => CLK_96,
+--		clk      => CLK_32,
 --		clk_en   => ENA_1MHZ,
 --		sel      => '0',
 --		rst_n   	=> RESETn and KEYB_RESETn, --RESETn,
@@ -436,7 +435,7 @@ inst_psg : ym2149
 
 inst_key : keyboard
 	port map(
-		clk_sys		=> clk_96,
+		clk_sys		=> CLK_32,
 		clk_en		=> ENA_1MHZ,
 		reset			=> not RESETn, --not RESETn,
 		key_pressed	=> key_pressed,
@@ -455,8 +454,8 @@ KEYB_RESETn <= NOT swrst;
 
 inst_microdisc: work.Microdisc 
     port map( 
-          CLK       => clk_MICRODISC,                       -- 32 Mhz input clock
-          CLK_SYS   => clk_96,
+          CLK       => CLK_32,                       -- 32 Mhz input clock
+          CLK_SYS   => CLK_32,
                                                             -- Oric Expansion Port Signals
           DI        => cpu_do,                              -- 6502 Data Bus
           DO        => cont_D_OUT,                          -- 6502 Data Bus			 
