@@ -147,6 +147,7 @@ architecture RTL of oricatmos is
     signal ula_WE_SRAM        : std_logic;
 	 signal ula_LATCH_SRAM     : std_logic;
     signal ula_CLK_4          : std_logic;
+    signal ula_CLK_4_en       : std_logic;
     signal ula_MUX            : std_logic;
     signal ula_RW_RAM         : std_logic;
 	 signal ula_VIDEO_R        : std_logic;
@@ -299,6 +300,7 @@ inst_ula : entity work.ULA
       PHI2       	=> ula_phi2,
 		PHI2_EN     => ENA_1MHZ,
       CLK_4      	=> ula_CLK_4,
+			CLK_4_EN    => ula_CLK_4_en,
       RW         	=> cpu_rw,
       RESETn     	=> pll_locked, --RESETn,
 		MAPn      	=> cont_MAPn,
@@ -354,8 +356,8 @@ inst_via : entity work.M6522
 		O_PB        => via_pb_out,
 		RESET_L     => RESETn, 
 		I_P2_H      => ula_phi2,
-		ENA_4       => '1',
-		CLK         => ula_CLK_4
+		ENA_4       => ula_CLK_4_en,
+		CLK         => CLK_IN
 );
 	
 

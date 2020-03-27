@@ -81,6 +81,7 @@ entity ula is
 port (
 	RESETn     :   in  std_logic;                     -- RESET master
 	CLK_4      :   out std_logic;                     -- 4 MHz internal
+	CLK_4_EN   :   out std_logic;                     -- 4 MHz internal clock enable pulse
 
 	CLK        :   in  std_logic;                     -- 24 MHz                       -- pin 07
 	PHI2       :   out std_logic;                     -- 1 MHz CPU & system           -- pin 14
@@ -293,6 +294,7 @@ begin
 
 	-- VIA 6522 clock
 	CLK_4_INT     <= c(0) or c(1) or c(2) or c(6) or c(7) or c(8) or c(12) or c(13) or c(14) or c(18) or c(19) or c(20);
+	CLK_4_EN      <= c(23) or c(5) or c(11) or c(16);
 
 --	LD_REG_0      <= isAttrib and c(5);
 
