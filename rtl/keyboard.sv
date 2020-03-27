@@ -4,7 +4,6 @@
 module keyboard
 (
 	input			   clk_sys,
-	input			   clk_en,
 	input			   reset,
 	input          key_pressed,  // 1-make (pressed), 0-break (released)
 	input          key_extended, // extended code
@@ -174,7 +173,6 @@ wire no_key = (~sw0 & ~sw1 & ~sw2 & ~sw3 & ~sw4 & ~sw5 & ~sw6 & ~sw7 & ~sw8 & ~s
 					~swf3 & ~swf4 & ~swf5 & ~swf6);
 					
 always @(posedge clk_sys) begin
-	if (clk_en) begin
 		if (no_key) ROWbit <= 8'b11111111;
 		else if (col == 3'b111) begin
 
@@ -286,7 +284,6 @@ always @(posedge clk_sys) begin
 			if (swn) 	ROWbit <= 8'b11111101;
 			if (sw7) 	ROWbit <= 8'b11111110;			
 		end
-	end
 end
 endmodule
 

@@ -114,7 +114,7 @@ pll pll (
 user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
-	.clk_sys        	(clk_32         	),
+	.clk_sys        	(clk_24         	),
 	.clk_sd           (clk_32           ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
