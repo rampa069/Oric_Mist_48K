@@ -9,4 +9,6 @@ output_files/
 incremental_db/
 simulation/
 greybox_tmp/
+*.dsk
+*.img
 
