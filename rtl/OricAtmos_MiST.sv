@@ -83,7 +83,7 @@ wire        rom_changed;
 wire        led_value;
 reg         fdd_ready=0;
 wire        fdd_busy;
-reg         fdd_layout;
+reg         fdd_layout = 0;
 reg         fdd_reset = 0;
 
 
@@ -324,29 +324,19 @@ wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
 
-
-wire        ioctl_wr;
-wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_dout;
-wire        ioctl_download;
-wire  [7:0] ioctl_index;
-
-
 assign fdd_reset =  status[1];
-	
+
 always @(posedge clk_32) begin
 	reg old_mounted;
 
 	old_mounted <= img_mounted;
 	if(reset) begin 
-          fdd_ready <= 0;
-      end   
+		fdd_ready <= 0;
+	end
 
 	else if(~old_mounted & img_mounted) begin
-	     fdd_ready <= 1;
-		  fdd_layout <= (ioctl_index[7:6] == 2);
-   end
+		fdd_ready <= 1;
+	end
 end
-
 
 endmodule
