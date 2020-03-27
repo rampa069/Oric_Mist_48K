@@ -293,7 +293,7 @@ sdram sdram(
 dac #(
    .c_bits				(11					))
 audiodac_l(
-   .clk_i				(clk_32				),
+   .clk_i				(clk_24				),
    .res_n_i				(1						),
    .dac_i				(psg_l				),
    .dac_o				(AUDIO_L				)
@@ -302,7 +302,7 @@ audiodac_l(
 dac #(
    .c_bits				(11				))
 audiodac_r(
-   .clk_i				(clk_32				),
+   .clk_i				(clk_24				),
    .res_n_i				(1						),
    .dac_i				(psg_r				),
    .dac_o				(AUDIO_R				)
