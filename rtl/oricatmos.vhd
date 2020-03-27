@@ -199,7 +199,6 @@ COMPONENT keyboard
 	PORT
 	(
 		clk_sys		:	 IN STD_LOGIC;
-		clk_en		:	 IN STD_LOGIC;
 		reset			:	 IN STD_LOGIC;
 		key_pressed	:	 IN STD_LOGIC;
 		key_extended:	 IN STD_LOGIC;
@@ -365,8 +364,8 @@ inst_via : entity work.M6522
 
 inst_psg : ym2149
 	port map (
-		clk      => ULA_PHI2,
-		ce       => '1',
+		clk      => CLK_IN,
+		ce       => ENA_1MHZ,
 		sel      => '0',
 		mode     => '1',
 		stereo   => STEREO,
@@ -388,8 +387,7 @@ inst_psg : ym2149
 
 inst_key : keyboard
 	port map(
-		clk_sys		=> CLK_32,
-		clk_en		=> ENA_1MHZ,
+		clk_sys		=> CLK_IN,
 		reset			=> not RESETn, --not RESETn,
 		key_pressed	=> key_pressed,
 		key_extended => key_extended,

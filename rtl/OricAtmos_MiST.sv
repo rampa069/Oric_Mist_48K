@@ -114,7 +114,7 @@ pll pll (
 user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
-	.clk_sys        	(clk_32         	),
+	.clk_sys        	(clk_24         	),
 	.clk_sd           (clk_32           ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
@@ -293,7 +293,7 @@ sdram sdram(
 dac #(
    .c_bits				(11					))
 audiodac_l(
-   .clk_i				(clk_32				),
+   .clk_i				(clk_24				),
    .res_n_i				(1						),
    .dac_i				(psg_l				),
    .dac_o				(AUDIO_L				)
@@ -302,7 +302,7 @@ audiodac_l(
 dac #(
    .c_bits				(11				))
 audiodac_r(
-   .clk_i				(clk_32				),
+   .clk_i				(clk_24				),
    .res_n_i				(1						),
    .dac_i				(psg_r				),
    .dac_o				(AUDIO_R				)
