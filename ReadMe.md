@@ -42,8 +42,12 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    * F10 - NMI button, acts like original ORIC NMI
    * F11 - Reset. Use F11 to reboot once a DSK is selected at OSD
    * F12 - OSD Main Menu.
+
+   ![shortcuts](img/shorcuts.jpg?raw=true "Keyboard shortcuts")   
    
    * Activate FDC controller at OSD MENU
+   ![FDC Activation](img/enablefdc.jpg?raw=true "FDC Activation")   
+   
    * Select an Image from /ORIC directory, exit OSD and press F11. System will boot inmeddiately
 
 * **This core owns permission to include the Oric System and Disc Roms and also permission to redistribute the SEDORIC 4.0 operating System** 
@@ -61,3 +65,5 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    * Slingshot: SDRAM work and advisor.
    
 * Kudos to: Sorgelig, Gehstock, DesUBIKado, RetroWiki and friends.
+
+
