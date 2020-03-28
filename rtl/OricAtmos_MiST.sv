@@ -19,7 +19,7 @@ module OricAtmos_MiST(
    input         SPI_DI,
    input         SPI_SS2,
    input         SPI_SS3,
-	input         SPI_SS4,
+	//input         SPI_SS4,
    input         CONF_DATA0,
 	
 	output [12:0] SDRAM_A,
@@ -254,7 +254,6 @@ always @(posedge clk_72) begin
 
 	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
 		port1_req <= ~port1_req;
-		port2_req <= ~port2_req;
 		sdram_ad <= ram_ad;
 		sdram_we <= ram_we;
 	end

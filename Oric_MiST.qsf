@@ -41,7 +41,7 @@
 # ========================
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 13.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "07:11:53  MARCH 09, 2017"
-set_global_assignment -name LAST_QUARTUS_VERSION "13.1 SP4.26"
+set_global_assignment -name LAST_QUARTUS_VERSION 13.1
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:rtl/build_id.tcl"
 
@@ -155,7 +155,7 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW 4MA -to SPI_DO
 
 # Changes for SiDi FPGA
 # =====================
-#set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCK
+set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to SPI_SCK
 
 
 # Classic Timing Assignments

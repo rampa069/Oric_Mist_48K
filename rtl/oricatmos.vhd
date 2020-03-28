@@ -262,7 +262,7 @@ inst_cpu : entity work.T65
 ram_ad  <= ula_AD_SRAM when (ula_PHI2 = '0')else cpu_ad(15 downto 0);
 
 
-ram_d   <= (others => '0') when RESETn = '0' else CPU_DO when (ula_WE_SRAM = '1') else (others => 'Z');
+ram_d   <= cpu_do;
 SRAM_DO <= ram_q;
 ram_cs  <= '0' when RESETn = '0' else ula_CE_SRAM;
 ram_oe  <= '0' when RESETn = '0' else ula_OE_SRAM;
