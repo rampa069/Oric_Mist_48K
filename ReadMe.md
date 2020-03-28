@@ -26,29 +26,29 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
 ### TODO
 
  * Debugging, checking for possible bugs at video and improving the core.
- * Enable EDSK fully support with DSK images.
+
 
 ### KNOWN BUGS
 
    * None at the moment..., but if You find one, let Us know, please.
-   
+
 ### HOW TO USE AN ORIC 1 & ATMOS WITH MiST, MiSTica and SiDi FPGA boards.
 
 * **Create a directory called ORIC at your sd's root and put inside the disc images to work on**
 
    * Once the core is launched:
-   
+
    Keyboard Shorcuts:
    * F10 - NMI button, acts like original ORIC NMI
    * F11 - Reset. Use F11 to reboot once a DSK is selected at OSD
    * F12 - OSD Main Menu.
 
    ![shortcuts](img/shorcuts.jpg?raw=true "Keyboard shortcuts")   
-   
+
    * Activate FDC controller at OSD MENU
    * Select an Image from /ORIC directory, exit OSD and press F11. System will boot inmeddiately
 
-   
+
 
 ## The Oric Fpga preservation TEAM
 
@@ -58,12 +58,25 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    * ManuFerHi: Hardware consulting.
    * Chema Enguita: Oric Software gurú
    * SiliceBit: Oric hardware Gurú
-   * ZXMarce: Hardware support 24/7... 
+   * ZXMarce: Hardware support 24/7...
    * Ramón Martínez:  Oric hardware, Some software, and fpga coding.
    * Slingshot: SDRAM work and advisor.
-   
+
 * Kudos to: Sorgelig, Gehstock, DesUBIKado, RetroWiki and friends.
 
+## about Disk images.
+
+  Despite of the .dsk extension, Disk images are the defacto standard **edsk** for disk preservation (also known as "AMSTRAD CPC EXTENDED FORMAT"). To convert images
+  from the oric "dsk" to the needed "dsk" you need the [HxCFloppyEmulator software] (https://hxc2001.com/download/floppy_drive_emulator/HxCFloppyEmulator_soft.zip).
+
+  Load the disk oric disk and export it as **CPC DSK file** the resulting image should load flawlessly on the Oric.
+
 ## Software redistribution.
+
+ In the dsk directory, you will find some disk images in the proper format. 
+
 * **SEDORIC 4.0** operating System disk image redistributed with permission from Symoon.
-* **Blake's 7** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=blakes7) 
+* **Blake's 7** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=blakes7)
+* **Oricium** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=oricium)
+* **Space:1999** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=space1999)
+* **1337** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=1337)

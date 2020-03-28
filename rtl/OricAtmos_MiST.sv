@@ -45,7 +45,7 @@ localparam CONF_STR = {
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"O8,Stereo MOD,Off,On;",
 	"T1,Reset;",
-  	"V,v2.0.",`BUILD_DATE
+  	"V,v2.1-EDSK.",`BUILD_DATE
 };
 wire        clk_72;
 wire        clk_24;

@@ -22,7 +22,7 @@
 //
 //============================================================================
 
-module wd1793 #(parameter RWMODE=1, EDSK=0)
+module wd1793 #(parameter RWMODE=1, EDSK=1)
 (
 	input        clk_sys,     // sys clock
 	input        ce,          // ce at CPU clock rate
