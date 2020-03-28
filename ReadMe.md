@@ -65,4 +65,4 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
 
 ## Software redistribution.
 * **SEDORIC 4.0** operating System disk image redistributed with permission from Symoon.
-* **Blake's 7** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force] (http://www.defence-force.org/index.php?page=games&game=blakes7) 
+* **Blake's 7** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=blakes7) 
