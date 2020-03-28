@@ -57,7 +57,7 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    * Subcritical: Verilog and VHDL.
    * ManuFerHi: Hardware consulting.
    * Chema Enguita: Oric Software gurú
-   * SliceBit: Oric hardware Gurú
+   * SiliceBit: Oric hardware Gurú
    * ZXMarce: Hardware support 24/7... 
    * Ramón Martínez:  Oric hardware, Some software, and fpga coding.
    * Slingshot: SDRAM work and advisor.
