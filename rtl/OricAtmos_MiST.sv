@@ -48,7 +48,6 @@ localparam CONF_STR = {
   	"V,v2.0.",`BUILD_DATE
 };
 wire        clk_72;
-wire        clk_32;
 wire        clk_24;
 wire        pll_locked;
 
@@ -83,7 +82,7 @@ wire        rom_changed;
 wire        led_value;
 reg         fdd_ready=0;
 wire        fdd_busy;
-reg         fdd_layout;
+reg         fdd_layout = 0;
 reg         fdd_reset = 0;
 
 
@@ -102,7 +101,6 @@ pll pll (
 	.inclk0	 (CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
-	.c2       (clk_32     ),
 	.locked   (pll_locked )
 	);
 
@@ -115,7 +113,7 @@ user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
 user_io(
 	.clk_sys        	(clk_24         	),
-	.clk_sd           (clk_32           ),
+	.clk_sd           (clk_24           ),
 	.conf_str       	(CONF_STR       	),
 	.SPI_CLK        	(SPI_SCK        	),
 	.SPI_SS_IO      	(CONF_DATA0     	),
@@ -174,7 +172,6 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
 
 oricatmos oricatmos(
 	.clk_in           (clk_24       ),
-	.clk_32           (clk_32       ),
 	.RESET            (reset),
 	.key_pressed      (key_pressed  ),
 	.key_code         (key_code     ),
@@ -323,29 +320,19 @@ wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
 
-
-wire        ioctl_wr;
-wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_dout;
-wire        ioctl_download;
-wire  [7:0] ioctl_index;
-
-
 assign fdd_reset =  status[1];
-	
-always @(posedge clk_32) begin
+
+always @(posedge clk_24) begin
 	reg old_mounted;
 
 	old_mounted <= img_mounted;
 	if(reset) begin 
-          fdd_ready <= 0;
-      end   
+		fdd_ready <= 0;
+	end
 
 	else if(~old_mounted & img_mounted) begin
-	     fdd_ready <= 1;
-		  fdd_layout <= (ioctl_index[7:6] == 2);
-   end
+		fdd_ready <= 1;
+	end
 end
-
 
 endmodule

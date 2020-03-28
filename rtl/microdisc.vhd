@@ -27,7 +27,6 @@ ENTITY Microdisc IS
 
 	PORT 
 	(
-		CLK             : IN std_logic; -- 32 Mhz input clock
 		CLK_SYS         : IN std_logic; -- 24 Mhz input clock
 		
 		-- Oric Expansion Port Signals
@@ -146,7 +145,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 	SIGNAL nCS     : std_logic;
 	SIGNAL fdc_nRE : std_logic; 
 	SIGNAL fdc_nWE : std_logic; 
-	SIGNAL fdc_CLK : std_logic; 
+	SIGNAL fdc_CLK_en : std_logic; 
 	SIGNAL fdc_A : std_logic_vector(1 DOWNTO 0); 
 	SIGNAL fdc_DALin : std_logic_vector(7 DOWNTO 0);
 	SIGNAL fdc_DALout : std_logic_vector(7 DOWNTO 0); 
@@ -167,15 +166,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 	SIGNAL IRQEN : std_logic; -- IRQ Enable
  
 	SIGNAL inMCRQ : std_logic;
- 
- 
- 
-	SIGNAL PH2_1 : std_logic; 
-	SIGNAL PH2_2 : std_logic; 
-	SIGNAL PH2_3 : std_logic; 
-	SIGNAL PH2_old : std_logic_vector(3 DOWNTO 0); 
-	SIGNAL PH2_cntr : std_logic_vector(4 DOWNTO 0);
- 
+
 BEGIN
 	fdc1 : wd1793
 		GENERIC MAP
@@ -186,7 +177,7 @@ BEGIN
 		PORT MAP
 		(
 			clk_sys       => clk_sys, 
-			ce            => fdc_CLK, 
+			ce            => fdc_CLK_en, 
  
 			reset         => NOT nRESET, 
 			io_en         => NOT fdc_nCS, 
@@ -238,7 +229,6 @@ BEGIN
 			
 			fdc_nRE <= IO OR NOT RnW;
 			fdc_nWE <= IO OR RnW;
-			fdc_CLK <= NOT PH2_2; 
 			fdc_DALin <= DI;
 			
 			
@@ -250,11 +240,11 @@ BEGIN
 			nROMDIS <= '0' WHEN inROMDIS = '0' ELSE '1';
 			nIRQ <= '0' WHEN fdc_IRQ = '1' AND IRQEN = '1' ELSE '1'; 
 			-- EEPROM Control Signals
-			nEOE <= PH2_1 OR NOT RnW;
+			nEOE <= PH2 OR NOT RnW;
 			u16k <= '1' WHEN (inROMDIS = '0') AND (A(14) = '1') AND (A(15) = '1') ELSE '0';
 			inECE <= NOT (A(13) AND u16k AND NOT nROMEN);
 			nECE <= inECE;
-			nMAP <= '0' WHEN (PH2_2 AND inECE AND u16k) = '1' ELSE '1'; 
+			nMAP <= '0' WHEN (PH2 AND inECE AND u16k) = '1' ELSE '1'; 
  
 			--nMCRQ <= inMCRQ; 
  
@@ -285,7 +275,7 @@ BEGIN
 			nOE <= '0' WHEN sel = '1' AND PH2 = '1' ELSE '1';
  
 			-- Control Register.
-			PROCESS (sel, A, RnW, DI, ENA,  nRESET, DSEL, SSEL, PH2_2)
+			PROCESS (sel, A, RnW, DI, ENA,  nRESET, DSEL, SSEL, CLK_SYS)
 				BEGIN
 					IF nRESET = '0' THEN
 						nROMEN <= '0';
@@ -297,7 +287,7 @@ BEGIN
 							inROMDIS <= '1';
 						END IF;
 						IRQEN <= '0'; 
-					ELSIF falling_edge(PH2_2) THEN
+					ELSIF rising_edge(CLK_SYS) THEN
 						IF sel = '1' AND A(3 DOWNTO 2) = "01" AND RnW = '0' THEN
 							nROMEN <= DI(7);
 							DSEL <= DI(6 DOWNTO 5);
@@ -307,31 +297,21 @@ BEGIN
 						END IF;
 					END IF;
 				END PROCESS;
- 
-				-- PH2 derived clocks.
-				PROCESS (PH2, CLK)
-					BEGIN
-						IF nRESET = '0' THEN
-							PH2_cntr <= "00000";
-						ELSIF falling_edge(CLK) THEN
-							PH2_old <= PH2_old(2 DOWNTO 0) & PH2;
-							IF (PH2_old = "1111") AND (PH2 = '0') THEN
-								PH2_cntr <= "00000";
-								PH2_1 <= '1';
-							ELSE
-								PH2_cntr <= PH2_cntr + 1; 
-								IF (PH2_cntr = "10000") THEN
-									PH2_1 <= '0';
-									PH2_2 <= '1';
-								ELSIF (PH2_cntr = "10111") THEN
-									PH2_3 <= '1';
-								ELSIF (PH2_cntr = "11100") THEN
-									PH2_2 <= '0'; 
-								ELSIF (PH2_cntr = "11101") THEN
-									PH2_3 <= '0';
-								END IF;
-							END IF;
-						END IF;
-					END PROCESS; 
- 
+
+			-- FDC clock enable: 24/6 = 4MHz
+			PROCESS (nRESET, CLK_SYS)
+				VARIABLE count: integer range 0 to 5;
+				BEGIN
+					IF nRESET = '0' THEN
+						count := 0;
+						fdc_CLK_en <= '0';
+					ELSIF rising_edge(CLK_SYS) THEN
+						fdc_CLK_en <= '0';
+						if count = 0 then
+							fdc_CLK_en <= '1';
+						end if;
+						count := count + 1;
+					END IF;
+				END PROCESS;
+
 END Behavioral;
