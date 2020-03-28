@@ -44,7 +44,7 @@ localparam CONF_STR = {
 	"O7,Drive Write,Allow,Prohibit;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"O8,Stereo MOD,Off,On;",
-	"T0,Reset;",
+	"T1,Reset;",
   	"V,v2.0.",`BUILD_DATE
 };
 wire        clk_72;
@@ -88,7 +88,7 @@ reg         fdd_reset = 0;
 
 //assign 		AUDIO_R = AUDIO_L;
 assign      disk_enable = ~status[6];
-assign      reset = (!pll_locked | status[0] | buttons[1] | rom_changed);
+assign      reset = (!pll_locked | status[1] | buttons[1] | rom_changed);
 assign      rom = ~status[3] ;
 assign      stereo = status[8];
 

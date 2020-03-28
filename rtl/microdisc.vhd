@@ -219,7 +219,8 @@ BEGIN
  
 
 			-- Reset
-			nHOSTRST <= '0' WHEN nRESET = '0' ELSE '1';
+			nHOSTRST <= '0' WHEN nRESET = '0'  AND PH2 = '0' ELSE '1';
+			
 			-- Select signal (Address Range 031-)
 			sel <= '1' WHEN A(7 DOWNTO 4) = "0001" AND IO = '0' AND A(3 DOWNTO 2) /= "11" ELSE '0';
 
