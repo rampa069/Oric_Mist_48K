@@ -50,7 +50,6 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    
    * Select an Image from /ORIC directory, exit OSD and press F11. System will boot inmeddiately
 
-* **This core owns permission to include the Oric System and Disc Roms and also permission to redistribute the SEDORIC 4.0 operating System** 
    
 
 ## The Oric Fpga preservation TEAM
@@ -66,4 +65,6 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    
 * Kudos to: Sorgelig, Gehstock, DesUBIKado, RetroWiki and friends.
 
-
+## Software redistribution.
+* SEDORIC 4.0 operating System disk image redistributed with permission from Symoon.
+* Blake's seven game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force] (http://www.defence-force.org/index.php?page=games&game=blakes7) 
