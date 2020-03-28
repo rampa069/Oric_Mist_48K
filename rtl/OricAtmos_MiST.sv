@@ -38,7 +38,7 @@ module OricAtmos_MiST(
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;;",
-	"S0,IMG,Mount Drive A:;",
+	"S0,DSK,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Allow,Prohibit;",
