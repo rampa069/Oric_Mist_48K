@@ -46,8 +46,6 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    ![shortcuts](img/shorcuts.jpg?raw=true "Keyboard shortcuts")   
    
    * Activate FDC controller at OSD MENU
-   ![FDC Activation](img/enablefdc.jpg?raw=true "FDC Activation")   
-   
    * Select an Image from /ORIC directory, exit OSD and press F11. System will boot inmeddiately
 
    
