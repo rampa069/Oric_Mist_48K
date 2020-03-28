@@ -64,7 +64,7 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
 
 * Kudos to: Sorgelig, Gehstock, DesUBIKado, RetroWiki and friends.
 
-## about Disk images.
+## About disk images.
 
   Despite of the .dsk extension, Disk images are the defacto standard **edsk** for disk preservation (also known as "AMSTRAD CPC EXTENDED FORMAT"). To convert images
   from the oric "dsk" to the needed "dsk" you need the [HxCFloppyEmulator software] (https://hxc2001.com/download/floppy_drive_emulator/HxCFloppyEmulator_soft.zip).
