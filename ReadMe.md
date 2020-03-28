@@ -60,4 +60,4 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
    * Ramón Martínez:  Oric hardware, Some software, and fpga coding.
    * Slingshot: SDRAM work and advisor.
    
-* Thanks to: Sorgelig, Gehstock, DesUBIKado, RetroWiki and friends.
+* Kudos to: Sorgelig, Gehstock, DesUBIKado, RetroWiki and friends.
