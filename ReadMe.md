@@ -20,7 +20,7 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
 * switchable **ROM** (between 1.1a ATMOS version and 1.0 ORIC 1 version).
 * Tape loading working (via audio cable on the RX pin).
 * Oric Microdisc implementation vía **CUMULUS**
-* Disc Read / Write operations fully supported with IMG (RAW) format.
+* Disc Read / Write operations fully supported with EDSK (The same as amstrad cpc) format.
 * Disc Sedoric/OricDOS Operating System Loading fully working
 
 ### TODO
@@ -70,6 +70,7 @@ Actually Oric 1, Oric Atmos and Microdisc are fully functional.
   from the oric "dsk" to the needed "dsk" you need the [HxCFloppyEmulator software] (https://hxc2001.com/download/floppy_drive_emulator/HxCFloppyEmulator_soft.zip).
 
   Load the disk oric disk and export it as **CPC DSK file** the resulting image should load flawlessly on the Oric.
+  This images are also compatible with fastfloppy firmware on gothek, cuamana reborn, etc working with real orics.
 
 ## Joystick
 
