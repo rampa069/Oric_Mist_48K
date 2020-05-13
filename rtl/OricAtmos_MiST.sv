@@ -75,7 +75,6 @@ reg         reset;
 
 wire        rom;
 wire        old_rom;
-wire        rom_changed;
 
 wire        led_value;
 reg         fdd_ready=0;
@@ -83,7 +82,10 @@ wire        fdd_busy;
 reg         fdd_layout = 0;
 reg         fdd_reset = 0;
 
-assign      disk_enable = ~status[6];
+wire        disk_enable;
+reg         old_disk_enable;
+
+assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
 assign      stereo = status[8];
 
@@ -91,7 +93,8 @@ assign      LED = fdd_ready;
 
 always @(posedge clk_24) begin
 	old_rom <= rom;
-	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom);
+	old_disk_enable <= disk_enable;
+	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable);
 end
 
 pll pll (
@@ -220,9 +223,6 @@ wire        ram_cs = ram_cs_oric ;
 reg         sdram_we;
 reg  [15:0] sdram_ad;
 wire        phi2;
-wire        disk_enable;
-
-
 
 always @(posedge clk_72) begin
 	reg ram_we_old, ram_oe_old;
