@@ -3,7 +3,6 @@
 module keyboard
 (
 	input			   clk_sys,
-	input			   reset,
 	input        key_pressed,  // 1-make (pressed), 0-break (released)
 	input        key_extended, // extended code
 	input        key_strobe,   // strobe

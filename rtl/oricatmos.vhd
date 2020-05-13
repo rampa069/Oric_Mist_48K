@@ -125,7 +125,7 @@ architecture RTL of oricatmos is
     signal VIA_DO             : std_logic_vector( 7 downto 0);
 
     
-    -- Clavier : Ã©mulation par port PS2
+    -- Clavier : ÃÂ©mulation par port PS2
     signal KEY_HIT            : std_logic;
     signal KEYB_RESETn        : std_logic;
     signal KEYB_NMIn          : std_logic;
@@ -178,7 +178,6 @@ architecture RTL of oricatmos is
     signal cont_D_OUT         : std_logic_vector(7 downto 0);
     signal cont_IOCONTROLn    : std_logic :='1';
 	 signal cont_ECE           : std_logic;
-	 signal cont_RESETn        : std_logic;
     signal cont_nOE           : std_logic;
 	 signal cont_irq           : std_logic;
 	 
@@ -195,7 +194,6 @@ COMPONENT keyboard
 	PORT
 	(
 		clk_sys      : IN STD_LOGIC;
-		reset        : IN STD_LOGIC;
 		key_pressed  : IN STD_LOGIC;
 		key_extended : IN STD_LOGIC;
 		key_strobe   : IN STD_LOGIC;
@@ -237,7 +235,7 @@ RESETn <= (not RESET and KEYB_RESETn);
 inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
-      Res_n   		=> cont_RESETn,
+      Res_n   		=> RESETn,
       Enable  		=> ENA_1MHZ,
       Clk     		=> CLK_IN,
       Rdy     		=> '1',
@@ -360,7 +358,7 @@ inst_psg : ym2149
 		sel      => '0',
 		mode     => '1',
 		stereo   => STEREO,
-		RESET   	=> NOT(RESETn and KEYB_RESETn), --RESETn,
+		RESET   	=> not RESETn,
 		bc       	=> via_ca2_out,
 		bdir     	=> via_cb2_out,
 		di          => via_pa_out,
@@ -375,7 +373,6 @@ inst_psg : ym2149
 inst_key : keyboard
 	port map(
 		clk_sys      => CLK_IN,
-		reset        => not RESETn, --not RESETn,
 		key_pressed  => key_pressed,
 		key_extended => key_extended,
 		key_strobe   => key_strobe,
@@ -404,9 +401,8 @@ inst_microdisc: work.Microdisc
           nMAP      => cont_MAPn,                           -- Oric MAP 
           IO        => ula_CSIOn,                           -- Oric I/O 
           IOCTRL    => cont_IOCONTROLn,                     -- Oric I/O Control           
-          nHOSTRST  => cont_RESETn,                         -- Oric RESET 
-                                                              -- Additional MCU Interface Lines
-          nRESET    => RESETn and pll_locked,             -- RESET from MCU
+                                                            -- Additional MCU Interface Lines
+          nRESET    => RESETn,                              -- RESET from MCU
           --DSEL      => cont_DSEL,                           -- Drive Select
           --SSEL      => cont_SSEL,                           -- Side Select
           
