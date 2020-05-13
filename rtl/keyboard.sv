@@ -174,6 +174,6 @@ always @(posedge clk_sys) begin
 	endcase;
 end
 
-assign key_hit = (pressed & ~col) == 8'h00;
+assign key_hit = (pressed | col) != 8'hFF;
 
 endmodule
