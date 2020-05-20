@@ -112,29 +112,28 @@ architecture RTL of oricatmos is
     signal cpu_irq            : std_logic;
       
 	 -- VIA
-    signal via_pa_out_oe      : std_logic_vector( 7 downto 0);
+    signal via_pa_out_oe_l    : std_logic_vector( 7 downto 0);
     signal via_pa_in          : std_logic_vector( 7 downto 0);
-	 signal via_pa_out         : std_logic_vector( 7 downto 0);
-    signal via_pa_in_from_psg : std_logic_vector( 7 downto 0);
+    signal via_pa_out         : std_logic_vector( 7 downto 0);
     signal via_cb1_out        : std_logic;
     signal via_cb1_oe_l       : std_logic;
+    signal via_ca2_out        : std_logic;
     signal via_cb2_out        : std_logic;
-    signal via_cb2_oe_l       : std_logic;
     signal via_pb_in             : std_logic_vector( 7 downto 0);
     signal via_pb_out            : std_logic_vector( 7 downto 0);
     signal via_pb_oe_l           : std_logic_vector( 7 downto 0);
     signal VIA_DO             : std_logic_vector( 7 downto 0);
 
     
-    -- Clavier : émulation par port PS2
-    signal KEY_ROW            : std_logic_vector( 7 downto 0);
-	 signal KEYB_RESETn        : std_logic;
-	 signal KEYB_NMIn          : std_logic;
+    -- Clavier : ÃÂ©mulation par port PS2
+    signal KEY_HIT            : std_logic;
+    signal KEYB_RESETn        : std_logic;
+    signal KEYB_NMIn          : std_logic;
 
     -- PSG
-    signal psg_bdir           : std_logic; 
-    signal psg_bc1            : std_logic; 
-	 signal ym_o_ioa           : std_logic_vector (7 downto 0);
+    signal ym_ioa_out          : std_logic_vector (7 downto 0);
+    signal psg_do             : std_logic_vector (7 downto 0);
+
     -- ULA    
     signal ula_phi2           : std_logic;
     signal ula_CSIOn          : std_logic;
@@ -179,7 +178,6 @@ architecture RTL of oricatmos is
     signal cont_D_OUT         : std_logic_vector(7 downto 0);
     signal cont_IOCONTROLn    : std_logic :='1';
 	 signal cont_ECE           : std_logic;
-	 signal cont_RESETn        : std_logic;
     signal cont_nOE           : std_logic;
 	 signal cont_irq           : std_logic;
 	 
@@ -192,27 +190,21 @@ architecture RTL of oricatmos is
     signal PH2_old            : std_logic_vector(3 downto 0);   
     signal PH2_cntr           : std_logic_vector(4 downto 0);
 	 
-	 
-	 
-	 
 COMPONENT keyboard
 	PORT
 	(
-		clk_sys		:	 IN STD_LOGIC;
-		reset			:	 IN STD_LOGIC;
-		key_pressed	:	 IN STD_LOGIC;
-		key_extended:	 IN STD_LOGIC;
-		key_strobe	:	 IN STD_LOGIC;
-		key_code		:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		col			:	 IN STD_LOGIC_VECTOR(2 DOWNTO 0);
-		row			:	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		ROWbit		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		swnmi       :   OUT STD_LOGIC;
-		swrst			:	 OUT STD_LOGIC
+		clk_sys      : IN STD_LOGIC;
+		key_pressed  : IN STD_LOGIC;
+		key_extended : IN STD_LOGIC;
+		key_strobe   : IN STD_LOGIC;
+		key_code     : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		row          : IN STD_LOGIC_VECTOR(2 DOWNTO 0);
+		col          : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		key_hit      : OUT STD_LOGIC;
+		swnmi        : OUT STD_LOGIC;
+		swrst        : OUT STD_LOGIC
 	);
 END COMPONENT;
-	 
-
 
 COMPONENT ym2149
 	PORT
@@ -243,7 +235,7 @@ RESETn <= (not RESET and KEYB_RESETn);
 inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
-      Res_n   		=> cont_RESETn,
+      Res_n   		=> RESETn,
       Enable  		=> ENA_1MHZ,
       Clk     		=> CLK_IN,
       Rdy     		=> '1',
@@ -335,12 +327,12 @@ inst_via : entity work.M6522
       --PORT A		
 		I_CA1       => '1',       -- PRT_ACK
 		I_CA2       => '1',       -- psg_bdir
-		O_CA2       => psg_bdir,  
+		O_CA2       => via_ca2_out,
 		O_CA2_OE_L  => open,
 		
 		I_PA        => via_pa_in,
 		O_PA        => via_pa_out,
-		O_PA_OE_L   => via_pa_out_oe,
+		O_PA_OE_L   => via_pa_out_oe_l,
 		
 		-- PORT B
 		I_CB1       => K7_TAPEIN,
@@ -349,7 +341,7 @@ inst_via : entity work.M6522
 		
 		I_CB2       => '1',
 		O_CB2       => via_cb2_out,
-		O_CB2_OE_L  => via_cb2_oe_l,
+		O_CB2_OE_L  => open,
 		
 		I_PB        => via_pb_in,
 		O_PB        => via_pb_out,
@@ -358,10 +350,6 @@ inst_via : entity work.M6522
 		ENA_4       => ula_CLK_4_en,
 		CLK         => CLK_IN
 );
-	
-
-	
-
 
 inst_psg : ym2149
 	port map (
@@ -370,35 +358,30 @@ inst_psg : ym2149
 		sel      => '0',
 		mode     => '1',
 		stereo   => STEREO,
-		RESET   	=> NOT(RESETn and KEYB_RESETn), --RESETn,
-		bc       	=> psg_bdir,
+		RESET   	=> not RESETn,
+		bc       	=> via_ca2_out,
 		bdir     	=> via_cb2_out,
 		di          => via_pa_out,
-		do          => via_pa_in_from_psg,
+		do          => psg_do,
 		AUDIO_L     => PSG_OUT_L,
 		AUDIO_R     => PSG_OUT_R,
-		IOA_In  		=> (others => '0'),
-		IOA_Out     => ym_o_ioa,
+		IOA_In      => (others => '0'),
+		IOA_Out     => ym_ioa_out,
 		IOB_In      => (others => '0')
-		
-      
 );
-
-
 
 inst_key : keyboard
 	port map(
-		clk_sys		=> CLK_IN,
-		reset			=> not RESETn, --not RESETn,
-		key_pressed	=> key_pressed,
+		clk_sys      => CLK_IN,
+		key_pressed  => key_pressed,
 		key_extended => key_extended,
-		key_strobe	=> key_strobe,
-		key_code		=> key_code,
-		row			=> via_pa_out,
-		col			=> via_pb_out (2 downto 0),
-		ROWbit		=> KEY_ROW,
-		swnmi			=> swnmi,
-		swrst       => swrst
+		key_strobe   => key_strobe,
+		key_code     => key_code,
+		row          => via_pb_out (2 downto 0),
+		col          => ym_ioa_out,
+		key_hit      => KEY_HIT,
+		swnmi        => swnmi,
+		swrst        => swrst
 );
 
 KEYB_NMIn <= NOT swnmi;
@@ -418,9 +401,8 @@ inst_microdisc: work.Microdisc
           nMAP      => cont_MAPn,                           -- Oric MAP 
           IO        => ula_CSIOn,                           -- Oric I/O 
           IOCTRL    => cont_IOCONTROLn,                     -- Oric I/O Control           
-          nHOSTRST  => cont_RESETn,                         -- Oric RESET 
-                                                              -- Additional MCU Interface Lines
-          nRESET    => RESETn and pll_locked,             -- RESET from MCU
+                                                            -- Additional MCU Interface Lines
+          nRESET    => RESETn,                              -- RESET from MCU
           --DSEL      => cont_DSEL,                           -- Drive Select
           --SSEL      => cont_SSEL,                           -- Side Select
           
@@ -453,9 +435,9 @@ inst_microdisc: work.Microdisc
 
 
 
-via_pa_in <= (via_pa_out and not via_pa_out_oe) or (via_pa_in_from_psg and via_pa_out_oe);
+via_pa_in <= (via_pa_out and not via_pa_out_oe_l) or (psg_do and via_pa_out_oe_l);
 via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
-via_pb_in(3) <= '0' when ( (KEY_ROW or via_pa_out)) = x"FF" else  '1';
+via_pb_in(3) <= KEY_HIT;
 via_pb_in(4) <=via_pb_out(4);
 via_pb_in(5) <= 'Z';
 via_pb_in(6) <=via_pb_out(6);

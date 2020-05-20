@@ -156,6 +156,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 	SIGNAL u16k : std_logic;
 	SIGNAL inECE : std_logic;
 	SIGNAL inROMDIS : std_logic;
+	SIGNAL inROMDIS_ENA : std_logic;
 	SIGNAL iDIR : std_logic;
 
 	SIGNAL DSEL : std_logic_vector(1 DOWNTO 0); -- Drive Select
@@ -238,11 +239,11 @@ BEGIN
 			fd_led <= fdd_busy; 
 			-- ORIC Expansion Port Signals
 			IOCTRL <= '0' WHEN sel = '1' ELSE '1';
-			nROMDIS <= '0' WHEN inROMDIS = '0' ELSE '1';
+			nROMDIS <= '0' WHEN inROMDIS_ENA = '0' ELSE '1';
 			nIRQ <= '0' WHEN fdc_IRQ = '1' AND IRQEN = '1' ELSE '1'; 
 			-- EEPROM Control Signals
 			nEOE <= PH2 OR NOT RnW;
-			u16k <= '1' WHEN (inROMDIS = '0') AND (A(14) = '1') AND (A(15) = '1') ELSE '0';
+			u16k <= '1' WHEN (inROMDIS_ENA = '0') AND (A(14) = '1') AND (A(15) = '1') ELSE '0';
 			inECE <= NOT (A(13) AND u16k AND NOT nROMEN);
 			nECE <= inECE;
 			nMAP <= '0' WHEN (PH2 AND inECE AND u16k) = '1' ELSE '1'; 
@@ -274,19 +275,16 @@ BEGIN
 
 			
 			nOE <= '0' WHEN sel = '1' AND PH2 = '1' ELSE '1';
- 
+			inROMDIS_ENA <= inROMDIS or not ENA;
+
 			-- Control Register.
-			PROCESS (sel, A, RnW, DI, ENA,  nRESET, DSEL, SSEL, CLK_SYS)
+			PROCESS (sel, A, RnW, DI, nRESET, DSEL, SSEL, CLK_SYS)
 				BEGIN
 					IF nRESET = '0' THEN
 						nROMEN <= '0';
 						DSEL <= "00";
 						SSEL <= '0';
-						IF ENA = '0' THEN
-							inROMDIS <= '0';
-						ELSE
-							inROMDIS <= '1';
-						END IF;
+						inROMDIS <= '0';
 						IRQEN <= '0'; 
 					ELSIF rising_edge(CLK_SYS) THEN
 						IF sel = '1' AND A(3 DOWNTO 2) = "01" AND RnW = '0' THEN

@@ -1,21 +1,18 @@
 // Dave Wood 2019
 
-
 module keyboard
 (
 	input			   clk_sys,
-	input			   reset,
-	input          key_pressed,  // 1-make (pressed), 0-break (released)
-	input          key_extended, // extended code
-	input          key_strobe,   // strobe
-	input  [7:0]   key_code,     // key scan code
-	input  [2:0]	col,
-	input	 [7:0]	row,
-	output [7:0]	ROWbit,
-	output			swrst,
-	output         swnmi
+	input        key_pressed,  // 1-make (pressed), 0-break (released)
+	input        key_extended, // extended code
+	input        key_strobe,   // strobe
+	input  [7:0] key_code,     // key scan code
+	input	 [2:0] row,
+	input  [7:0] col,
+	output       key_hit,
+	output       swrst,
+	output       swnmi
 );
-
 
 reg sw0 = 1'b0;
 reg sw1 = 1'b0;
@@ -78,7 +75,6 @@ reg swsc = 1'b0;		// ;
 reg swesc = 1'b0;	// escape
 reg swctl = 1'b0;	// left ctrl
 
-
 //reg swrst = 0;
 reg swf1 = 1'b0;
 reg swf2 = 1'b0;
@@ -87,8 +83,6 @@ reg swf4 = 1'b0;
 reg swf5 = 1'b0;
 reg swf6 = 1'b0;
 
-
-	
 always @(posedge clk_sys) begin
 	
 	if(key_strobe) begin
@@ -166,124 +160,20 @@ always @(posedge clk_sys) begin
 	end
 end
 
-wire no_key = (~sw0 & ~sw1 & ~sw2 & ~sw3 & ~sw4 & ~sw5 & ~sw6 & ~sw7 & ~sw8 & ~sw9 & ~swa & ~swb & ~swc & ~swd & ~swe & ~swf & 
-					~swg & ~swh & ~ swi & ~swj & ~ swk & ~swl & ~swm & ~swn & ~swo & ~swp & ~swq & ~swr & ~sws & ~swt & ~swu & ~swv &
-					~sww & ~swx & ~swy & ~swz & ~swU & ~swD & ~swR & ~swL & ~swrs & ~swls & ~swsp & ~swcom & ~swdot & ~swret & ~swfs & 
-					~sweq & ~swfcn & ~swdel & ~swrsb & ~swlsb & ~swbs & ~swdsh & ~swsq & ~swsc & ~swesc & ~swctl & ~swf1 & ~swf2 &
-					~swf3 & ~swf4 & ~swf5 & ~swf6);
-					
+reg [7:0] pressed;
 always @(posedge clk_sys) begin
-		if (no_key) ROWbit <= 8'b11111111;
-		else if (col == 3'b111) begin
-
-			ROWbit <= 8'b11111111;
-			if (sweq) 	ROWbit <= 8'b01111111;
-			if (swf1) 	ROWbit <= 8'b10111111;
-			if (swret) 	ROWbit <= 8'b11011111;
-			if (swrs) 	ROWbit <= 8'b11101111;
-			if (sweq & swrs) ROWbit <= 8'b01101111;
-			if (swfs) 	ROWbit <= 8'b11110111;
-			if (swfs & swrs) ROWbit <= 8'b11100111;
-			if (sw0) 	ROWbit <= 8'b11111011;
-			if (sw0 & swrs) ROWbit <= 8'b11101011;
-			if (swl) 	ROWbit <= 8'b11111101;
-			if (swl & swrs) ROWbit <= 8'b11101101;
-			if (sw8) 	ROWbit <= 8'b11111110;
-			if (sw8 & swrs) ROWbit <= 8'b11101110;
-		end
-		else if (col == 3'b110) begin
-
-			ROWbit <= 8'b11111111;
-			if (sww) 	ROWbit <= 8'b01111111;
-			if (sws) 	ROWbit <= 8'b10111111;
-			if (swa) 	ROWbit <= 8'b11011111;
-			if (swf2) 	ROWbit <= 8'b11101111;
-			if (swe) 	ROWbit <= 8'b11110111;
-			if (swg) 	ROWbit <= 8'b11111011;
-			if (swh) 	ROWbit <= 8'b11111101;
-			if (swy) 	ROWbit <= 8'b11111110;
-		end
-		else if (col == 3'b101) begin
-
-			ROWbit <= 8'b11111111;	
-			if (swlsb) 	ROWbit <= 8'b01111111;
-			if (swrsb) 	ROWbit <= 8'b10111111;
-			if (swdel) 	ROWbit <= 8'b11011111;
-			if (swfcn) 	ROWbit <= 8'b11101111;
-			if (swp) 	ROWbit <= 8'b11110111;
-			if (swo) 	ROWbit <= 8'b11111011;
-			if (swi) 	ROWbit <= 8'b11111101;
-			if (swu) 	ROWbit <= 8'b11111110;
-		end
-		else if (col == 3'b100) begin
-
-			ROWbit <= 8'b11111111;
-			if (swR) 	ROWbit <= 8'b01111111;
-			if (swD) 	ROWbit <= 8'b10111111;
-			if (swL) 	ROWbit <= 8'b11011111;
-			if (swls) 	ROWbit <= 8'b11101111;
-			if (swU) 	ROWbit <= 8'b11110111;
-			if (swdot) 	ROWbit <= 8'b11111011;
-			if (swdot & swls) ROWbit <= 8'b11101011;
-			if (swcom) 	ROWbit <= 8'b11111101;
-			if (swcom & swls) ROWbit <= 8'b11101101;
-			if (swsp) 	ROWbit <= 8'b11111110;
-		end
-		else if (col == 3'b011) begin
-
-			ROWbit <= 8'b11111111;	
-			if (swsq) 	ROWbit <= 8'b01111111;
-			if (swbs) 	ROWbit <= 8'b10111111;
-			if (swf3) 	ROWbit <= 8'b11011111;
-			if (swf4) 	ROWbit <= 8'b11101111;
-			if (swdsh) 	ROWbit <= 8'b11110111;
-			if (swsc) 	ROWbit <= 8'b11111011;
-			if (sw9) 	ROWbit <= 8'b11111101;
-			if (swk) 	ROWbit <= 8'b11111110;
-		end
-		else if (col == 3'b010) begin
-
-			ROWbit <= 8'b11111111;
-			if (swctl) 	ROWbit <= 8'b11101111;
-			if (swc) 	ROWbit <= 8'b01111111;
-			if (swc & swctl) 	ROWbit <= 8'b01101111;
-			if (sw2) 	ROWbit <= 8'b10111111;
-			if (sw2 & swctl) 	ROWbit <= 8'b10101111;
-			if (swz) 	ROWbit <= 8'b11011111;
-			if (swz & swctl) 	ROWbit <= 8'b11001111;
-			if (sw4) 	ROWbit <= 8'b11110111;
-			if (sw4 & swctl) 	ROWbit <= 8'b11100111;
-			if (swb) 	ROWbit <= 8'b11111011;
-			if (swb & swctl) 	ROWbit <= 8'b11101011;
-			if (sw6) 	ROWbit <= 8'b11111101;
-			if (sw6 & swctl) 	ROWbit <= 8'b11101101;
-			if (swm) 	ROWbit <= 8'b11111110;
-			if (swm & swctl) 	ROWbit <= 8'b11101110;
-		end
-		else if (col == 3'b001) begin
-
-			ROWbit <= 8'b11111111;	
-			if (swd) 	ROWbit <= 8'b01111111;
-			if (swq) 	ROWbit <= 8'b10111111;
-			if (swesc) 	ROWbit <= 8'b11011111;
-			if (swf5) 	ROWbit <= 8'b11101111;
-			if (swf) 	ROWbit <= 8'b11110111;
-			if (swr) 	ROWbit <= 8'b11111011;
-			if (swt) 	ROWbit <= 8'b11111101;
-			if (swj) 	ROWbit <= 8'b11111110;
-		end
-		else if (col == 3'b000) begin
-
-			ROWbit <= 8'b11111111;
-			if (sw3) 	ROWbit <= 8'b01111111;
-			if (swx) 	ROWbit <= 8'b10111111;
-			if (sw1) 	ROWbit <= 8'b11011111;
-			if (swf6) 	ROWbit <= 8'b11101111;
-			if (swv) 	ROWbit <= 8'b11110111;
-			if (sw5) 	ROWbit <= 8'b11111011;
-			if (swn) 	ROWbit <= 8'b11111101;
-			if (sw7) 	ROWbit <= 8'b11111110;			
-		end
+	case (row)
+		3'b000: pressed <= ~{sw3,swx,sw1,swf6,swv,sw5,swn,sw7};
+		3'b001: pressed <= ~{swd,swq,swesc,swf5,swf,swr,swt,swj};
+		3'b010: pressed <= ~{swc,sw2,swz,swctl,sw4,swb,sw6,swm};
+		3'b011: pressed <= ~{swsq,swbs,swf3,swf4,swdsh,swsc,sw9,swk};
+		3'b100: pressed <= ~{swR,swD,swL,swls,swU,swdot,swcom,swsp};
+		3'b101: pressed <= ~{swlsb,swrsb,swdel,swfcn,swp,swo,swi,swu};
+		3'b110: pressed <= ~{sww,sws,swa,swf2,swe,swg,swh,swy};
+		3'b111: pressed <= ~{sweq,swf1,swret,swrs,swfs,sw0,swl,sw8};
+	endcase;
 end
-endmodule
 
+assign key_hit = (pressed | col) != 8'hFF;
+
+endmodule

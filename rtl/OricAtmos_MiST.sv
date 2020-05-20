@@ -44,7 +44,7 @@ localparam CONF_STR = {
 	"O7,Drive Write,Allow,Prohibit;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"O8,Stereo MOD,Off,On;",
-	"T1,Reset;",
+	"T0,Reset;",
   	"V,v2.1-EDSK.",`BUILD_DATE
 };
 wire        clk_72;
@@ -69,15 +69,12 @@ wire [9:0] psg_r;
 wire [7:0] joystick_0;
 wire [7:0] joystick_1;
 
-
-
-wire       tapebits;
-wire 		  remote;
-wire       reset;
+wire        tapebits;
+wire        remote;
+reg         reset;
 
 wire        rom;
 wire        old_rom;
-wire        rom_changed;
 
 wire        led_value;
 reg         fdd_ready=0;
@@ -85,17 +82,20 @@ wire        fdd_busy;
 reg         fdd_layout = 0;
 reg         fdd_reset = 0;
 
+wire        disk_enable;
+reg         old_disk_enable;
 
-//assign 		AUDIO_R = AUDIO_L;
-assign      disk_enable = ~status[6];
-assign      reset = (!pll_locked | status[1] | buttons[1] | rom_changed);
+assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
 assign      stereo = status[8];
 
 assign      LED = fdd_ready;
 
-
-
+always @(posedge clk_24) begin
+	old_rom <= rom;
+	old_disk_enable <= disk_enable;
+	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable);
+end
 
 pll pll (
 	.inclk0	 (CLOCK_27   ),
@@ -103,11 +103,6 @@ pll pll (
 	.c1       (clk_72     ),
 	.locked   (pll_locked )
 	);
-
-
-
-
-
 	
 user_io #(
 	.STRLEN				(($size(CONF_STR)>>3)))
@@ -146,8 +141,6 @@ user_io(
 	.img_mounted                 (img_mounted   ),
 	.img_size                    (img_size      )
 );
-
-
 	
 mist_video #(.COLOR_DEPTH(1)) mist_video(
 	.clk_sys      (clk_24     ),
@@ -230,9 +223,6 @@ wire        ram_cs = ram_cs_oric ;
 reg         sdram_we;
 reg  [15:0] sdram_ad;
 wire        phi2;
-wire        disk_enable;
-
-
 
 always @(posedge clk_72) begin
 	reg ram_we_old, ram_oe_old;
@@ -241,13 +231,6 @@ always @(posedge clk_72) begin
 	ram_we_old <= ram_cs & ram_we;
 	ram_oe_old <= ram_cs & ram_oe;
 	ram_ad_old <= ram_ad;
-
-	old_rom <= rom;
-	rom_changed <= 1'b0;
-	
-	if (rom != old_rom) begin
-	  rom_changed <= 1'b1;
-	end
 
 	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
 		port1_req <= ~port1_req;
