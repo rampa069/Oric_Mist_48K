@@ -435,7 +435,7 @@ inst_microdisc: work.Microdisc
 
 
 
-via_pa_in <= (via_pa_out and not via_pa_out_oe_l) or (psg_do and not via_pa_out_oe_l);
+via_pa_in <= (via_pa_out and not via_pa_out_oe_l) or (psg_do and via_pa_out_oe_l);
 via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
 via_pb_in(3) <= KEY_HIT;
 via_pb_in(4) <=via_pb_out(4);
