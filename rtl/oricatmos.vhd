@@ -64,6 +64,7 @@ entity oricatmos is
     VIDEO_HSYNC       : out   std_logic;
     VIDEO_VSYNC       : out   std_logic;
     VIDEO_SYNC        : out   std_logic;
+	 CLK_PIX           : out   std_logic;
 	 ram_ad            : out std_logic_vector(15 downto 0);
 	 ram_d             : out std_logic_vector( 7 downto 0);
 	 ram_q             : in  std_logic_vector( 7 downto 0);
@@ -310,7 +311,8 @@ inst_ula : entity work.ULA
       B          	=> VIDEO_B,
       SYNC       	=> VIDEO_SYNC,
 		HSYNC      	=> VIDEO_HSYNC,
-		VSYNC      	=> VIDEO_VSYNC		
+		VSYNC      	=> VIDEO_VSYNC,
+      CLK_PIX     => CLK_PIX		
 );
 
 inst_via : entity work.M6522

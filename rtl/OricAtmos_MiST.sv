@@ -6,6 +6,7 @@ module OricAtmos_MiST(
    output  [5:0] VGA_B,
    output        VGA_HS,
    output        VGA_VS,
+	
    output        LED,
 	
    input         UART_RXD,
@@ -143,7 +144,7 @@ user_io(
 );
 	
 mist_video #(.COLOR_DEPTH(1)) mist_video(
-	.clk_sys      (clk_24     ),
+	.clk_sys      (CLK_PIX    ),
 	.SPI_SCK      (SPI_SCK    ),
 	.SPI_SS3      (SPI_SS3    ),
 	.SPI_DI       (SPI_DI     ),
@@ -178,6 +179,7 @@ oricatmos oricatmos(
 	.VIDEO_B				(b				),
 	.VIDEO_HSYNC		(hs         ),
 	.VIDEO_VSYNC		(vs         ),
+	.CLK_PIX          (CLK_PIX    ),
 	.K7_TAPEIN			(UART_RXD   ),
 	.K7_TAPEOUT			(UART_TXD   ),
 	.K7_REMOTE			(remote     ),

@@ -115,7 +115,8 @@ port (
 	                                                  -- VCC                          -- pin 24
 	                                                  -- GND                          -- pin 06
 	HSYNC      :   out std_logic;
-	VSYNC      :   out std_logic
+	VSYNC      :   out std_logic;
+	CLK_PIX    :   out std_logic
 );
 end;
 
@@ -374,8 +375,17 @@ begin
 	-- Assign output signals
 	CLK_FLASH    <= lCTR_FLASH(4); 	-- Flash clock toggles every 16 video frames
 	lCOMPSYNC    <= not (lHSYNCn xor lVSYNCn);
-	BLANKINGn    <= lVBLANKn and lHBLANKn;
-   
+	--BLANKINGn    <= lVBLANKn and lHBLANKn;
+   CLK_PIX      <= CLK_PIXEL_INT;
+	
+
+ 	process
+ 	begin
+ 		wait until rising_edge(CLK_24);
+ 		if CLK_PIXEL_INT = '0' then
+ 		  BLANKINGn    <= lVBLANKn and lHBLANKn;
+ 		end if;
+ 	end process;
 
 	-----------------------------
 	-----------------------------
@@ -409,7 +419,7 @@ begin
 	begin
 		wait until rising_edge(CLK_24);
 		if (CLK_PIXEL_INT = '1' and RELD_REG = '1') then
-			lInv <= lInv_hold;
+		 		lInv <= lInv_hold;
 		end if;
 	end process;
 
@@ -482,9 +492,11 @@ begin
 
 	-- Assign out signal
 	RGB_INT <=     lRGB  when (lInv = '0' and BLANKINGn = '1') else
-			     not(lRGB) when (lInv = '1' and BLANKINGn = '1') else
-			     "000";--(others=>'0') ;
+	               not(lRGB) when (lInv = '1' and BLANKINGn = '1') else
+	              (others=>'0') when BLANKINGn = '0';
 
+   --RGB_INT <= lRGB when (lInv = '0') else not lRGB;
+   
 	-- Compute offset 
 	ModeStyle <= lHIRES_SEL & lALT_SEL;
 	with ModeStyle select
