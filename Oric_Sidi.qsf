@@ -243,9 +243,8 @@ set_global_assignment -name USE_SIGNALTAP_FILE rtl/stp1.stp
 set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS OFF
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS OFF
-set_global_assignment -name VHDL_FILE rtl/ay8912.vhd
+set_global_assignment -name QIP_FILE rtl/jt49/hdl/jt49.qip
 set_global_assignment -name VHDL_FILE rtl/vol_table_array.vhd
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/ym2149.sv
 set_global_assignment -name QIP_FILE "mist-modules/mist.qip"
 set_global_assignment -name VHDL_FILE rtl/oricatmos.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE misc/sdram.sv

@@ -55,8 +55,10 @@ entity oricatmos is
     K7_TAPEIN         : in    std_logic;
     K7_TAPEOUT        : out   std_logic;
     K7_REMOTE         : out   std_logic;
-	 PSG_OUT_L         : out   std_logic_vector(9 downto 0);
-    PSG_OUT_R         : out   std_logic_vector(9 downto 0);
+	 PSG_OUT           : out   std_logic_vector(9 downto 0);
+    PSG_OUT_A         : out   std_logic_vector(7 downto 0);
+    PSG_OUT_B         : out   std_logic_vector(7 downto 0);
+    PSG_OUT_C         : out   std_logic_vector(7 downto 0);
 	 STEREO            : in    std_logic;
     VIDEO_R           : out   std_logic;
     VIDEO_G           : out   std_logic;
@@ -206,27 +208,26 @@ COMPONENT keyboard
 	);
 END COMPONENT;
 
-COMPONENT ym2149
-	PORT
-	(
-		clk   		:	 IN STD_LOGIC;
-		ce		      :	 IN STD_LOGIC;
-		RESET			:	 IN STD_LOGIC;
-		bdir	      :	 IN STD_LOGIC;
-		bc          :	 IN STD_LOGIC;
-		sel         :   IN STD_LOGIC;
-		mode        :   IN STD_LOGIC;
-		di 		   :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		do 			:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		AUDIO_L     :	 OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
-		AUDIO_R     :	 OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
-		STEREO      :   IN STD_LOGIC;
-		ACTIVE      :   OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
-		IOA_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		IOA_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-		IOB_In      :	 IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		IOB_Out		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
-		);
+COMPONENT jt49_bus
+			 PORT (
+						clk : IN STD_LOGIC;
+						clk_en : IN STD_LOGIC;
+						rst_n : IN STD_LOGIC;
+						bdir : IN STD_LOGIC;
+						bc1 : IN STD_LOGIC;
+						sel : IN STD_LOGIC;
+						din : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+						dout : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+						sound : OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
+						A : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+						B : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+						C : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+						sample : OUT STD_LOGIC;
+						IOA_In : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+						IOA_Out : OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+						IOB_In : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+						IOB_Out : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+			 );
 END COMPONENT;
 
 begin
@@ -351,24 +352,26 @@ inst_via : entity work.M6522
 		CLK         => CLK_IN
 );
 
-inst_psg : ym2149
-	port map (
-		clk      => CLK_IN,
-		ce       => ENA_1MHZ,
-		sel      => '0',
-		mode     => '1',
-		stereo   => STEREO,
-		RESET   	=> not RESETn,
-		bc       	=> via_ca2_out,
-		bdir     	=> via_cb2_out,
-		di          => via_pa_out,
-		do          => psg_do,
-		AUDIO_L     => PSG_OUT_L,
-		AUDIO_R     => PSG_OUT_R,
-		IOA_In      => (others => '0'),
-		IOA_Out     => ym_ioa_out,
-		IOB_In      => (others => '0')
-);
+inst_psg : jt49_bus
+  PORT MAP(
+		 clk => CLK_IN,
+		 clk_en => ENA_1MHZ,
+		 sel => '1',
+		 rst_n => RESETn AND KEYB_RESETn,
+		 bc1 => via_ca2_out,
+		 bdir => via_cb2_out,
+		 din => via_pa_out,
+		 dout => psg_do,
+		 sample => open,
+		 sound => PSG_OUT,
+		 A => PSG_OUT_A,
+		 B => PSG_OUT_B,
+		 C => PSG_OUT_C,
+		 IOA_In => (OTHERS => '0'),
+		 IOA_Out => ym_ioa_out,
+		 IOB_In => (OTHERS => '0')
+ );
+
 
 inst_key : keyboard
 	port map(

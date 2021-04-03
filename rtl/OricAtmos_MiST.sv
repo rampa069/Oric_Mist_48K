@@ -43,7 +43,7 @@ localparam CONF_STR = {
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Allow,Prohibit;",
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
-	"O8,Stereo MOD,Off,On;",
+	"O89,Stereo,Off,ABC (West Europe),ACB (East Europe);",
 	"T0,Reset;",
   	"V,v2.1-EDSK.",`BUILD_DATE
 };
@@ -63,8 +63,10 @@ wire			ypbpr;
 wire        scandoublerD;
 wire [31:0] status;
 
-wire [9:0] psg_l;
-wire [9:0] psg_r;
+wire [9:0] psg_out;
+wire [7:0] psg_a;
+wire [7:0] psg_b;
+wire [7:0] psg_c;
 
 wire [7:0] joystick_0;
 wire [7:0] joystick_1;
@@ -87,7 +89,7 @@ reg         old_disk_enable;
 
 assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
-assign      stereo = status[8];
+wire        stereo = status[9:8];
 
 assign      LED = fdd_ready;
 
@@ -170,9 +172,10 @@ oricatmos oricatmos(
 	.key_code         (key_code     ),
 	.key_extended     (key_extended ),
 	.key_strobe       (key_strobe   ),
-	.PSG_OUT_L			(psg_l		),
-	.PSG_OUT_R			(psg_r		),
-	.STEREO           (stereo  ),
+	.PSG_OUT			   (psg_out		  ),
+	.PSG_OUT_A			(psg_a		),
+	.PSG_OUT_B			(psg_b		),
+	.PSG_OUT_C			(psg_c		),
 	.VIDEO_R				(r			   ),
 	.VIDEO_G				(g				),
 	.VIDEO_B				(b				),
@@ -268,9 +271,21 @@ sdram sdram(
 
 );
 
+///////////////////////////////////////////////////
+
+wire [9:0] psg_l;
+wire [9:0] psg_r;
+
+always @ (psg_a,psg_b,psg_c,psg_out,stereo) begin
+                case (stereo)
+                        2'b01  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_b}},{{2'b0,psg_c} + {2'b0,psg_b}}};
+                        2'b10  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_c}},{{2'b0,psg_c} + {2'b0,psg_b}}};
+                        default: {psg_l,psg_r} <= {psg_out,psg_out};
+       endcase
+end
 
 dac #(
-   .c_bits				(11					))
+   .c_bits				(10				))
 audiodac_l(
    .clk_i				(clk_24				),
    .res_n_i				(1						),
@@ -279,13 +294,14 @@ audiodac_l(
   );
 
 dac #(
-   .c_bits				(11				))
+   .c_bits				(10				))
 audiodac_r(
    .clk_i				(clk_24				),
    .res_n_i				(1						),
    .dac_i				(psg_r				),
    .dac_o				(AUDIO_R				)
   );
+
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
 wire        sd_rd;
