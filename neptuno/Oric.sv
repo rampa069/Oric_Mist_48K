@@ -23,7 +23,7 @@ module Oric(
 	//STM32
    input wire  stm_tx_i,
    output wire stm_rx_o,
-   output wire stm_rst_o           = 1'bz, // '0' to hold the microcontroller reset line, to free the SD card
+   output wire stm_rst_o           = 1'b0, // '0' to hold the microcontroller reset line, to free the SD card
 
 	// PS2
    inout wire  ps2_clk_io        = 1'bz,
@@ -36,6 +36,11 @@ module Oric(
    output wire sd_sclk_o         = 1'bZ,
    output wire sd_mosi_o         = 1'bZ,
    input wire  sd_miso_i,
+	// TAPE
+	input wire	ear_i,
+	output wire	mic_o					= 1'b0,
+
+
 
 
 	
@@ -106,7 +111,7 @@ assign      rom = ~status[3] ;
 
 wire [1:0]  stereo = status[9:8];
 
-assign      LED = 1'b0; //fdd_ready;
+assign      LED = ~ear_i; //fdd_ready;
 
 always @(posedge clk_sys) begin
 	old_rom <= rom;
@@ -177,10 +182,6 @@ assign key_extended = ps2_key[8];
 assign key_pressed = ps2_key[9];
 assign key_strobe = ps2_key[10];
 
-//reg old_keystb = 0;
-//always @(posedge clk_sys) old_keystb <= ps2_key[9];
-
-
 
 io_ps2_keyboard io_ps2_keyboard
 (
@@ -208,12 +209,12 @@ mist_video #(.COLOR_DEPTH(1), .SD_HCNT_WIDTH(10), .USE_FRAMEBUFFER(1)) mist_vide
     .SPI_SS3        ( SPI_SS2          ),
     .SPI_DI         ( SPI_DI           ),
 
-	 .R            ({r}),
-	 .G            ({g}    ),
-	 .B            ({b}    ),
+	 .R              (r                 ),
+	 .G              (g                 ),
+	 .B              (b                 ),
 
-	 .HSync        (hs         ),
-	 .VSync        (vs         ),
+	 .HSync          (hs                ),
+	 .VSync          (vs                ),
 
     .VGA_R          ( VGA_R            ),
     .VGA_G          ( VGA_G            ),
@@ -248,8 +249,8 @@ oricatmos oricatmos(
 	.VIDEO_B				(b				),
 	.VIDEO_HSYNC		(hs         ),
 	.VIDEO_VSYNC		(vs         ),
-	.K7_TAPEIN			(UART_RXD   ),
-	.K7_TAPEOUT			(UART_TXD   ),
+	.K7_TAPEIN			(ear_i     ),
+	.K7_TAPEOUT			(mic_o      ),
 	.K7_REMOTE			(remote     ),
 	.ram_ad           (ram_ad       ),
 	.ram_d            (ram_d        ),

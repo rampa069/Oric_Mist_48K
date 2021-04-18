@@ -50,7 +50,7 @@ port (
   KbdInt       : in std_logic;
   KbdScanCode  : in std_logic_vector(7 downto 0);
   Keyboarddata : out std_logic_vector(10 downto 0);
-  osd_o			: out   std_logic_vector(7 downto 0)
+  osd_o			: out std_logic_vector(7 downto 0)
 );
 end mist_Keyboard;
 
@@ -85,7 +85,7 @@ begin
 			
 			if KbdScanCode = x"07" then -- F12
 				if IsReleased = '0' then 
-					osd_s(7 downto 5) <= "001"; 
+					osd_s(7 downto 5) <= "011";
 				else
 					osd_s(7 downto 5) <= "111";
 				end if; 
