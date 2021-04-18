@@ -59,7 +59,7 @@ module Oric(
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"ORIC;;",
+   "P,CORE_NAME.ini;",
 	"S0,DSK,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
@@ -69,7 +69,7 @@ localparam CONF_STR = {
 	"T0,Reset;",
   	"V,v2.1-EDSK.",`BUILD_DATE
 };
-wire        clk_72;
+wire        clk_mem;
 wire        clk_sys;
 wire        pll_locked;
 
@@ -112,6 +112,8 @@ assign      rom = ~status[3] ;
 wire [1:0]  stereo = status[9:8];
 
 assign      LED = ~ear_i; //fdd_ready;
+assign      stm_rst_o = 1'b0; 
+
 
 always @(posedge clk_sys) begin
 	old_rom <= rom;
@@ -122,7 +124,7 @@ end
 pll pll (
 	.inclk0	 (clock_50_i ),
 	.c0       (clk_sys     ),
-	.c1       (clk_72     ),
+	.c1       (clk_mem     ),
 	.locked   (pll_locked )
 	);
 
@@ -130,6 +132,10 @@ pll pll (
 
 wire [7:0] keys_s;
 wire osd_enable;
+wire download;
+
+reg [7:0] pump_s = 8'b11111111;
+PumpSignal PumpSignal (clk_sys, reset,download, pump_s);
 
 
 
@@ -144,11 +150,11 @@ data_io_oric
     .SPI_DI        ( SPI_DI       ),
     .SPI_DO        ( SPI_DO       ),
     
-    .data_in       ( keys_s       ),
+    .data_in       ( pump_s & keys_s),
     .conf_str      ( CONF_STR     ),
     .status        ( status       ),
 	 // SD CARD
-	 .clk_sd     	 (clk_sys        ),
+	 .clk_sd     	 (clk_sys       ),
     .sd_lba        (sd_lba        ),
     .sd_rd         (sd_rd         ),
  	 .sd_wr         (sd_wr         ),
@@ -249,7 +255,7 @@ oricatmos oricatmos(
 	.VIDEO_B				(b				),
 	.VIDEO_HSYNC		(hs         ),
 	.VIDEO_VSYNC		(vs         ),
-	.K7_TAPEIN			(ear_i     ),
+	.K7_TAPEIN			(~ear_i     ),
 	.K7_TAPEOUT			(mic_o      ),
 	.K7_REMOTE			(remote     ),
 	.ram_ad           (ram_ad       ),
@@ -295,7 +301,7 @@ reg         sdram_we;
 reg  [15:0] sdram_ad;
 wire        phi2;
 
-always @(posedge clk_72) begin
+always @(posedge clk_mem) begin
 	reg ram_we_old, ram_oe_old;
 	reg[15:0] ram_ad_old;
 
@@ -312,13 +318,13 @@ always @(posedge clk_72) begin
 end
 
 
-assign      SDRAM_CLK = clk_72;
+assign      SDRAM_CLK = clk_mem;
 assign      SDRAM_CKE = 1;
 
 sdram sdram(
 	.*,
 	.init_n        ( pll_locked     ),
-	.clk           ( clk_72         ),
+	.clk           ( clk_mem         ),
 	.clkref        ( phi2           ),
 
 	.port1_req     ( port1_req      ),

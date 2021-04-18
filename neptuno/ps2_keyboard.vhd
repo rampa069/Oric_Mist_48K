@@ -57,6 +57,7 @@ end mist_Keyboard;
 architecture Behavioral of mist_Keyboard is
 
 signal IsReleased : std_logic;
+signal isExtended : std_logic;
 signal osd_s : std_logic_vector(7 downto 0) := "11111111";
 signal strobe : std_logic;
 begin 
@@ -71,10 +72,10 @@ begin
     if KbdInt = '1' then
 	 
 			if KbdScanCode = "11110000" then IsReleased <= '1'; else IsReleased <= '0'; end if; 
-
+         if KbdScanCode = "11100000" then IsExtended <= '1'; else IsExtended <= '0'; end if;
 			--[10] - toggles with every press/release, [9] - pressed, [8] - extended, [7:0] ps2 scan code
 			
-			Keyboarddata <= KbdInt & not IsReleased & '0' & KbdScanCode;
+			Keyboarddata <= KbdInt & not IsReleased & isExtended & KbdScanCode;
 			
 			
 			if KbdScanCode = "01110101" then osd_s(0) <= (IsReleased); end if; -- up    arrow : 0x75
@@ -85,7 +86,7 @@ begin
 			
 			if KbdScanCode = x"07" then -- F12
 				if IsReleased = '0' then 
-					osd_s(7 downto 5) <= "011";
+					osd_s(7 downto 5) <= "001";
 				else
 					osd_s(7 downto 5) <= "111";
 				end if; 
