@@ -1,5 +1,4 @@
-set_global_assignment -name VHDL_FILE ../common/ps2_keyboard.vhd
-set_global_assignment -name VHDL_FILE ../common/ps2_iobase.vhd
+set_global_assignment -name VHDL_FILE ../common/io_ps2_keyboard.vhd
 set_global_assignment -name VERILOG_FILE ../../common/neptuno_joydecoder.v
 set_global_assignment -name QIP_FILE ../common/mc2.qip
 set_global_assignment -name QIP_FILE ../rtl/jt49/hdl/jt49.qip

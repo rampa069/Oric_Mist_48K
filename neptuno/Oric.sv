@@ -23,7 +23,7 @@ module Oric(
 	//STM32
    input wire  stm_tx_i,
    output wire stm_rx_o,
-   output wire stm_rst_o           = 1'b0, // '0' to hold the microcontroller reset line, to free the SD card
+   output wire stm_rst_o           = 1'bz, // '0' to hold the microcontroller reset line, to free the SD card
 
 	// PS2
    inout wire  ps2_clk_io        = 1'bz,
@@ -59,8 +59,8 @@ module Oric(
 
 `include "build_id.v"
 localparam CONF_STR = {
-   "P,CORE_NAME.ini;",
-	"S0,DSK,Mount Drive A:;",
+   //"P,CORE_NAME.ini;",
+	"S,DSK,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Allow,Prohibit;",
@@ -111,8 +111,8 @@ assign      rom = ~status[3] ;
 
 wire [1:0]  stereo = status[9:8];
 
-assign      LED = ~ear_i; //fdd_ready;
-assign      stm_rst_o = 1'b0; 
+assign      LED = osd_enable;//~ear_i; //fdd_ready;
+assign      stm_rst_o = 1'bz; 
 
 
 always @(posedge clk_sys) begin
@@ -150,7 +150,7 @@ data_io_oric
     .SPI_DI        ( SPI_DI       ),
     .SPI_DO        ( SPI_DO       ),
     
-    .data_in       ( pump_s & keys_s),
+    .data_in       ( keys_s       ),//pump_s & keys_s),
     .conf_str      ( CONF_STR     ),
     .status        ( status       ),
 	 // SD CARD
@@ -209,7 +209,7 @@ mist_Keyboard mist_Keyboard
 );
 
 
-mist_video #(.COLOR_DEPTH(1), .SD_HCNT_WIDTH(10), .USE_FRAMEBUFFER(1)) mist_video(
+mist_video #(.COLOR_DEPTH(1)) mist_video(
     .clk_sys        (clk_sys           ),
     .SPI_SCK        ( SPI_SCK          ),
     .SPI_SS3        ( SPI_SS2          ),
