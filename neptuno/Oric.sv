@@ -25,6 +25,14 @@ module Oric(
    output wire stm_rx_o,
    output wire stm_rst_o           = 1'bz, // '0' to hold the microcontroller reset line, to free the SD card
 
+	// SRAMs
+	output wire	[19:0]sram_addr,
+	inout wire	[7:0]sram_data,
+	output wire	sram_we_n,
+	output wire	sram_oe_n, //Neptuno
+	output wire	sram_lb_n, //Neptuno
+	output wire	sram_ub_n, //Neptuno
+
 	// PS2
    inout wire  ps2_clk_io        = 1'bz,
    inout wire  ps2_data_io       = 1'bz,
@@ -111,7 +119,7 @@ assign      rom = ~status[3] ;
 
 wire [1:0]  stereo = status[9:8];
 
-assign      LED = osd_enable;//~ear_i; //fdd_ready;
+//assign      LED = osd_enable;//~ear_i; //fdd_ready;
 assign      stm_rst_o = 1'bz; 
 
 
@@ -154,23 +162,12 @@ data_io_oric
     .conf_str      ( CONF_STR     ),
     .status        ( status       ),
 	 // SD CARD
-	 .clk_sd     	 (clk_sys       ),
-    .sd_lba        (sd_lba        ),
-    .sd_rd         (sd_rd         ),
- 	 .sd_wr         (sd_wr         ),
-	 .sd_ack        (sd_ack        ),
-	 .sd_ack_conf   (sd_ack_conf   ),
-	 .sd_conf       (sd_conf       ),
-	 .sd_sdhc       (sd_sdhc       ),
-	 .sd_dout       (sd_dout       ),
-	 .sd_dout_strobe(sd_dout_strobe),
-	 .sd_din        (sd_din        ),
-	 .sd_din_strobe (sd_din_strobe ),
-	 .sd_buff_addr  (sd_buff_addr  ),
-	 .img_mounted   (img_mounted   ),
-	 .img_size      (img_size      )
-
-    
+	 .ioctl_download(ioctl_download), // signal indicating an active download
+    .ioctl_index(ioctl_index),        // menu index used to upload the file
+    .ioctl_wr(ioctl_wr),
+    .ioctl_addr(ioctl_addr),
+    .ioctl_dout(ioctl_dout),
+    .ioctl_filesize(img_size)
 );
 
 
@@ -236,7 +233,6 @@ mist_video #(.COLOR_DEPTH(1)) mist_video(
     .no_csync       (1'b0),
     .osd_enable     ( osd_enable            )
     );
-
 
 
 oricatmos oricatmos(
@@ -393,6 +389,13 @@ wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
 
+wire        ioctl_wr;
+wire [24:0] ioctl_addr;
+wire  [7:0] ioctl_dout;
+wire        ioctl_download;
+wire  [5:0] ioctl_index;
+wire  [1:0] ioctl_ext_index;
+
 assign fdd_reset =  status[1];
 
 always @(posedge clk_sys) begin
@@ -407,5 +410,56 @@ always @(posedge clk_sys) begin
 		fdd_ready <= 1;
 	end
 end
+
+//STM FDD
+always @(posedge clk_sys) begin
+	reg old_download;
+	old_download <= dsk_download;
+
+	if(old_download & ~dsk_download) img_mounted <= 1;
+	else                             img_mounted <= 0;
+	
+end
+
+assign      LED = fdd_ready;//dsk_download; //osd_enable;//~ear_i; //fdd_ready;
+
+wire disk_we_s;
+wire [19:0] dsk_addr_s;
+wire [7:0]  disk_data_s,disk_data_wr_s;
+
+wire   dsk_download  = ioctl_download;// && (ioctl_index[3:0] == 4'd1); //dsk 01, trd 81
+
+assign sram_addr   = dsk_download ? ioctl_addr[19:0] : dsk_addr_s;
+assign sram_data   = dsk_download ? ioctl_dout 	     : disk_we_s ? disk_data_wr_s : 8'bzzzzzzzz;
+assign disk_data_s = sram_data;
+assign sram_we_n   = dsk_download ? ~ioctl_wr : ~disk_we_s;
+assign sram_oe_n   = 1'b0;
+assign sram_lb_n   = 1'b0;
+assign sram_ub_n   = 1'b1;
+
+image_controller image_controller
+(
+    
+		.clk_i			( clk_sys ),
+		.reset_i			( reset ),
+ 	 
+		.sd_lba			( sd_lba ), 
+		.sd_rd			( {1'b0,sd_rd} ),
+		.sd_wr			( {1'b0,sd_wr} ),
+
+		.sd_ack			( sd_ack ),
+		.sd_buff_addr	( sd_buff_addr ), 
+		.sd_buff_dout	( sd_dout ),//sd_buff_dout ), 
+		.sd_buff_din	( sd_din  ), //sd_buff_din ),
+		.sd_buff_wr		( sd_dout_strobe ), //sd_buff_wr ),
+		
+		.sram_addr_o  	( dsk_addr_s ),
+		.sram_data_i   ( disk_data_s ),
+		.sram_data_o   ( disk_data_wr_s ),
+		.sram_we_o     ( disk_we_s )		
+);
+
+
+
 
 endmodule
