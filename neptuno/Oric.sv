@@ -119,6 +119,7 @@ assign      rom = ~status[3] ;
 
 wire [1:0]  stereo = status[9:8];
 
+assign      LED = osd_enable;//~ear_i; //fdd_ready;
 assign      stm_rst_o = 1'bz; 
 
 

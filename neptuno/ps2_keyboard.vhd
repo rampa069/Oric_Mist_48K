@@ -59,7 +59,6 @@ architecture Behavioral of mist_Keyboard is
 signal IsReleased : std_logic;
 signal isExtended : std_logic;
 signal osd_s : std_logic_vector(7 downto 0) := "11111111";
-signal strobe : std_logic;
 begin 
 
 process(Clk)
@@ -67,7 +66,6 @@ begin
   if rising_edge(Clk) then
   
 	osd_o <= osd_s;
-	strobe <= '0';
   
     if KbdInt = '1' then
 	 
