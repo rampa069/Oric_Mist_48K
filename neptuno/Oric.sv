@@ -119,7 +119,7 @@ assign      rom = ~status[3] ;
 
 wire [1:0]  stereo = status[9:8];
 
-assign      LED = osd_enable;//~ear_i; //fdd_ready;
+//assign      LED = osd_enable;//~ear_i; //fdd_ready;
 assign      stm_rst_o = 1'bz; 
 
 
@@ -421,7 +421,7 @@ always @(posedge clk_sys) begin
 	
 end
 
-assign      LED = dsk_download;// fdd_ready; //osd_enable;//~ear_i; //fdd_ready;
+assign      LED = fdd_ready;//dsk_download; //osd_enable;//~ear_i; //fdd_ready;
 
 wire disk_we_s;
 wire [19:0] dsk_addr_s;
