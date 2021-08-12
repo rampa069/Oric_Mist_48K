@@ -8,6 +8,8 @@ module OricAtmos_MiST(
    output        VGA_VS,
    output        LED,
 	
+	input         RESET_N,
+	
    input         UART_RXD,
    output        UART_TXD,
 	
@@ -89,14 +91,14 @@ reg         old_disk_enable;
 
 assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
-wire        stereo = status[9:8];
+wire [1:0]  stereo = status[9:8];
 
 assign      LED = fdd_ready;
 
 always @(posedge clk_24) begin
 	old_rom <= rom;
 	old_disk_enable <= disk_enable;
-	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable);
+	reset <= (!pll_locked | status[0] | buttons[0] | old_rom != rom | old_disk_enable != disk_enable);
 end
 
 pll pll (
