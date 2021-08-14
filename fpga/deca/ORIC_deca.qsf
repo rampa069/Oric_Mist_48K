@@ -177,9 +177,7 @@ set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_global_assignment -name VHDL_FILE ../../firmware/controller_rom2_byte.vhd
-set_global_assignment -name VHDL_FILE ../../firmware/controller_rom1_byte.vhd
-set_global_assignment -name VHDL_FILE ../../firmware/controller_rom.vhd
+set_global_assignment -name QIP_FILE ../../controller/firmware_std.qip
 set_global_assignment -name VHDL_FILE ../../toplevels/demistify_config_pkg.vhd
 set_global_assignment -name QIP_FILE ../../controller/controller.qip
 set_global_assignment -name VHDL_FILE ../../toplevels/deca_top.vhd
