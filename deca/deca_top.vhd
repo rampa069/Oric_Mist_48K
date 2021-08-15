@@ -61,9 +61,7 @@ architecture RTL of deca_top is
 	signal locked : std_logic;
 	signal reset_n : std_logic;
 
---	signal slowclk : std_logic;
---	signal fastclk : std_logic;
---	signal pll_locked : std_logic;
+
 
 -- SPI signals
 
@@ -160,13 +158,9 @@ begin
 
 sd_cs_n_o<=sd_cs;
 sd_mosi_o<=sd_mosi;
---ARDUINO_IO(12)<='Z';
 sd_miso<=sd_miso_i;
 sd_sclk_o<=sd_clk;
 
---ARDUINO_IO(1) <= uart_txd;
---ARDUINO_IO(0) <= 'Z';
---uart_rxd <= ARDUINO_IO(0);
 
 
 -- External devices tied to GPIOs
@@ -181,8 +175,6 @@ ps2_keyboard_dat <= '0' when ps2_keyboard_dat_out='0' else 'Z';
 ps2_keyboard_clk_in<=ps2_keyboard_clk;
 ps2_keyboard_clk <= '0' when ps2_keyboard_clk_out='0' else 'Z';
 	
---UART_TXD<=rs232_txd;
---rs232_rxd<=UART_RXD;
 
 joya<=(others=>'1');
 joyb<=(others=>'1');
@@ -207,10 +199,7 @@ SD_D123_DIR                     <= '1';  -- CS FPGA output
 --end process;
 
 
--- Generate clocks
 
---assign DRAM clock
---asign DRAM clock enable
 
 guest: COMPONENT  OricAtmos_MiST
 	PORT map

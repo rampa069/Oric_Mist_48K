@@ -8,7 +8,6 @@ module OricAtmos_MiST(
    output        VGA_VS,
    output        LED,
 	
-	input         RESET_N,
 	
    input         UART_RXD,
    output        UART_TXD,
