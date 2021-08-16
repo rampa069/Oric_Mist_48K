@@ -272,12 +272,12 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		data 			=> ROM_ATMOS_DO
 );
 
---inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
---	port map (
---		clk  			=> CLK_IN,
---		addr 			=> cpu_ad(13 downto 0),
---		data 			=> ROM_1_DO
---);
+inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
+	port map (
+		clk  			=> CLK_IN,
+		addr 			=> cpu_ad(13 downto 0),
+		data 			=> ROM_1_DO
+);
 
 inst_rom2 : entity work.ORICDOS06  -- Microdisc ROM
 	port map (

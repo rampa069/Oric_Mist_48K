@@ -215,7 +215,7 @@ i2s : entity work.i2s_transmitter
   generic map (
 			 mclk_rate               => 25000000,
 			 sample_rate             => 48288, 
-			 preamble                => 0,
+			 preamble                => 1,
 			 word_length             => 16
   )
   port map (
