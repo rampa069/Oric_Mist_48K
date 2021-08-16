@@ -6,6 +6,7 @@ module OricAtmos_MiST(
    output  [5:0] VGA_B,
    output        VGA_HS,
    output        VGA_VS,
+	output        BLANKINGn,
    output        LED,
 	
 	
@@ -14,6 +15,9 @@ module OricAtmos_MiST(
 	
    output        AUDIO_L,
    output        AUDIO_R,
+	
+	output [9:0]  DAC_L,
+	output [9:0]  DAC_R,
 	
    input         SPI_SCK,
    output        SPI_DO,
@@ -303,6 +307,10 @@ audiodac_r(
    .dac_o				(AUDIO_R				)
   );
 
+assign DAC_L =  psg_l;
+assign DAC_R =  psg_r;
+ 
+  
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
 wire        sd_rd;

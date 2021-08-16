@@ -66,6 +66,7 @@ entity oricatmos is
     VIDEO_HSYNC       : out   std_logic;
     VIDEO_VSYNC       : out   std_logic;
     VIDEO_SYNC        : out   std_logic;
+	 BLANKINGn         : out   std_logic;
 	 ram_ad            : out std_logic_vector(15 downto 0);
 	 ram_d             : out std_logic_vector( 7 downto 0);
 	 ram_q             : in  std_logic_vector( 7 downto 0);
@@ -271,12 +272,12 @@ inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 		data 			=> ROM_ATMOS_DO
 );
 
-inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
-	port map (
-		clk  			=> CLK_IN,
-		addr 			=> cpu_ad(13 downto 0),
-		data 			=> ROM_1_DO
-);
+--inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
+--	port map (
+--		clk  			=> CLK_IN,
+--		addr 			=> cpu_ad(13 downto 0),
+--		data 			=> ROM_1_DO
+--);
 
 inst_rom2 : entity work.ORICDOS06  -- Microdisc ROM
 	port map (
@@ -292,7 +293,7 @@ inst_ula : entity work.ULA
       PHI2       	=> ula_phi2,
 		PHI2_EN     => ENA_1MHZ,
       CLK_4      	=> ula_CLK_4,
-			CLK_4_EN    => ula_CLK_4_en,
+		CLK_4_EN    => ula_CLK_4_en,
       RW         	=> cpu_rw,
       RESETn     	=> pll_locked, --RESETn,
 		MAPn      	=> cont_MAPn,
@@ -310,6 +311,7 @@ inst_ula : entity work.ULA
       G          	=> VIDEO_G,
       B          	=> VIDEO_B,
       SYNC       	=> VIDEO_SYNC,
+		BLANKINGn   => BLANKINGn,
 		HSYNC      	=> VIDEO_HSYNC,
 		VSYNC      	=> VIDEO_VSYNC		
 );

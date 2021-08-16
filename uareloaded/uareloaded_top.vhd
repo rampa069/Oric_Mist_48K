@@ -39,7 +39,11 @@ entity uareloaded_top is
 		AUDIO_IN                    : IN STD_LOGIC;
 		--STM32
       STM_RST                     : out std_logic     := 'Z'; -- '0' to hold the microcontroller reset line, to free the SD card
-
+      -- I2S
+		SCLK                        : out std_logic;
+		SDIN                        : out std_logic;
+		MCLK                        : out std_logic := 'Z';
+		LRCLK                       : out std_logic;
 		-- SD Card
 		SD_CS                       : out   std_logic := '1';
 		SD_SCK                      : out   std_logic := '0';
@@ -108,7 +112,9 @@ architecture RTL of uareloaded_top is
 	signal joyb : std_logic_vector(6 downto 0);
 	signal joyc : std_logic_vector(6 downto 0);
 	signal joyd : std_logic_vector(6 downto 0);
-
+-- DAC
+   signal dac_l: std_logic_vector(9 downto 0);
+   signal dac_r: std_logic_vector(9 downto 0);
 
 COMPONENT  OricAtmos_MiST
 	PORT
@@ -143,7 +149,10 @@ COMPONENT  OricAtmos_MiST
 		VGA_G		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		AUDIO_L  : out std_logic;
-		AUDIO_R  : out std_logic
+		AUDIO_R  : out std_logic;
+		DAC_L		: OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
+		DAC_R		: OUT STD_LOGIC_VECTOR(9 DOWNTO 0)
+		
 	);
 END COMPONENT;
 
@@ -201,6 +210,26 @@ port map (
 --	end if;
 --end process;
 
+-- I2S out
+i2s : entity work.i2s_transmitter
+  generic map (
+			 mclk_rate               => 25000000,
+			 sample_rate             => 48288, 
+			 preamble                => 0,
+			 word_length             => 16
+  )
+  port map (
+			 clock_i                 => clock_50,
+			 reset_i                 => not reset_n,
+			 -- Parallel input
+			 pcm_l_i                 => '0' & dac_l & dac_l(9 downto 5),
+			 pcm_r_i                 => '0' & dac_r & dac_l(9 downto 5),  
+			 i2s_mclk_o              => MCLK, --i2s_mclk_o,
+			 i2s_lrclk_o             => LRCLK,
+			 i2s_bclk_o              => SCLK,
+			 i2s_d_o                 => SDIN
+  );
+
 
 
 
@@ -241,7 +270,9 @@ guest: COMPONENT  OricAtmos_MiST
 		VGA_G => vga_green(7 downto 2),
 		VGA_B => vga_blue(7 downto 2),
 		AUDIO_L => sigma_l,
-		AUDIO_R => sigma_r
+		AUDIO_R => sigma_r,
+		DAC_L   => dac_l,
+		DAC_R   => dac_r
 );
 
 -- Pass internal signals to external SPI interface
