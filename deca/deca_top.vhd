@@ -46,10 +46,19 @@ entity deca_top is
 		SD_SEL                         : out   std_logic := '0';   
 		SD_CMD_DIR                     : out   std_logic := '1';  
 		SD_D0_DIR                      : out   std_logic                                                               := '0';  
-		SD_D123_DIR                    : out   std_logic   
-	
---		CLK_I2C_SCL		:	 OUT STD_LOGIC;
---		CLK_I2C_SDA		:	 INOUT STD_LOGIC;
+		SD_D123_DIR                    : out   std_logic;
+      -- AUDIO CODEC  DECA 
+		AUDIO_GPIO_MFP5 : inout std_logic;
+		AUDIO_MISO_MFP4 : in std_logic;
+		AUDIO_RESET_n :  inout std_logic;
+		AUDIO_SCLK_MFP3 : out std_logic;
+		AUDIO_SCL_SS_n : out std_logic;
+		AUDIO_SDA_MOSI : inout std_logic;
+		AUDIO_SPI_SELECT : out std_logic;
+		i2sMck : out std_logic;
+		i2sSck : out std_logic;
+		i2sLr : out std_logic;
+		i2sD : out std_logic		
 	);
 END entity;
 
@@ -147,9 +156,47 @@ COMPONENT  OricAtmos_MiST
 		VGA_G		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		AUDIO_L  : out std_logic;
-		AUDIO_R  : out std_logic
+		AUDIO_R  : out std_logic;
+		DAC_L           : OUT SIGNED(9 DOWNTO 0);
+      DAC_R           : OUT SIGNED(9 DOWNTO 0)
 	);
 END COMPONENT;
+component AUDIO_SPI_CTL_RD
+    port (
+    iRESET_n : in std_logic;
+    iCLK_50 : in std_logic;
+    oCS_n : out std_logic;
+    oSCLK : out std_logic;
+    oDIN : out std_logic;
+    iDOUT : in std_logic
+  );
+end component;
+
+signal RESET_DELAY_n     : std_logic;   
+
+component i2s_transmitter
+  generic (
+    sample_rate : positive
+  );
+    port (
+    clock_i : in std_logic;
+    reset_i : in std_logic;
+    pcm_l_i : in std_logic_vector(15 downto 0);
+    pcm_r_i : in std_logic_vector(15 downto 0);
+    i2s_mclk_o : out std_logic;
+    i2s_lrclk_o : out std_logic;
+    i2s_bclk_o : out std_logic;
+    i2s_d_o : out std_logic
+  );
+end component;
+
+
+-- DAC
+signal dac_l: signed(9 downto 0);
+signal dac_r: signed(9 downto 0);
+        
+signal dac_l_s: signed(15 downto 0);
+signal dac_r_s: signed(15 downto 0);
 
 begin
 
@@ -199,6 +246,43 @@ SD_D123_DIR                     <= '1';  -- CS FPGA output
 --end process;
 
 
+-- DECA AUDIO CODEC
+RESET_DELAY_n <= reset_n;
+-- Audio DAC DECA Output assignments
+AUDIO_GPIO_MFP5  <= '1';  -- GPIO
+AUDIO_SPI_SELECT <= '1';  -- SPI mode
+AUDIO_RESET_n    <= RESET_DELAY_n;    
+
+-- DECA AUDIO CODEC SPI CONFIG
+AUDIO_SPI_CTL_RD_inst : AUDIO_SPI_CTL_RD
+port map (
+	iRESET_n => RESET_DELAY_n,
+	iCLK_50 => MAX10_CLK1_50,
+	oCS_n => AUDIO_SCL_SS_n,
+	oSCLK => AUDIO_SCLK_MFP3,
+	oDIN => AUDIO_SDA_MOSI,
+	iDOUT => AUDIO_MISO_MFP4
+);
+
+-- AUDIO CODEC
+
+i2s_transmitter_inst : i2s_transmitter
+	generic map (
+		sample_rate => 48000
+	)
+	port map (
+		clock_i => MAX10_CLK1_50,
+		reset_i => '0',
+		pcm_l_i => std_logic_vector(dac_l_s),
+		pcm_r_i => std_logic_vector(dac_r_s),
+		i2s_mclk_o => i2sMck,
+		i2s_lrclk_o => i2sLr,
+		i2s_bclk_o => i2sSck,
+		i2s_d_o => i2sD
+	);
+
+dac_l_s <= ('0' & dac_l & "00000");
+dac_r_s <= ('0' & dac_r & "00000");
 
 
 guest: COMPONENT  OricAtmos_MiST
@@ -238,7 +322,10 @@ guest: COMPONENT  OricAtmos_MiST
 		VGA_G => vga_green(7 downto 2),
 		VGA_B => vga_blue(7 downto 2),
 		AUDIO_L => sigma_l,
-		AUDIO_R => sigma_r
+		AUDIO_R => sigma_r,
+		DAC_L   => dac_l,
+      DAC_R   => dac_r
+
 );
 
 -- Pass internal signals to external SPI interface
