@@ -113,8 +113,13 @@ architecture RTL of uareloaded_top is
 	signal joyc : std_logic_vector(6 downto 0);
 	signal joyd : std_logic_vector(6 downto 0);
 -- DAC
-   signal dac_l: std_logic_vector(9 downto 0);
-   signal dac_r: std_logic_vector(9 downto 0);
+   signal dac_l: signed(9 downto 0);
+   signal dac_r: signed(9 downto 0);
+	
+	signal dac_l_s: signed(15 downto 0);
+   signal dac_r_s: signed(15 downto 0);
+	
+	
 
 COMPONENT  OricAtmos_MiST
 	PORT
@@ -150,8 +155,8 @@ COMPONENT  OricAtmos_MiST
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		AUDIO_L  : out std_logic;
 		AUDIO_R  : out std_logic;
-		DAC_L		: OUT STD_LOGIC_VECTOR(9 DOWNTO 0);
-		DAC_R		: OUT STD_LOGIC_VECTOR(9 DOWNTO 0)
+		DAC_L		: OUT SIGNED(9 DOWNTO 0);
+		DAC_R		: OUT SIGNED(9 DOWNTO 0)
 		
 	);
 END COMPONENT;
@@ -210,28 +215,21 @@ port map (
 --	end if;
 --end process;
 
--- I2S out
-i2s : entity work.i2s_transmitter
-  generic map (
-			 mclk_rate               => 25000000,
-			 sample_rate             => 48288, 
-			 preamble                => 1,
-			 word_length             => 16
-  )
-  port map (
-			 clock_i                 => clock_50,
-			 reset_i                 => not reset_n,
-			 -- Parallel input
-			 pcm_l_i                 => '0' & dac_l & dac_l(9 downto 5),
-			 pcm_r_i                 => '0' & dac_r & dac_l(9 downto 5),  
-			 i2s_mclk_o              => MCLK, --i2s_mclk_o,
-			 i2s_lrclk_o             => LRCLK,
-			 i2s_bclk_o              => SCLK,
-			 i2s_d_o                 => SDIN
-  );
+---- I2S out
 
+i2s : entity work.audio_top
+port map(
+     clk_50MHz => clock_50,
+	  dac_MCLK  => MCLK,
+	  dac_SCLK  => SCLK,
+	  dac_SDIN  => SDIN,
+	  dac_LRCK  => LRCLK,
+	  L_data    => std_logic_vector (dac_l_s),
+	  R_data    => std_logic_vector (dac_r_s)
+);
 
-
+dac_l_s <= (dac_l & dac_l(9 downto 4));
+dac_r_s <= (dac_r & dac_r(9 downto 4));
 
 guest: COMPONENT  OricAtmos_MiST
 	PORT map
