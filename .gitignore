@@ -12,4 +12,6 @@ greybox_tmp/
 *.dsk
 *.img
 *.log
+*.asm
+*.o
 

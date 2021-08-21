@@ -22,20 +22,30 @@ entity neptuno_top is
 		DRAM_RAS_N		:	 OUT STD_LOGIC;
 		VGA_HS		:	 OUT STD_LOGIC;
 		VGA_VS		:	 OUT STD_LOGIC;
-		VGA_R		:	 OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
-		VGA_G		:	 OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
-		VGA_B		:	 OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
+		VGA_R		:	 OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
+		VGA_G		:	 OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
+		VGA_B		:	 OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
 		-- AUDIO
 		SIGMA_R                     : OUT STD_LOGIC;
 		SIGMA_L                     : OUT STD_LOGIC;
+				-- I2S audio		
+		I2S_BCLK				: out   std_logic								:= '0';
+		I2S_LRCLK			: out   std_logic								:= '0';
+		I2S_DATA				: out   std_logic								:= '0';		
+      
+		-- JOYSTICK 
+		JOY_CLK				: out   std_logic;
+		JOY_LOAD 			: out   std_logic;
+		JOY_DATA 			: in    std_logic;
+		joyP7_o			   : out   std_logic								:= '1';
+
 		-- PS2
 		PS2_KEYBOARD_CLK            :    INOUT STD_LOGIC;
 		PS2_KEYBOARD_DAT            :    INOUT STD_LOGIC;
 		PS2_MOUSE_CLK               :    INOUT STD_LOGIC;
 		PS2_MOUSE_DAT               :    INOUT STD_LOGIC;
 		-- UART
-		UART_RXD                    : IN STD_LOGIC;
-		UART_TXD                    : OUT STD_LOGIC;        
+		AUDIO_INPUT                 : IN STD_LOGIC;
 		--STM32
       stm_rx_o            : out std_logic     := 'Z'; -- stm RX pin, so, is OUT on the slave
       stm_tx_i            : in  std_logic     := 'Z'; -- stm TX pin, so, is IN on the slave
@@ -105,13 +115,15 @@ architecture RTL of neptuno_top is
 	
 -- IO
 
-	signal joya : std_logic_vector(6 downto 0);
-	signal joyb : std_logic_vector(6 downto 0);
-	signal joyc : std_logic_vector(6 downto 0);
-	signal joyd : std_logic_vector(6 downto 0);
+	signal joya : std_logic_vector(7 downto 0);
+	signal joyb : std_logic_vector(7 downto 0);
+	signal joyc : std_logic_vector(7 downto 0);
+	signal joyd : std_logic_vector(7 downto 0);
 
-
-COMPONENT  OricAtmos_MiST
+   signal  DAC_L : std_logic_vector(9 downto 0);
+	signal  DAC_R : std_logic_vector(9 downto 0);
+	
+COMPONENT  OricAtmos_Mist
 	PORT
 	(
 		CLOCK_27 :	IN STD_LOGIC;
@@ -144,10 +156,65 @@ COMPONENT  OricAtmos_MiST
 		VGA_G		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		AUDIO_L  : out std_logic;
-		AUDIO_R  : out std_logic
+		AUDIO_R  : out std_logic;
+		DAC_L    : out std_logic_vector(9 downto 0);
+	   DAC_R    : out std_logic_vector(9 downto 0)
+
 	);
 END COMPONENT;
+component audio_top is
+Port ( 	
+		clk_50MHz : in STD_LOGIC; -- system clock (50 MHz)
+		dac_MCLK : out STD_LOGIC; -- outputs to PMODI2L DAC
+		dac_LRCK : out STD_LOGIC;
+		dac_SCLK : out STD_LOGIC;
+		dac_SDIN : out STD_LOGIC;
+		L_data : 	in std_logic_vector(15 downto 0);  	-- LEFT data (15-bit signed)
+		R_data : 	in std_logic_vector(15 downto 0)  	-- RIGHT data (15-bit signed) 
+);
+end component;	
+	signal audio_l_s			: std_logic_vector(15 downto 0);
+	signal audio_r_s			: std_logic_vector(15 downto 0);
 
+
+component joydecoder is
+Port ( 	
+		clk 			: in std_logic; 
+		joy_data    : in std_logic;
+		joy_clk		: out std_logic;
+		joy_load_n	: out std_logic;
+		joy1up		: out std_logic;
+		joy1down		: out std_logic;
+		joy1left		: out std_logic;
+		joy1right	: out std_logic;
+		joy1fire1	: out std_logic;
+		joy1fire2	: out std_logic;
+		joy2up		: out std_logic;
+		joy2down		: out std_logic;
+		joy2left		: out std_logic;
+		joy2right	: out std_logic;
+		joy2fire1	: out std_logic;
+		joy2fire2	: out std_logic
+);
+end component;
+
+-- JOYSTICKS
+	signal joy1up			: std_logic								:= '1';
+	signal joy1down		: std_logic								:= '1';
+	signal joy1left		: std_logic								:= '1';
+	signal joy1right		: std_logic								:= '1';
+	signal joy1fire1		: std_logic								:= '1';
+	signal joy1fire2		: std_logic								:= '1';
+	signal joy2up			: std_logic								:= '1';
+	signal joy2down		: std_logic								:= '1';
+	signal joy2left		: std_logic								:= '1';
+	signal joy2right		: std_logic								:= '1';
+	signal joy2fire1		: std_logic								:= '1';
+	signal joy2fire2		: std_logic								:= '1';
+	signal clk_sys_out   : std_logic;
+	-- i2s 
+	signal i2s_mclk		    : std_logic;
+	
 begin
 
 
@@ -173,29 +240,62 @@ ps2_keyboard_clk_in<=ps2_keyboard_clk;
 ps2_keyboard_clk <= '0' when ps2_keyboard_clk_out='0' else 'Z';
 	
 
-joya<=(others=>'1');
-joyb<=(others=>'1');
-joyc<=(others=>'1');
-joyd<=(others=>'1');
+
+joya<="11" & joy1fire2 & joy1fire1 & joy1right & joy1left & joy1down & joy1up;
+joyb<="11" & joy2fire2 & joy2fire1 & joy2right & joy2left & joy2down & joy2up;
 
 stm_rst_o <= '0';
-LED <= ps2_keyboard_clk;
+LED <= AUDIO_INPUT;
 
 --process(clk_sys)
 --begin
 --	if rising_edge(clk_sys) then
-		VGA_R<=vga_red(7 downto 5);
-		VGA_G<=vga_green(7 downto 5);
-		VGA_B<=vga_blue(7 downto 5);
+		VGA_R<=vga_red(7 downto 3);
+		VGA_G<=vga_green(7 downto 3);
+		VGA_B<=vga_blue(7 downto 3);
 		VGA_HS<=vga_hsync;
 		VGA_VS<=vga_vsync;
 --	end if;
 --end process;
 
+-- I2S audio
+	
+audio_i2s: entity work.audio_top
+port map(
+	clk_50MHz => clock_50_i,
+	dac_MCLK  => I2S_MCLK,
+	dac_LRCK  => I2S_LRCLK,
+	dac_SCLK  => I2S_BCLK,
+	dac_SDIN  => I2S_DATA,
+	L_data    => std_logic_vector(audio_l_s),
+	R_data    => std_logic_vector(audio_r_s)
+);		
 
+audio_l_s <= '0' & DAC_L & "00000";
+audio_r_s <= '0' & DAC_R & "00000";
 
-
-guest: COMPONENT  OricAtmos_MiST
+	-- JOYSTICKS
+joy: joydecoder
+	  port map (
+		clk				=> clock_50_i,
+		joy_clk			=> JOY_CLK,
+		joy_load_n 		=> JOY_LOAD,
+		joy_data			=> JOY_DATA,		
+		joy1up  			=> joy1up,
+		joy1down			=> joy1down,
+		joy1left			=> joy1left,
+		joy1right		=> joy1right,
+		joy1fire1		=> joy1fire1,
+		joy1fire2		=> joy1fire2,
+		joy2up  			=> joy2up,
+		joy2down			=> joy2down,
+		joy2left			=> joy2left,
+		joy2right		=> joy2right,
+		joy2fire1		=> joy2fire1,
+		joy2fire2		=> joy2fire2
+	);
+	
+guest: COMPONENT  OricAtmos_Mist
 	PORT map
 	(
 		CLOCK_27 => clock_50_i,
@@ -213,8 +313,8 @@ guest: COMPONENT  OricAtmos_MiST
 		SDRAM_CLK => DRAM_CLK,
 		SDRAM_CKE => DRAM_CKE,
 		
-		UART_TXD  => UART_TXD,
-		UART_RXD  => UART_RXD,
+		UART_TXD  => open,
+		UART_RXD  => AUDIO_INPUT,
 		
 --		SPI_SD_DI => sd_miso,
 		SPI_DO => spi_fromguest,
@@ -232,7 +332,9 @@ guest: COMPONENT  OricAtmos_MiST
 		VGA_G => vga_green(7 downto 2),
 		VGA_B => vga_blue(7 downto 2),
 		AUDIO_L => sigma_l,
-		AUDIO_R => sigma_r
+		AUDIO_R => sigma_r,
+		DAC_L   => DAC_L,
+		DAC_R   => DAC_R
 );
 
 -- Pass internal signals to external SPI interface
@@ -273,6 +375,10 @@ controller : entity work.substitute_mcu
 		ps2m_dat_out => ps2_mouse_dat_out,
 
 		buttons => (others=>'1'),
+		
+		-- JOYSTICKS
+		joy1 => joya,
+		joy2 => joyb,
 
 		-- UART
 		rxd => rs232_rxd,
