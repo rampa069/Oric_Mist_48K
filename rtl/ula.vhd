@@ -112,6 +112,7 @@ port (
 	G          :   out std_logic;                     -- Green                        -- pin 20
 	B          :   out std_logic;                     -- Blue                         -- pin 19
 	SYNC       :   out std_logic;                     -- Synchronisation              -- pin 16        
+   BLANKINGn  :   buffer std_logic;                     -- Blanking signal
 	                                                  -- VCC                          -- pin 24
 	                                                  -- GND                          -- pin 06
 	HSYNC      :   out std_logic;
@@ -154,7 +155,7 @@ architecture RTL of ula is
 	signal lVSYNC50n    : std_logic;                     -- Vertical Synchronization for 50Hz video
 	signal lVSYNC60n    : std_logic;                     -- Vertical Synchronization for 60Hz video
 	signal lVSYNCn      : std_logic;                     -- Vertical Synchronization for video
-	signal BLANKINGn    : std_logic;                     -- Blanking signal
+	--signal BLANKINGn    : std_logic;                     -- Blanking signal
 	signal lRELOAD_SEL  : std_logic;                     -- reload register SELECT
 	signal lFREQ_SEL    : std_logic;                     -- Frequency video SELECT (50 or 60 Hz)
 	signal LDFROMBUS    : std_logic;                     -- Load from Bus Data

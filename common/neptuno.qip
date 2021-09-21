@@ -1,3 +1,0 @@
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) neptuno_i2s.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) neptuno_i2s_audio_out.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) neptuno_joydecoder.v]

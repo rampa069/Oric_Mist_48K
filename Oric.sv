@@ -6,13 +6,18 @@ module OricAtmos_MiST(
    output  [5:0] VGA_B,
    output        VGA_HS,
    output        VGA_VS,
+	output        BLANKINGn,
    output        LED,
+	
 	
    input         UART_RXD,
    output        UART_TXD,
 	
    output        AUDIO_L,
    output        AUDIO_R,
+	
+	output [9:0]  DAC_L,
+	output [9:0]  DAC_R,
 	
    input         SPI_SCK,
    output        SPI_DO,
@@ -89,14 +94,14 @@ reg         old_disk_enable;
 
 assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
-wire        stereo = status[9:8];
+wire [1:0]  stereo = status[9:8];
 
 assign      LED = fdd_ready;
 
 always @(posedge clk_24) begin
 	old_rom <= rom;
 	old_disk_enable <= disk_enable;
-	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable);
+	reset <= (!pll_locked | status[0] | buttons[0] | old_rom != rom | old_disk_enable != disk_enable);
 end
 
 pll pll (
@@ -302,6 +307,10 @@ audiodac_r(
    .dac_o				(AUDIO_R				)
   );
 
+assign DAC_L =  psg_l;
+assign DAC_R =  psg_r;
+ 
+  
   ///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
 wire        sd_rd;

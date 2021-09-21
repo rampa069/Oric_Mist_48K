@@ -1,0 +1,10 @@
+
+
+/home/rampa/devel/fpga/DECA/Oric_Mist_48K/plls/deca/pll.v
+
+Aug 12 06PM:43:04>: Error in CNX file format.
+
+Error messages are listed in file
+/home/rampa/devel/fpga/DECA/Oric_Mist_48K/plls/deca/pll.cnxerr.
+
+Can't create the custom megafunction variation file(s)
