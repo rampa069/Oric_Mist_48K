@@ -3,7 +3,7 @@ SUBMODULES=$(DEMISTIFYPATH)/EightThirtyTwo/Makefile
 PROJECT=Oric
 PROJECTPATH=./
 PROJECTTOROOT=../
-BOARD=
+BOARD=uareloaded neptuno deca mist sidi
 ROMSIZE1=8192
 ROMSIZE2=8192
 

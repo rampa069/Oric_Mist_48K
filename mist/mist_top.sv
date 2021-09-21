@@ -22,7 +22,6 @@
 module mist_top (
    input  	 CLOCK_27,
 
-	// LED outputs
    output 	 LED, // LED Yellow
 	
    // SDRAM interface
@@ -55,14 +54,17 @@ module mist_top (
    output [5:0]  VGA_R,
    output [5:0]  VGA_G,
    output [5:0]  VGA_B,
-
-   input     UART_RXD,
-   output    UART_TXD
+   input         UART_RX,
+   output        UART_TX
 );
 
-OricAtmos_MiST  guest
+Oric  guest
 (
-	.*
+	.*,
+        .TAPE_IN(UART_RX),
+        .DAC_L(),
+        .DAC_R(),
+        .UART_RX()
 );
 
 endmodule
