@@ -55,14 +55,16 @@ module sidi_top (
    output [5:0]  VGA_R,
    output [5:0]  VGA_G,
    output [5:0]  VGA_B,
-
-   input     UART_RXD,
-   output    UART_TXD
+   output [15:0] DAC_L,
+   output [15:0] DAC_R,
+   input         TAPE_IN, 
+   input         UART_RX,
+   output        UART_TX
 );
 
-OricAtmos_MiST  guest
+Oric  guest
 (
-	.*
+  .*
 );
 
 endmodule

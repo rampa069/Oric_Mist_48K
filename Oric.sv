@@ -1,4 +1,4 @@
-module OricAtmos_MiST(
+module Oric(
    input         CLOCK_27,
 	
    output  [5:0] VGA_R,
@@ -6,39 +6,39 @@ module OricAtmos_MiST(
    output  [5:0] VGA_B,
    output        VGA_HS,
    output        VGA_VS,
-	output        BLANKINGn,
    output        LED,
 	
+   input         TAPE_IN,
 	
-   input         UART_RXD,
-   output        UART_TXD,
+   input         UART_RX,
+   output        UART_TX,
 	
    output        AUDIO_L,
    output        AUDIO_R,
 	
-	output [9:0]  DAC_L,
-	output [9:0]  DAC_R,
+   output [15:0] DAC_L,
+   output [15:0] DAC_R,
 	
    input         SPI_SCK,
    output        SPI_DO,
    input         SPI_DI,
    input         SPI_SS2,
    input         SPI_SS3,
-	//input         SPI_SS4,
+   //input         SPI_SS4,
    input         CONF_DATA0,
 	
-	output [12:0] SDRAM_A,
-	inout  [15:0] SDRAM_DQ,
-	output        SDRAM_DQML,
-	output        SDRAM_DQMH,
-	output        SDRAM_nWE,
-	output        SDRAM_nCAS,
-	output        SDRAM_nRAS,
-	output        SDRAM_nCS,
-	output  [1:0] SDRAM_BA,
-	output        SDRAM_CLK,
-	output        SDRAM_CKE
-	);
+   output [12:0] SDRAM_A,
+   inout  [15:0] SDRAM_DQ,
+   output        SDRAM_DQML,
+   output        SDRAM_DQMH,
+   output        SDRAM_nWE,
+   output        SDRAM_nCAS,
+   output        SDRAM_nRAS,
+   output        SDRAM_nCS,
+   output  [1:0] SDRAM_BA,
+   output        SDRAM_CLK,
+   output        SDRAM_CKE
+);
 
 `include "build_id.v"
 localparam CONF_STR = {
@@ -50,7 +50,7 @@ localparam CONF_STR = {
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"O89,Stereo,Off,ABC (West Europe),ACB (East Europe);",
 	"T0,Reset;",
-  	"V,v2.1-EDSK.",`BUILD_DATE
+  	"V,v2.2-EDSK.",`BUILD_DATE
 };
 wire        clk_72;
 wire        clk_24;
@@ -60,21 +60,21 @@ wire        key_pressed;
 wire [7:0]  key_code;
 wire        key_strobe;
 wire        key_extended;
-wire 			r, g, b; 
-wire 			hs, vs;
+wire        r, g, b; 
+wire        hs, vs;
 
 wire  [1:0] buttons, switches;
 wire			ypbpr;
 wire        scandoublerD;
 wire [31:0] status;
 
-wire [9:0] psg_out;
-wire [7:0] psg_a;
-wire [7:0] psg_b;
-wire [7:0] psg_c;
+wire [9:0]  psg_out;
+wire [7:0]  psg_a;
+wire [7:0]  psg_b;
+wire [7:0]  psg_c;
 
-wire [7:0] joystick_0;
-wire [7:0] joystick_1;
+wire [7:0]  joystick_0;
+wire [7:0]  joystick_1;
 
 wire        tapebits;
 wire        remote;
@@ -133,7 +133,7 @@ user_io(
 	.joystick_1       ( joystick_1      ),
 	.status         	(status         	),
 	// SD CARD
-   .sd_lba                      (sd_lba        ),
+        .sd_lba                      (sd_lba        ),
 	.sd_rd                       (sd_rd         ),
 	.sd_wr                       (sd_wr         ),
 	.sd_ack                      (sd_ack        ),
@@ -177,47 +177,47 @@ oricatmos oricatmos(
 	.key_code         (key_code     ),
 	.key_extended     (key_extended ),
 	.key_strobe       (key_strobe   ),
-	.PSG_OUT			   (psg_out		  ),
-	.PSG_OUT_A			(psg_a		),
-	.PSG_OUT_B			(psg_b		),
-	.PSG_OUT_C			(psg_c		),
-	.VIDEO_R				(r			   ),
-	.VIDEO_G				(g				),
-	.VIDEO_B				(b				),
-	.VIDEO_HSYNC		(hs         ),
-	.VIDEO_VSYNC		(vs         ),
-	.K7_TAPEIN			(UART_RXD   ),
-	.K7_TAPEOUT			(UART_TXD   ),
-	.K7_REMOTE			(remote     ),
+	.PSG_OUT	  (psg_out      ),
+	.PSG_OUT_A	  (psg_a	),
+	.PSG_OUT_B	  (psg_b	),
+	.PSG_OUT_C	  (psg_c	),
+	.VIDEO_R	  (r	        ),
+	.VIDEO_G	  (g		),
+	.VIDEO_B	  (b		),
+	.VIDEO_HSYNC	  (hs           ),
+	.VIDEO_VSYNC	  (vs           ),
+	.K7_TAPEIN	  (TAPE_IN      ),
+	.K7_TAPEOUT	  (UART_TX      ),
+	.K7_REMOTE	  (remote       ),
 	.ram_ad           (ram_ad       ),
 	.ram_d            (ram_d        ),
 	.ram_q            (ram_cs ? ram_q : 8'd0 ),
 	.ram_cs           (ram_cs_oric  ),
 	.ram_oe           (ram_oe_oric  ),
 	.ram_we           (ram_we       ),
-	.joystick_0       ( joystick_0      ),
-	.joystick_1       ( joystick_1      ),
-	.fd_led           (led_value),
+	.joystick_0       (joystick_0   ),
+	.joystick_1       (joystick_1   ),
+	.fd_led           (led_value    ),
 	.fdd_ready        (fdd_ready    ),
 	.fdd_busy         (fdd_busy     ),
 	.fdd_reset        (fdd_reset    ),
 	.fdd_layout       (fdd_layout   ),
 	.phi2             (phi2         ),
-	.pll_locked       (pll_locked),
-	.disk_enable      (disk_enable),
-	.rom			      (rom),
-	.img_mounted    ( img_mounted      ), // signaling that new image has been mounted
-	.img_size       ( img_size         ), // size of image in bytes
-	.img_wp         ( status[7]        ), // write protect
-   .sd_lba         ( sd_lba           ),
-	.sd_rd          ( sd_rd            ),
-	.sd_wr          ( sd_wr            ),
-	.sd_ack         ( sd_ack           ),
-	.sd_buff_addr   ( sd_buff_addr     ),
-	.sd_dout        ( sd_dout     ),
-	.sd_din         ( sd_din      ),
-	.sd_dout_strobe ( sd_dout_strobe   ),
-	.sd_din_strobe  ( sd_din_strobe    )
+	.pll_locked       (pll_locked   ),
+	.disk_enable      (disk_enable  ),
+	.rom	          (rom          ),
+	.img_mounted    ( img_mounted   ), // signaling that new image has been mounted
+	.img_size       ( img_size      ), // size of image in bytes
+	.img_wp         ( status[7]     ), // write protect
+        .sd_lba         ( sd_lba        ),
+	.sd_rd          ( sd_rd         ),
+	.sd_wr          ( sd_wr         ),
+	.sd_ack         ( sd_ack        ),
+	.sd_buff_addr   ( sd_buff_addr  ),
+	.sd_dout        ( sd_dout       ),
+	.sd_din         ( sd_din        ),
+	.sd_dout_strobe ( sd_dout_strobe),
+	.sd_din_strobe  ( sd_din_strobe )
 	
 );
 
@@ -265,7 +265,7 @@ sdram sdram(
 	.port1_we      ( sdram_we       ),
 	.port1_d       ( {ram_d, ram_d} ),
 	.port1_q       ( ram_q          ),
-		// port2 is wired to the FDC controller
+	// port2 is wired to the FDC controller
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
 	.port2_a       ( ),
@@ -278,33 +278,34 @@ sdram sdram(
 
 ///////////////////////////////////////////////////
 
-wire [9:0] psg_l;
-wire [9:0] psg_r;
+wire [15:0] psg_l;
+wire [15:0] psg_r;
 
 always @ (psg_a,psg_b,psg_c,psg_out,stereo) begin
                 case (stereo)
-                        2'b01  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_b}},{{2'b0,psg_c} + {2'b0,psg_b}}};
-                        2'b10  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_c}},{{2'b0,psg_c} + {2'b0,psg_b}}};
-                        default: {psg_l,psg_r} <= {psg_out,psg_out};
-       endcase
+			2'b01  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_b}},6'b0,{{2'b0,psg_c} + {2'b0,psg_b}},6'b0};
+			2'b10  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_c}},6'b0,{{2'b0,psg_c} + {2'b0,psg_b}},6'b0};
+			default: {psg_l,psg_r} <= {psg_out,6'b0,psg_out,6'b0};
+
+                endcase
 end
 
 dac #(
-   .c_bits				(10				))
+   .c_bits	(16))
 audiodac_l(
-   .clk_i				(clk_24				),
-   .res_n_i				(1						),
-   .dac_i				(psg_l				),
-   .dac_o				(AUDIO_L				)
+   .clk_i	(clk_24	),
+   .res_n_i	(1	),
+   .dac_i	(psg_l	),
+   .dac_o	(AUDIO_L)
   );
 
 dac #(
-   .c_bits				(10				))
+   .c_bits	(16))
 audiodac_r(
-   .clk_i				(clk_24				),
-   .res_n_i				(1						),
-   .dac_i				(psg_r				),
-   .dac_o				(AUDIO_R				)
+   .clk_i	(clk_24	),
+   .res_n_i	(1	),
+   .dac_i	(psg_r	),
+   .dac_o	(AUDIO_R)
   );
 
 assign DAC_L =  psg_l;
