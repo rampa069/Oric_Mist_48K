@@ -134,7 +134,9 @@ ARCHITECTURE RTL OF neptuno_top IS
 			-- UART
 			UART_TX : OUT STD_LOGIC;
 			UART_RX : IN STD_LOGIC;
-			SPI_DO : OUT STD_LOGIC;
+			--
+			TAPE_IN : IN STD_LOGIC;
+			SPI_DO  : OUT STD_LOGIC;
 			--		SPI_SD_DI	:	 IN STD_LOGIC;
 			SPI_DI : IN STD_LOGIC;
 			SPI_SCK : IN STD_LOGIC;
@@ -301,9 +303,11 @@ BEGIN
 			SDRAM_CLK => DRAM_CLK,
 			SDRAM_CKE => DRAM_CKE,
 
-			UART_TX => OPEN,
-			UART_RX => AUDIO_INPUT,
+			UART_TX => rs232_txd,
+			UART_RX => rs232_rxd,
 
+			TAPE_IN=> AUDIO_INPUT,
+			
 			SPI_DO => spi_fromguest,
 			SPI_DI => spi_toguest,
 			SPI_SCK => spi_clk_int,
@@ -349,6 +353,7 @@ BEGIN
 				spi_ss4 => spi_ss4,
 				conf_data0 => conf_data0,
 
+				
 				-- PS/2 signals
 				ps2k_clk_in => ps2_keyboard_clk_in,
 				ps2k_dat_in => ps2_keyboard_dat_in,
