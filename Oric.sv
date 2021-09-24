@@ -54,6 +54,7 @@ localparam CONF_STR = {
 };
 wire        clk_72;
 wire        clk_24;
+wire        clk_ram;
 wire        pll_locked;
 
 wire        key_pressed;
@@ -108,6 +109,7 @@ pll pll (
 	.inclk0	 (CLOCK_27   ),
 	.c0       (clk_24     ),
 	.c1       (clk_72     ),
+	.c2       (clk_ram    ),
 	.locked   (pll_locked )
 	);
 	
@@ -133,7 +135,7 @@ user_io(
 	.joystick_1       ( joystick_1      ),
 	.status         	(status         	),
 	// SD CARD
-        .sd_lba                      (sd_lba        ),
+   .sd_lba                      (sd_lba        ),
 	.sd_rd                       (sd_rd         ),
 	.sd_wr                       (sd_wr         ),
 	.sd_ack                      (sd_ack        ),
@@ -177,18 +179,18 @@ oricatmos oricatmos(
 	.key_code         (key_code     ),
 	.key_extended     (key_extended ),
 	.key_strobe       (key_strobe   ),
-	.PSG_OUT	  (psg_out      ),
-	.PSG_OUT_A	  (psg_a	),
-	.PSG_OUT_B	  (psg_b	),
-	.PSG_OUT_C	  (psg_c	),
-	.VIDEO_R	  (r	        ),
-	.VIDEO_G	  (g		),
-	.VIDEO_B	  (b		),
-	.VIDEO_HSYNC	  (hs           ),
-	.VIDEO_VSYNC	  (vs           ),
-	.K7_TAPEIN	  (TAPE_IN      ),
-	.K7_TAPEOUT	  (UART_TX      ),
-	.K7_REMOTE	  (remote       ),
+	.PSG_OUT	         (psg_out      ),
+	.PSG_OUT_A	      (psg_a	     ),
+	.PSG_OUT_B	      (psg_b	     ),
+	.PSG_OUT_C	      (psg_c	     ),
+	.VIDEO_R	         (r            ),
+	.VIDEO_G	         (g		        ),
+	.VIDEO_B	         (b		        ),
+	.VIDEO_HSYNC	   (hs           ),
+	.VIDEO_VSYNC	   (vs           ),
+	.K7_TAPEIN	      (TAPE_IN      ),
+	.K7_TAPEOUT	      (UART_TX      ),
+	.K7_REMOTE	      (remote       ),
 	.ram_ad           (ram_ad       ),
 	.ram_d            (ram_d        ),
 	.ram_q            (ram_cs ? ram_q : 8'd0 ),
@@ -249,7 +251,7 @@ always @(posedge clk_72) begin
 end
 
 
-assign      SDRAM_CLK = clk_72;
+assign      SDRAM_CLK = clk_ram;
 assign      SDRAM_CKE = 1;
 
 sdram sdram(
@@ -266,7 +268,7 @@ sdram sdram(
 	.port1_d       ( {ram_d, ram_d} ),
 	.port1_q       ( ram_q          ),
 	// port2 is wired to the FDC controller
-	.port2_req     ( port2_req ),
+	.port2_req     ( ),
 	.port2_ack     ( ),
 	.port2_a       ( ),
 	.port2_ds      ( ),
