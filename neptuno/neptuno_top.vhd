@@ -66,7 +66,7 @@ ARCHITECTURE RTL OF neptuno_top IS
 
 	SIGNAL locked : STD_LOGIC;
 	SIGNAL reset_n : STD_LOGIC;
-
+   SIGNAL tmp_led : STD_LOGIC;
 	-- SPI signals
 
 	SIGNAL sd_clk : STD_LOGIC;
@@ -119,7 +119,7 @@ ARCHITECTURE RTL OF neptuno_top IS
 	COMPONENT Oric
 		PORT (
 			CLOCK_27 : IN STD_LOGIC;
-			--RESET_N :   IN std_logic;
+			LED      : OUT std_logic;
 			SDRAM_DQ : INOUT STD_LOGIC_VECTOR(15 DOWNTO 0);
 			SDRAM_A : OUT STD_LOGIC_VECTOR(12 DOWNTO 0);
 			SDRAM_DQML : OUT STD_LOGIC;
@@ -235,7 +235,7 @@ BEGIN
 	joyb <= "11" & joy2fire2 & joy2fire1 & joy2right & joy2left & joy2down & joy2up;
 
 	stm_rst_o <= '0';
-	LED <= AUDIO_INPUT;
+	LED <= not AUDIO_INPUT;
 
 	--process(clk_sys)
 	--begin
@@ -306,7 +306,7 @@ BEGIN
 			UART_TX => rs232_txd,
 			UART_RX => rs232_rxd,
 
-			TAPE_IN=> AUDIO_INPUT,
+			TAPE_IN=> not AUDIO_INPUT,
 			
 			SPI_DO => spi_fromguest,
 			SPI_DI => spi_toguest,
@@ -315,6 +315,8 @@ BEGIN
 			SPI_SS3 => spi_ss3,
 			CONF_DATA0 => conf_data0,
 
+			LED => tmp_led,
+			
 			VGA_HS => vga_hsync,
 			VGA_VS => vga_vsync,
 			VGA_R => vga_red(7 DOWNTO 2),
@@ -325,7 +327,9 @@ BEGIN
 			DAC_L => DAC_L,
 			DAC_R => DAC_R
 		);
-
+		
+      --LED <= tmp_led;
+		
 		-- Pass internal signals to external SPI interface
 		sd_clk <= spi_clk_int;
 

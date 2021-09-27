@@ -114,29 +114,30 @@ architecture RTL of oricatmos is
     signal cpu_rw             : std_logic;
     signal cpu_irq            : std_logic;
       
-	 -- VIA
-    signal via_pa_out_oe_l    : std_logic_vector( 7 downto 0);
-    signal via_pa_in          : std_logic_vector( 7 downto 0);
-    signal via_pa_out         : std_logic_vector( 7 downto 0);
-    signal via_cb1_out        : std_logic;
-    signal via_cb1_oe_l       : std_logic;
-    signal via_ca2_out        : std_logic;
-    signal via_cb2_out        : std_logic;
-    signal via_pb_in             : std_logic_vector( 7 downto 0);
-    signal via_pb_out            : std_logic_vector( 7 downto 0);
-    signal via_pb_oe_l           : std_logic_vector( 7 downto 0);
-    signal VIA_DO             : std_logic_vector( 7 downto 0);
-
+	-- VIA
+	SIGNAL via_pa_out_oe : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL via_pa_in : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL via_pa_out : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL via_pa_in_from_psg : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL via_cb1_out : STD_LOGIC;
+	SIGNAL via_cb1_oe_l : STD_LOGIC;
+	SIGNAL via_cb2_out : STD_LOGIC;
+	SIGNAL via_cb2_oe_l : STD_LOGIC;
+	SIGNAL via_pb_in : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL via_pb_out : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL via_pb_oe_l : STD_LOGIC_VECTOR(7 DOWNTO 0);
+	SIGNAL VIA_DO : STD_LOGIC_VECTOR(7 DOWNTO 0);
     
-    -- Clavier : ÃÂ©mulation par port PS2
+    -- Keyboard PS2
     signal KEY_HIT            : std_logic;
     signal KEYB_RESETn        : std_logic;
     signal KEYB_NMIn          : std_logic;
 
     -- PSG
-    signal ym_ioa_out          : std_logic_vector (7 downto 0);
+    signal ym_ioa_out         : std_logic_vector (7 downto 0);
     signal psg_do             : std_logic_vector (7 downto 0);
-
+    signal psg_bidir          : std_logic;
+	 signal ym_o_ioa           : std_logic_vector (7 downto 0);
     -- ULA    
     signal ula_phi2           : std_logic;
     signal ula_CSIOn          : std_logic;
@@ -330,12 +331,12 @@ inst_via : entity work.M6522
       --PORT A		
 		I_CA1       => '1',       -- PRT_ACK
 		I_CA2       => '1',       -- psg_bdir
-		O_CA2       => via_ca2_out,
+		O_CA2       => psg_bidir,
 		O_CA2_OE_L  => open,
 		
 		I_PA        => via_pa_in,
 		O_PA        => via_pa_out,
-		O_PA_OE_L   => via_pa_out_oe_l,
+		O_PA_OE_L   => via_pa_out_oe,
 		
 		-- PORT B
 		I_CB1       => K7_TAPEIN,
@@ -344,7 +345,7 @@ inst_via : entity work.M6522
 		
 		I_CB2       => '1',
 		O_CB2       => via_cb2_out,
-		O_CB2_OE_L  => open,
+		O_CB2_OE_L  => via_cb2_oe_l,
 		
 		I_PB        => via_pb_in,
 		O_PB        => via_pb_out,
@@ -360,17 +361,17 @@ inst_psg : jt49_bus
 		 clk_en => ENA_1MHZ,
 		 sel => '1',
 		 rst_n => RESETn AND KEYB_RESETn,
-		 bc1 => via_ca2_out,
+		 bc1 => psg_bidir,
 		 bdir => via_cb2_out,
-		 din => via_pa_out,
-		 dout => psg_do,
+		 din =>  via_pa_out,
+		 dout => via_pa_in_from_psg,
 		 sample => open,
 		 sound => PSG_OUT,
 		 A => PSG_OUT_A,
 		 B => PSG_OUT_B,
 		 C => PSG_OUT_C,
 		 IOA_In => (OTHERS => '0'),
-		 IOA_Out => ym_ioa_out,
+		 IOA_Out => ym_o_ioa,
 		 IOB_In => (OTHERS => '0')
  );
 
@@ -383,7 +384,7 @@ inst_key : keyboard
 		key_strobe   => key_strobe,
 		key_code     => key_code,
 		row          => via_pb_out (2 downto 0),
-		col          => ym_ioa_out,
+		col          => ym_o_ioa,
 		key_hit      => KEY_HIT,
 		swnmi        => swnmi,
 		swrst        => swrst
@@ -438,22 +439,35 @@ inst_microdisc: work.Microdisc
 			 
          );
 
+   via_pa_in <= (via_pa_out AND NOT via_pa_out_oe) OR (via_pa_in_from_psg AND via_pa_out_oe);
+	via_pb_in(2 DOWNTO 0) <= via_pb_out(2 DOWNTO 0);
+	--via_pb_in(3) <= '0' WHEN ((KEY_ROW AND (ym_o_ioa XOR x"FF"))) = x"00" ELSE '1';
+   via_pb_in(3) <= KEY_HIT;
+   via_pb_in(4) <= via_pb_out(4);
+	via_pb_in(5) <= 'Z';
+	via_pb_in(6) <= via_pb_out(6);
+	via_pb_in(7) <= via_pb_out(7);
 
+	
+	K7_TAPEOUT <= via_pb_out(7);
+	K7_REMOTE <= via_pb_out(6);
+	PRN_STROBE <= via_pb_out(4);
+	PRN_DATA <= via_pa_out;
 
-via_pa_in <= (via_pa_out and not via_pa_out_oe_l) or (psg_do and via_pa_out_oe_l);
-via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
-via_pb_in(3) <= KEY_HIT;
-via_pb_in(4) <=via_pb_out(4);
-via_pb_in(5) <= 'Z';
-via_pb_in(6) <=via_pb_out(6);
-via_pb_in(7) <=via_pb_out(7);
-
-
-
-K7_TAPEOUT  <= via_pb_out(7);
-K7_REMOTE   <= via_pb_out(6);
-PRN_STROBE  <= via_pb_out(4);
-PRN_DATA    <= via_pa_out;
+--via_pa_in <= (via_pa_out and not via_pa_out_oe_l) or (psg_do and via_pa_out_oe_l);
+--via_pb_in(2 downto 0) <= via_pb_out(2 downto 0);
+--via_pb_in(3) <= KEY_HIT;
+--via_pb_in(4) <=via_pb_out(4);
+--via_pb_in(5) <= 'Z';
+--via_pb_in(6) <=via_pb_out(6);
+--via_pb_in(7) <=via_pb_out(7);
+--
+--
+--
+--K7_TAPEOUT  <= via_pb_out(7);
+--K7_REMOTE   <= via_pb_out(6);
+--PRN_STROBE  <= via_pb_out(4);
+--PRN_DATA    <= via_pa_out;
 
 
 --joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
