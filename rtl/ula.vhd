@@ -291,7 +291,7 @@ begin
 
 	-- CPU clock --
 	CLK_1_INT <= ph(2);
-	CLK_1_EN  <= c(15);
+	CLK_1_EN  <= c(16);
 
 	-- VIA 6522 clock
 	CLK_4_INT     <= c(0) or c(1) or c(2) or c(6) or c(7) or c(8) or c(12) or c(13) or c(14) or c(18) or c(19) or c(20);

@@ -21,9 +21,9 @@ ENTITY neptuno_top IS
 		DRAM_RAS_N : OUT STD_LOGIC;
 		VGA_HS : OUT STD_LOGIC;
 		VGA_VS : OUT STD_LOGIC;
-		VGA_R : OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
-		VGA_G : OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
-		VGA_B : OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
+		VGA_R : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+		VGA_G : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+		VGA_B : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		-- AUDIO
 		SIGMA_R : OUT STD_LOGIC;
 		SIGMA_L : OUT STD_LOGIC;
@@ -115,6 +115,8 @@ ARCHITECTURE RTL OF neptuno_top IS
 
 	SIGNAL DAC_L : STD_LOGIC_VECTOR(15 DOWNTO 0);
 	SIGNAL DAC_R : STD_LOGIC_VECTOR(15 DOWNTO 0);
+	
+	SIGNAL TMP_LED : STD_LOGIC;
 
 	COMPONENT Oric
 		PORT (
@@ -142,6 +144,8 @@ ARCHITECTURE RTL OF neptuno_top IS
 			SPI_SS3 : IN STD_LOGIC;
 			--		SPI_SS4		:	 IN STD_LOGIC;
 			CONF_DATA0 : IN STD_LOGIC;
+			
+			LED    : OUT STD_LOGIC;
 			VGA_HS : OUT STD_LOGIC;
 			VGA_VS : OUT STD_LOGIC;
 			VGA_R : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
@@ -165,8 +169,7 @@ ARCHITECTURE RTL OF neptuno_top IS
 			R_data : IN STD_LOGIC_VECTOR(15 DOWNTO 0) -- RIGHT data (15-bit signed) 
 		);
 	END COMPONENT;
-	SIGNAL audio_l_s : STD_LOGIC_VECTOR(15 DOWNTO 0);
-	SIGNAL audio_r_s : STD_LOGIC_VECTOR(15 DOWNTO 0);
+
 	COMPONENT joydecoder IS
 		PORT (
 			clk : IN STD_LOGIC;
@@ -233,14 +236,14 @@ BEGIN
 	joyb <= "11" & joy2fire2 & joy2fire1 & joy2right & joy2left & joy2down & joy2up;
 
 	stm_rst_o <= '0';
-	LED <= AUDIO_INPUT;
+	--LED <= AUDIO_INPUT;
 
 	--process(clk_sys)
 	--begin
 	--	if rising_edge(clk_sys) then
-	VGA_R <= vga_red(7 DOWNTO 3);
-	VGA_G <= vga_green(7 DOWNTO 3);
-	VGA_B <= vga_blue(7 DOWNTO 3);
+	VGA_R <= vga_red(7 DOWNTO 2);
+	VGA_G <= vga_green(7 DOWNTO 2);
+	VGA_B <= vga_blue(7 DOWNTO 2);
 	VGA_HS <= vga_hsync;
 	VGA_VS <= vga_vsync;
 	--	end if;
@@ -255,12 +258,9 @@ BEGIN
 			dac_LRCK => I2S_LRCLK,
 			dac_SCLK => I2S_BCLK,
 			dac_SDIN => I2S_DATA,
-			L_data => STD_LOGIC_VECTOR(audio_l_s),
-			R_data => STD_LOGIC_VECTOR(audio_r_s)
+			L_data => STD_LOGIC_VECTOR(not DAC_L(15) & DAC_L(14 downto 0)),
+			R_data => STD_LOGIC_VECTOR(not DAC_R(15) & DAC_R(14 downto 0))
 		);
-
-	audio_l_s <= DAC_L;
-	audio_r_s <= DAC_R;
 
 	-- JOYSTICKS
 	joy : joydecoder
@@ -310,6 +310,8 @@ BEGIN
 			SPI_SS2 => spi_ss2,
 			SPI_SS3 => spi_ss3,
 			CONF_DATA0 => conf_data0,
+			
+			LED        => LED,
 
 			VGA_HS => vga_hsync,
 			VGA_VS => vga_vsync,
@@ -321,7 +323,7 @@ BEGIN
 			DAC_L => DAC_L,
 			DAC_R => DAC_R
 		);
-
+		
 		-- Pass internal signals to external SPI interface
 		sd_clk <= spi_clk_int;
 

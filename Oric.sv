@@ -68,10 +68,10 @@ wire			ypbpr;
 wire        scandoublerD;
 wire [31:0] status;
 
-wire [9:0]  psg_out;
-wire [7:0]  psg_a;
-wire [7:0]  psg_b;
-wire [7:0]  psg_c;
+wire [13:0]  psg_out;
+wire [11:0]  psg_a;
+wire [11:0]  psg_b;
+wire [11:0]  psg_c;
 
 wire [7:0]  joystick_0;
 wire [7:0]  joystick_1;
@@ -283,9 +283,9 @@ wire [15:0] psg_r;
 
 always @ (psg_a,psg_b,psg_c,psg_out,stereo) begin
                 case (stereo)
-			2'b01  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_b}},6'b0,{{2'b0,psg_c} + {2'b0,psg_b}},6'b0};
-			2'b10  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_c}},6'b0,{{2'b0,psg_c} + {2'b0,psg_b}},6'b0};
-			default: {psg_l,psg_r} <= {psg_out,6'b0,psg_out,6'b0};
+			2'b01  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_b}},2'b0,{{2'b0,psg_c} + {2'b0,psg_b}},2'b0};
+			2'b10  : {psg_l,psg_r} <= {{{2'b0,psg_a} + {2'b0,psg_c}},2'b0,{{2'b0,psg_c} + {2'b0,psg_b}},2'b0};
+			default: {psg_l,psg_r} <= {psg_out,2'b0,psg_out,2'b0};
 
                 endcase
 end
@@ -330,18 +330,6 @@ wire        sd_dout_strobe;
 wire        sd_din_strobe;
 
 assign fdd_reset =  status[1];
-
-always @(posedge clk_24) begin
-	reg old_mounted;
-
-	old_mounted <= img_mounted;
-	if(reset) begin 
-		fdd_ready <= 0;
-	end
-
-	else if(~old_mounted & img_mounted) begin
-		fdd_ready <= 1;
-	end
-end
+assign fdd_ready = ~fdd_busy;
 
 endmodule

@@ -124,7 +124,7 @@ ARCHITECTURE Behavioral OF Microdisc IS
 			size_code     : IN std_logic_vector (2 DOWNTO 0); 
 			
 			input_active  : IN std_logic;
-	      input_addr    : IN std_logic_vector (19 DOWNTO 0);
+	      input_addr    : IN std_logic_vector (20 DOWNTO 0);
 	      input_data    : IN std_logic_vector (7 DOWNTO 0);
 	      input_wr      : IN std_logic;
 	      buff_addr     : OUT std_logic_vector (19 DOWNTO 0);	  

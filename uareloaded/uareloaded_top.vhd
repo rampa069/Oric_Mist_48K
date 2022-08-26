@@ -143,6 +143,7 @@ ARCHITECTURE RTL OF uareloaded_top IS
 			VGA_R : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 			VGA_G : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 			VGA_B : OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
+			LED     : OUT STD_LOGIC;
 			AUDIO_L : OUT STD_LOGIC;
 			AUDIO_R : OUT STD_LOGIC;
 			DAC_L : OUT SIGNED(15 DOWNTO 0);
@@ -176,7 +177,6 @@ BEGIN
 	joyd <= (OTHERS => '1');
 
 	STM_RST <= '0';
-	LED <= AUDIO_IN; --not ps2_keyboard_clk;
 	pll_vga : ENTITY work.pll_vga
 		PORT MAP(
 			inclk0 => CLOCK_50,
@@ -249,6 +249,7 @@ BEGIN
 			VGA_R => vga_red(7 DOWNTO 2),
 			VGA_G => vga_green(7 DOWNTO 2),
 			VGA_B => vga_blue(7 DOWNTO 2),
+			LED   => LED,
 			AUDIO_L => sigma_l,
 			AUDIO_R => sigma_r,
 			DAC_L => dac_l,
