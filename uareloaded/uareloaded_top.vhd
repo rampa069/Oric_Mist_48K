@@ -111,6 +111,8 @@ ARCHITECTURE RTL OF uareloaded_top IS
 
 	SIGNAL dac_l_s : signed(15 DOWNTO 0);
 	SIGNAL dac_r_s : signed(15 DOWNTO 0);
+	
+	SIGNAL TMP_LED : std_logic;
 
 	COMPONENT Oric
 		PORT (
@@ -206,8 +208,8 @@ BEGIN
 			dac_SCLK => SCLK,
 			dac_SDIN => SDIN,
 			dac_LRCK => LRCLK,
-			L_data => STD_LOGIC_VECTOR (dac_l_s),
-			R_data => STD_LOGIC_VECTOR (dac_r_s)
+			L_data => STD_LOGIC_VECTOR (not dac_l_s(15) & dac_l_s(14 downto 0)),
+			R_data => STD_LOGIC_VECTOR (not dac_r_s(15) & dac_r_s(14 downto 0))
 		);
 
 	dac_l_s <= dac_l;
@@ -249,13 +251,13 @@ BEGIN
 			VGA_R => vga_red(7 DOWNTO 2),
 			VGA_G => vga_green(7 DOWNTO 2),
 			VGA_B => vga_blue(7 DOWNTO 2),
-			LED   => LED,
+			LED   => TMP_LED,
 			AUDIO_L => sigma_l,
 			AUDIO_R => sigma_r,
 			DAC_L => dac_l,
 			DAC_R => dac_r
 		);
-
+      LED <=TMP_LED;
 		-- Pass internal signals to external SPI interface
 		sd_sck <= spi_clk_int;
 
