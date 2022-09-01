@@ -95,3 +95,6 @@ most used keys to a joystick adding thist to your **mist.ini** file.
 * **Oricium** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=oricium)
 * **Space:1999** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=space1999)
 * **1337** game, redistributed with permission of chema enguita you can download manual and additional info from [Defence force](http://www.defence-force.org/index.php?page=games&game=1337)
+* **Torreoscura** game, redistributed with permission of Bieno. you can download manual and additional info from [itch.io](https://commodore-plus.itch.io/torreoscura-eng-c64-oric)
+* **El prisionero** game, redistributed with permission of Bieno. you can download manual and additional info from [itch.io](https://commodore-plus.itch.io/el-prisionero)
+
