@@ -43,7 +43,7 @@ module Oric(
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;;",
-	"S0,DSK,Mount Drive A:;",
+	"S0U,DSK,Mount Drive A:;",
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Allow,Prohibit;",
@@ -96,7 +96,7 @@ assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
 wire [1:0]  stereo = status[9:8];
 
-assign      LED = fdd_ready;
+assign      LED = ~fdd_ready;
 
 always @(posedge clk_24) begin
 	old_rom <= rom;
@@ -330,6 +330,14 @@ wire        sd_dout_strobe;
 wire        sd_din_strobe;
 
 assign fdd_reset =  status[1];
-assign fdd_ready = ~fdd_busy;
+
+always @(posedge clk_24) begin
+	reg old_mounted;
+
+	old_mounted <= img_mounted;
+	if(~old_mounted & img_mounted) begin
+		fdd_ready <= |img_size;
+	end
+end
 
 endmodule
