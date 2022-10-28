@@ -16,4 +16,5 @@ set_global_assignment -name VHDL_FILE  [file join $::quartus(qip_path) rtl/ula.v
 set_global_assignment -name VHDL_FILE  [file join $::quartus(qip_path) rtl/m6522.vhd]
 set_global_assignment -name VHDL_FILE  [file join $::quartus(qip_path) rtl/video.vhd]
 set_global_assignment -name SYSTEMVERILOG_FILE  [file join $::quartus(qip_path) rtl/keyboard.sv]
+set_global_assignment -name SDC_FILE [file join $::quartus(qip_path) Oric.sdc]
 set_global_assignment -name CDF_FILE output_files/Chain1.cdf]
