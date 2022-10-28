@@ -85,9 +85,8 @@ wire        old_rom;
 
 wire        led_value;
 reg         fdd_ready=0;
-wire        fdd_busy;
+wire        fdd_led;
 reg         fdd_layout = 0;
-reg         fdd_reset = 0;
 
 wire        disk_enable;
 reg         old_disk_enable;
@@ -96,7 +95,7 @@ assign      disk_enable = status[6];
 assign      rom = ~status[3] ;
 wire [1:0]  stereo = status[9:8];
 
-assign      LED = ~fdd_ready;
+assign      LED = ~fdd_led & ~ioctl_downl; // negative active
 
 always @(posedge clk_24) begin
 	old_rom <= rom;
@@ -201,10 +200,8 @@ oricatmos oricatmos(
 	.rom_ext_cs       (rom_ext_cs   ),
 	.joystick_0       (joystick_0   ),
 	.joystick_1       (joystick_1   ),
-	.fd_led           (led_value    ),
+	.fd_led           (fdd_led      ),
 	.fdd_ready        (fdd_ready    ),
-	.fdd_busy         (fdd_busy     ),
-	.fdd_reset        (fdd_reset    ),
 	.fdd_layout       (fdd_layout   ),
 	.phi2             (phi2         ),
 	.pll_locked       (pll_locked   ),
@@ -387,8 +384,6 @@ wire        img_mounted;
 wire [31:0] img_size;
 wire        sd_dout_strobe;
 wire        sd_din_strobe;
-
-assign fdd_reset =  status[1];
 
 always @(posedge clk_24) begin
 	reg old_mounted;

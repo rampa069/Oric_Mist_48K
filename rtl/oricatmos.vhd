@@ -80,8 +80,6 @@ entity oricatmos is
 	 phi2              : out std_logic;
 	 fd_led            : out std_logic;
 	 fdd_ready         : in std_logic;
-	 fdd_busy          : out std_logic;
-	 fdd_reset         : in std_logic;
 	 fdd_layout        : in std_logic;
 	 joystick_0        : in std_logic_vector( 7 downto 0);
 	 joystick_1        : in std_logic_vector( 7 downto 0);
@@ -460,8 +458,6 @@ inst_microdisc: work.Microdisc
 			 sd_dout_strobe => sd_dout_strobe,
 			 sd_din_strobe  => sd_din_strobe,
 			 fdd_ready      => fdd_ready,
-			 fdd_busy       => fdd_busy,
-			 fdd_reset      => fdd_reset,
 			 fdd_layout     => fdd_layout,
 			 fd_led         => fd_led
 			 
