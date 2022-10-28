@@ -101,7 +101,7 @@ assign      LED = ~fdd_ready;
 always @(posedge clk_24) begin
 	old_rom <= rom;
 	old_disk_enable <= disk_enable;
-	reset <= (!pll_locked | status[0] | buttons[0] | old_rom != rom | old_disk_enable != disk_enable);
+	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable);
 end
 
 pll pll (
