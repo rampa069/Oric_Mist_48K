@@ -86,6 +86,7 @@ port (
 	CLK        :   in  std_logic;                     -- 24 MHz                       -- pin 07
 	PHI2       :   out std_logic;                     -- 1 MHz CPU & system           -- pin 14
 	PHI2_EN    :   out std_logic;                     -- 1 MHz clock enable pulse
+	PHI2_EN_N  :   out std_logic;                     -- 1 MHz clock enable pulse (negative edge)
 	RW         :   in  std_logic;                     -- R/W from CPU                 -- pin 27
 	MAPn       :   in  std_logic;                     -- MAP                          -- pin 26
 	DB         :   in  std_logic_vector( 7 downto 0); -- DATA BUS                     -- pin 18,34,5,13,12,11,17,8
@@ -219,6 +220,7 @@ begin
 	-- output assignments
 	PHI2         <= CLK_1_INT;
 	PHI2_EN      <= CLK_1_EN;
+	PHI2_EN_N    <= c(23);
 --	AD_RAM       <= AD_RAM_INT(15 downto 8);
 	CSIOn        <= CSIOn_INT;
 	CSROMn       <= CSROMn_INT;
@@ -292,7 +294,7 @@ begin
 
 	-- CPU clock --
 	CLK_1_INT <= ph(2);
-	CLK_1_EN  <= c(16);
+	CLK_1_EN  <= c(15); -- ph(2) changes one cycle after this (0-15 ph2=low, 16-23 ph2=hi)
 
 	-- VIA 6522 clock
 	CLK_4_INT     <= c(0) or c(1) or c(2) or c(6) or c(7) or c(8) or c(12) or c(13) or c(14) or c(18) or c(19) or c(20);

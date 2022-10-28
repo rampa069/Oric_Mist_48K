@@ -73,6 +73,10 @@ entity oricatmos is
 	 ram_cs            : out std_logic;
 	 ram_oe            : out std_logic;
 	 ram_we            : out std_logic;
+	 rom_ad            : out std_logic_vector(15 downto 0);
+	 rom_q             : in  std_logic_vector( 7 downto 0);
+	 rom_cs            : out std_logic;
+	 rom_ext_cs        : out std_logic;
 	 phi2              : out std_logic;
 	 fd_led            : out std_logic;
 	 fdd_ready         : in std_logic;
@@ -159,6 +163,7 @@ architecture RTL of oricatmos is
 
 --	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
+	 signal ENA_1MHZ_N         : std_logic;
     signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
 	 signal ROM_1_DO     	   : std_logic_vector(7 downto 0);
 	 signal ROM_MD_DO          : std_logic_vector(7 downto 0);
@@ -239,7 +244,7 @@ inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
       Res_n   		=> RESETn,
-      Enable  		=> ENA_1MHZ,
+      Enable  		=> ENA_1MHZ_N,
       Clk     		=> CLK_IN,
       Rdy     		=> '1',
       Abort_n 		=> '1',
@@ -264,7 +269,9 @@ ram_oe  <= '0' when RESETn = '0' else ula_OE_SRAM;
 ram_we  <= '0' when RESETn = '0' else ula_WE_SRAM;
 phi2    <= ula_PHI2;
 
-
+rom_ad  <= cpu_ad(15 downto 0);
+rom_cs  <= '1' when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else '0';
+rom_ext_cs <= '1' when ula_PHI2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else '0'; -- Microdisc
 
 inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 	port map (
@@ -292,7 +299,8 @@ inst_ula : entity work.ULA
    port map (
       CLK        	=> CLK_IN,
       PHI2       	=> ula_phi2,
-		PHI2_EN     => ENA_1MHZ,
+      PHI2_EN       => ENA_1MHZ,
+      PHI2_EN_N     => ENA_1MHZ_N,
       CLK_4      	=> ula_CLK_4,
 		CLK_4_EN    => ula_CLK_4_en,
       RW         	=> cpu_rw,
@@ -482,10 +490,12 @@ PRN_DATA    <= via_pa_out;
 
 cpu_di <= cont_D_OUT when ula_CSIOn = '0' and cont_IOCONTROLn = '0' else -- expansion port
           VIA_DO     when ula_CSIOn = '0' and cont_IOCONTROLn = '1' else -- VIA
-        ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
-            ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
-           ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
-             SRAM_DO when ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' else -- RAM
+               rom_q when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else  -- ROM Oric 1 or Atmos
+               rom_q when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+--        ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
+--            ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
+--           ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+             SRAM_DO when ula_CSRAMn = '0' else -- RAM
 		cpu_di_last;
 
 process (CLK_IN) begin

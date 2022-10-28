@@ -45,7 +45,7 @@ module sdram (
 	input      [23:1] port1_a,
 	input       [1:0] port1_ds,
 	input      [15:0] port1_d,
-	output      [7:0] port1_q,
+	output     [15:0] port1_q,
 
 	input             port2_req,
 	output reg        port2_ack,
@@ -300,7 +300,7 @@ always @(posedge clk) begin
 		// Data returned
 		if(t == STATE_READ0 && oe_latch[0]) begin
 			case(port[0])
-				PORT_REQ:  begin port1_q <= ds[0][0] ? sd_din[7:0] : sd_din[15:8]; port1_ack <= port1_req; end
+				PORT_REQ:  begin port1_q <= sd_din; port1_ack <= port1_req; end
 				default: ;
 			endcase;
 		end

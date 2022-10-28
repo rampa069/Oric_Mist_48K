@@ -101,7 +101,7 @@ assign      LED = ~fdd_ready;
 always @(posedge clk_24) begin
 	old_rom <= rom;
 	old_disk_enable <= disk_enable;
-	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable);
+	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable | ioctl_downl);
 end
 
 pll pll (
@@ -195,6 +195,10 @@ oricatmos oricatmos(
 	.ram_cs           (ram_cs_oric  ),
 	.ram_oe           (ram_oe_oric  ),
 	.ram_we           (ram_we       ),
+	.rom_ad           (rom_ad       ),
+	.rom_q            (ram_q        ),
+	.rom_cs           (rom_cs       ),
+	.rom_ext_cs       (rom_ext_cs   ),
 	.joystick_0       (joystick_0   ),
 	.joystick_1       (joystick_1   ),
 	.fd_led           (led_value    ),
@@ -221,31 +225,86 @@ oricatmos oricatmos(
 	
 );
 
+wire        ioctl_downl;
+wire  [7:0] ioctl_index;
+wire        ioctl_wr;
+wire [24:0] ioctl_addr;
+wire  [7:0] ioctl_dout;
+
+data_io data_io(
+	.clk_sys       ( clk_72      ),
+	.SPI_SCK       ( SPI_SCK      ),
+	.SPI_SS2       ( SPI_SS2      ),
+	.SPI_DI        ( SPI_DI       ),
+	.clkref_n      ( 1'b0         ),
+	.ioctl_download( ioctl_downl  ),
+	.ioctl_index   ( ioctl_index  ),
+	.ioctl_wr      ( ioctl_wr     ),
+	.ioctl_addr    ( ioctl_addr   ),
+	.ioctl_dout    ( ioctl_dout   )
+);
+
+reg         sdram_we;
+reg  [16:0] sdram_ad;
+reg   [7:0] sdram_din;
+wire [15:0] sdram_dout;
+wire        phi2;
+
 reg         port1_req, port2_req;
 wire [15:0] ram_ad;
 wire  [7:0] ram_d;
-wire  [7:0] ram_q;
+wire  [7:0] ram_q = sdram_ad[0] ? sdram_dout[15:8] : sdram_dout[7:0];
 wire        ram_cs_oric, ram_oe_oric, ram_we;
 wire        ram_oe = ram_oe_oric;
 wire        ram_cs = ram_cs_oric ;
-reg         sdram_we;
-reg  [15:0] sdram_ad;
-wire        phi2;
+
+wire [15:0] rom_ad;
+wire        rom_cs;
+wire        rom_ext_cs;
+
+// 0000-7FFF - Oric-1 / Atmos
+// 8000-9FFF - Microdisk
+wire [15:0] rom_sd_addr = rom_cs ? {rom, rom_ad[13:0]} : // Oric-1 or Atmos
+                          {3'b100, rom_ad[12:0]}; // Microdisk
 
 always @(posedge clk_72) begin
 	reg ram_we_old, ram_oe_old;
 	reg[15:0] ram_ad_old;
 
+	reg rom_cs_old, rom_ext_cs_old;
+	reg[15:0] rom_ad_old;
+
 	ram_we_old <= ram_cs & ram_we;
 	ram_oe_old <= ram_cs & ram_oe;
 	ram_ad_old <= ram_ad;
 
-	if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
-		port1_req <= ~port1_req;
-		sdram_ad <= ram_ad;
-		sdram_we <= ram_we;
+	rom_cs_old <= rom_cs;
+	rom_ext_cs_old <= rom_ext_cs;
+	rom_ad_old <= rom_ad;
+
+	if (ioctl_downl) begin
+		if (ioctl_wr) begin
+			port1_req <= ~port1_req;
+			sdram_ad <= ioctl_addr[16:0];
+			sdram_we <= 1;
+			sdram_din <= ioctl_dout;
+		end
+	end else begin
+
+		if ((ram_cs & ram_oe & ~ram_oe_old) || (ram_cs & ram_we & ~ram_we_old) || (ram_cs & ram_oe & ram_ad != ram_ad_old)) begin
+			port1_req <= ~port1_req;
+			sdram_ad <= {1'b1, ram_ad};
+			sdram_we <= ram_we;
+			sdram_din <= ram_d;
+		end
+
+		if ((rom_cs & ~rom_cs_old) || (rom_ext_cs & ~rom_ext_cs_old) || ((rom_cs | rom_ext_cs ) & rom_ad != rom_ad_old)) begin
+			port1_req <= ~port1_req;
+			sdram_we <= 0;
+			sdram_ad <= rom_sd_addr;
+		end
 	end
-	
+
 end
 
 
@@ -260,12 +319,12 @@ sdram sdram(
 
 	.port1_req     ( port1_req      ),
 	.port1_ack     ( ),
-	.port1_a       ( ram_ad         ),
-	.port1_ds      ( ram_we ? (sdram_ad[0] ? 2'b10 : 2'b01) : 2'b11 ),
+	.port1_a       ( sdram_ad[16:1] ),
+	.port1_ds      ( sdram_we ? (sdram_ad[0] ? 2'b10 : 2'b01) : 2'b11 ),
 	.port1_we      ( sdram_we       ),
-	.port1_d       ( {ram_d, ram_d} ),
-	.port1_q       ( ram_q          ),
-	// port2 is wired to the FDC controller
+	.port1_d       ( {sdram_din, sdram_din} ),
+	.port1_q       ( sdram_dout     ),
+	// port2 is unused
 	.port2_req     ( port2_req ),
 	.port2_ack     ( ),
 	.port2_a       ( ),
