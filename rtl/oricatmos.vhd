@@ -110,6 +110,7 @@ architecture RTL of oricatmos is
     -- cpu
     signal cpu_ad             : std_logic_vector(23 downto 0);
     signal cpu_di             : std_logic_vector(7 downto 0);
+    signal cpu_di_last        : std_logic_vector(7 downto 0);
     signal cpu_do             : std_logic_vector(7 downto 0);
     signal cpu_rw             : std_logic;
     signal cpu_irq            : std_logic;
@@ -479,31 +480,20 @@ PRN_DATA    <= via_pa_out;
 --joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 --joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
+cpu_di <= cont_D_OUT when ula_CSIOn = '0' and cont_IOCONTROLn = '0' else -- expansion port
+          VIA_DO     when ula_CSIOn = '0' and cont_IOCONTROLn = '1' else -- VIA
+        ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
+            ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
+           ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+             SRAM_DO when ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' else -- RAM
+		cpu_di_last;
 
-process begin
-	wait until rising_edge(clk_in);
-  
-	 
-	 
-		-- expansion port
-      if    cpu_rw = '1' and ula_PHI2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
-         CPU_DI <= cont_D_OUT;
-      -- VIA
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
-			cpu_di <= VIA_DO;
-		-- ROM Atmos	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' then
-			cpu_di <= ROM_ATMOS_DO;
-		-- ROM Oric 1	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' then
-			cpu_di <= ROM_1_DO;
-		--ROM Microdisc
-		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' then
-			cpu_di <= ROM_MD_DO;	
-		-- RAM	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' then
-			cpu_di <= SRAM_DO; 	
+process (CLK_IN) begin
+	if rising_edge(CLK_IN) then
+		if cpu_rw = '1' and ula_phi2 = '1' then
+			cpu_di_last <= cpu_di;
 		end if;
+	end if;
 end process;
 
 end RTL;
