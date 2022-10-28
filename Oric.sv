@@ -149,7 +149,7 @@ user_io(
 	.img_size                    (img_size      )
 );
 	
-mist_video #(.COLOR_DEPTH(1)) mist_video(
+mist_video #(.COLOR_DEPTH(1), .SD_HCNT_WIDTH(10)) mist_video(
 	.clk_sys      (clk_24     ),
 	.SPI_SCK      (SPI_SCK    ),
 	.SPI_SS3      (SPI_SS3    ),

@@ -112,7 +112,7 @@ port (
 	G          :   out std_logic;                     -- Green                        -- pin 20
 	B          :   out std_logic;                     -- Blue                         -- pin 19
 	SYNC       :   out std_logic;                     -- Synchronisation              -- pin 16        
-   BLANKINGn  :   buffer std_logic;                     -- Blanking signal
+	BLANKn     :   buffer std_logic;                     -- Blanking signal
 	                                                  -- VCC                          -- pin 24
 	                                                  -- GND                          -- pin 06
 	HSYNC      :   out std_logic;
@@ -189,6 +189,7 @@ architecture RTL of ula is
 	signal lCTR_FLASH   : std_logic_vector( 4 downto 0);
 	signal lVBLANKn     : std_logic;
 	signal lHBLANKn     : std_logic;
+	signal BLANKINGn    : std_logic;
 
 	signal lDATABUS     : std_logic_vector( 7 downto 0);
 	signal lSHFREG      : std_logic_vector( 5 downto 0);
@@ -438,7 +439,7 @@ begin
 		  lREG_STYLE <= (others=>'0');
 		  lREG_PAPER <= (others=>'0');
 	  elsif rising_edge(CLK_24) then
-			if (RELD_REG = '1' and isAttrib = '1' and BLANKINGn = '1') then
+			if (CLK_PIXEL_INT = '1' and RELD_REG = '1' and isAttrib = '1' and BLANKINGn = '1') then
 				case lREGHOLD(6 downto 3) is
 					when "0000" => lREG_INK   <= lREGHOLD(2 downto 0);
 					when "0001" => lREG_STYLE <= lREGHOLD(2 downto 0);
@@ -476,14 +477,23 @@ begin
 		end if;
 	end process;
 
+	u_blanking_reg: process(CLK_24)
+	begin
+		if rising_edge(CLK_24) then
+			if CLK_PIXEL_INT = '1' then
+				BLANKn <= BLANKINGn;
+			end if;
+		end if;
+	end process;
+
 	lBGFG_SEL  <= '0' when ( (CLK_FLASH = '1') and (lFLASH_SEL = '1') ) else lSHFREG(5);
 
 	-- local assign for R(ed)G(reen)B(lue) signal
 	lRGB <= lREG_INK when lBGFG_SEL = '1' else lREG_PAPER;
 
 	-- Assign out signal
-	RGB_INT <=     lRGB  when (lInv = '0' and BLANKINGn = '1') else
-			     not(lRGB) when (lInv = '1' and BLANKINGn = '1') else
+	RGB_INT <=     lRGB  when (lInv = '0' and BLANKn = '1') else
+			     not(lRGB) when (lInv = '1' and BLANKn = '1') else
 			     "000";--(others=>'0') ;
 
 	-- Compute offset 

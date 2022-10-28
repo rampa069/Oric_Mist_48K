@@ -311,7 +311,7 @@ inst_ula : entity work.ULA
       G          	=> VIDEO_G,
       B          	=> VIDEO_B,
       SYNC       	=> VIDEO_SYNC,
-		BLANKINGn   => BLANKINGn,
+		BLANKn      => BLANKINGn,
 		HSYNC      	=> VIDEO_HSYNC,
 		VSYNC      	=> VIDEO_VSYNC		
 );
