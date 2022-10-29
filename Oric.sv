@@ -42,7 +42,7 @@ module Oric(
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"ORIC;;",
+	"ORIC;ROM;",
 	"S0U,DSK,Mount Drive A:;",
 	"F,TAP,Load;",
 	"T1,Tape Play/Stop;",
@@ -233,8 +233,8 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 
-wire        rom_downl = ioctl_downl & ioctl_index == 0;
-wire        tap_downl = ioctl_downl & ioctl_index == 2;
+wire        rom_downl = ioctl_downl & (ioctl_index == 0 || ioctl_index == 1);
+wire        tap_downl = ioctl_downl & ioctl_index == 3;
 
 data_io data_io(
 	.clk_sys       ( clk_72      ),
