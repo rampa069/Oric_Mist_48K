@@ -243,12 +243,11 @@ always @(posedge clk) begin
 					{ oe_latch[0], we_latch[0] } <= 2'b10;
 					ds[0] <= 2'b11;
 				end
-			end else if (need_refresh) begin
+			end else if (need_refresh && !oe_latch[1] && !we_latch[1]) begin
 				refresh <= 1;
 				refresh_cnt <= 0;
 				sd_cmd <= CMD_AUTO_REFRESH;
 			end
-
 		end
 
 		// bank 2,3

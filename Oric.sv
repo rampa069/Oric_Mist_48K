@@ -389,7 +389,7 @@ progressbar #(.X_OFFSET(66), .Y_OFFSET(36)) progressbar (
 assign      SDRAM_CLK = clk_72;
 assign      SDRAM_CKE = 1;
 
-sdram sdram(
+sdram #(72) sdram(
 	.*,
 	.init_n        ( pll_locked     ),
 	.clk           ( clk_72         ),
