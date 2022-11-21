@@ -73,11 +73,13 @@ entity oricatmos is
 	 ram_cs            : out std_logic;
 	 ram_oe            : out std_logic;
 	 ram_we            : out std_logic;
+	 rom_ad            : out std_logic_vector(15 downto 0);
+	 rom_q             : in  std_logic_vector( 7 downto 0);
+	 rom_cs            : out std_logic;
+	 rom_ext_cs        : out std_logic;
 	 phi2              : out std_logic;
 	 fd_led            : out std_logic;
 	 fdd_ready         : in std_logic;
-	 fdd_busy          : out std_logic;
-	 fdd_reset         : in std_logic;
 	 fdd_layout        : in std_logic;
 	 joystick_0        : in std_logic_vector( 7 downto 0);
 	 joystick_1        : in std_logic_vector( 7 downto 0);
@@ -110,12 +112,14 @@ architecture RTL of oricatmos is
     -- cpu
     signal cpu_ad             : std_logic_vector(23 downto 0);
     signal cpu_di             : std_logic_vector(7 downto 0);
+    signal cpu_di_last        : std_logic_vector(7 downto 0);
     signal cpu_do             : std_logic_vector(7 downto 0);
     signal cpu_rw             : std_logic;
     signal cpu_irq            : std_logic;
       
 	 -- VIA
     signal via_pa_out_oe_l    : std_logic_vector( 7 downto 0);
+    signal via_pa_out_oe      : std_logic_vector( 7 downto 0);
     signal via_pa_in          : std_logic_vector( 7 downto 0);
     signal via_pa_out         : std_logic_vector( 7 downto 0);
     signal via_cb1_out        : std_logic;
@@ -126,6 +130,7 @@ architecture RTL of oricatmos is
     signal via_pb_out            : std_logic_vector( 7 downto 0);
     signal via_pb_oe_l           : std_logic_vector( 7 downto 0);
     signal VIA_DO             : std_logic_vector( 7 downto 0);
+    signal via_irq            : std_logic;
 
     
     -- Clavier : ÃÂ©mulation par port PS2
@@ -147,8 +152,6 @@ architecture RTL of oricatmos is
     signal ula_OE_SRAM        : std_logic;
     signal ula_WE_SRAM        : std_logic;
 	 signal ula_LATCH_SRAM     : std_logic;
-    signal ula_CLK_4          : std_logic;
-    signal ula_CLK_4_en       : std_logic;
     signal ula_MUX            : std_logic;
     signal ula_RW_RAM         : std_logic;
 	 signal ula_VIDEO_R        : std_logic;
@@ -158,6 +161,7 @@ architecture RTL of oricatmos is
 
 --	 signal lSRAM_D            : std_logic_vector(7 downto 0);
 	 signal ENA_1MHZ           : std_logic;
+	 signal ENA_1MHZ_N         : std_logic;
     signal ROM_ATMOS_DO     	: std_logic_vector(7 downto 0);
 	 signal ROM_1_DO     	   : std_logic_vector(7 downto 0);
 	 signal ROM_MD_DO          : std_logic_vector(7 downto 0);
@@ -234,15 +238,17 @@ END COMPONENT;
 begin
 
 RESETn <= (not RESET and KEYB_RESETn);
+cpu_irq <= not via_irq and cont_irq;
+
 inst_cpu : entity work.T65
 	port map (
 		Mode    		=> "00",
       Res_n   		=> RESETn,
-      Enable  		=> ENA_1MHZ,
+      Enable  		=> ENA_1MHZ_N,
       Clk     		=> CLK_IN,
       Rdy     		=> '1',
       Abort_n 		=> '1',
-      IRQ_n   		=> cpu_irq and cont_irq, -- Via and disk controller
+      IRQ_n   		=> cpu_irq, -- Via and disk controller
       NMI_n   		=> KEYB_NMIn,
       SO_n    		=> '1',
       R_W_n   		=> cpu_rw,
@@ -263,7 +269,9 @@ ram_oe  <= '0' when RESETn = '0' else ula_OE_SRAM;
 ram_we  <= '0' when RESETn = '0' else ula_WE_SRAM;
 phi2    <= ula_PHI2;
 
-
+rom_ad  <= cpu_ad(15 downto 0);
+rom_cs  <= '1' when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else '0';
+rom_ext_cs <= '1' when ula_PHI2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else '0'; -- Microdisc
 
 inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
 	port map (
@@ -291,9 +299,8 @@ inst_ula : entity work.ULA
    port map (
       CLK        	=> CLK_IN,
       PHI2       	=> ula_phi2,
-		PHI2_EN     => ENA_1MHZ,
-      CLK_4      	=> ula_CLK_4,
-		CLK_4_EN    => ula_CLK_4_en,
+      PHI2_EN       => ENA_1MHZ,
+      PHI2_EN_N     => ENA_1MHZ_N,
       RW         	=> cpu_rw,
       RESETn     	=> pll_locked, --RESETn,
 		MAPn      	=> cont_MAPn,
@@ -311,48 +318,51 @@ inst_ula : entity work.ULA
       G          	=> VIDEO_G,
       B          	=> VIDEO_B,
       SYNC       	=> VIDEO_SYNC,
-		BLANKINGn   => BLANKINGn,
+		BLANKn      => BLANKINGn,
 		HSYNC      	=> VIDEO_HSYNC,
 		VSYNC      	=> VIDEO_VSYNC		
 );
 
-inst_via : entity work.M6522
-	port map (
-		I_RS        => cpu_ad(3 downto 0),
-		I_DATA      => cpu_do(7 downto 0),
-		O_DATA      => VIA_DO,
-		I_RW_L      => cpu_rw,
-		I_CS1       => cont_IOCONTROLn,
-		I_CS2_L     => ula_CSIOn,
-		
-		O_IRQ_L     => cpu_irq, 
+via_pa_out_oe_l <= not via_pa_out_oe;
 
-      --PORT A		
-		I_CA1       => '1',       -- PRT_ACK
-		I_CA2       => '1',       -- psg_bdir
-		O_CA2       => via_ca2_out,
-		O_CA2_OE_L  => open,
-		
-		I_PA        => via_pa_in,
-		O_PA        => via_pa_out,
-		O_PA_OE_L   => via_pa_out_oe_l,
-		
-		-- PORT B
-		I_CB1       => K7_TAPEIN,
-		O_CB1       => via_cb1_out,
-      O_CB1_OE_L  => via_cb1_oe_l,
-		
-		I_CB2       => '1',
-		O_CB2       => via_cb2_out,
-		O_CB2_OE_L  => open,
-		
-		I_PB        => via_pb_in,
-		O_PB        => via_pb_out,
-		RESET_L     => RESETn, 
-		I_P2_H      => ula_phi2,
-		ENA_4       => ula_CLK_4_en,
-		CLK         => CLK_IN
-);
+inst_via6522 : entity work.via6522
+	port map
+	(
+		clock           => CLK_IN,
+		rising          => ENA_1MHZ,
+		falling         => ENA_1MHZ_N,
+		reset           => not RESETn,
+
+		addr            => cpu_ad(3 downto 0),
+		wen             => not cpu_rw and cont_IOCONTROLn and not ula_CSIOn,
+		ren             => cpu_rw and cont_IOCONTROLn and not ula_CSIOn,
+		data_in         => cpu_do,
+		data_out        => VIA_DO,
+
+		port_a_i        => via_pa_in,
+		port_a_o        => via_pa_out,
+		port_a_t        => via_pa_out_oe,
+
+		port_b_i        => via_pb_in,
+		port_b_o        => via_pb_out,
+		port_b_t        => open,
+
+		ca1_i           => '1',
+
+		ca2_o           => via_ca2_out,
+		ca2_i           => '1',
+		ca2_t           => open,
+
+		cb1_i           => K7_TAPEIN,
+		cb1_o           => via_cb1_out,
+		cb1_t           => open,
+
+		cb2_i           => '1',
+		cb2_o           => via_cb2_out,
+		cb2_t           => open,
+
+		irq             => via_irq
+	);
 
 --inst_psg : jt49_bus
 --  PORT MAP(
@@ -451,8 +461,6 @@ inst_microdisc: work.Microdisc
 			 sd_dout_strobe => sd_dout_strobe,
 			 sd_din_strobe  => sd_din_strobe,
 			 fdd_ready      => fdd_ready,
-			 fdd_busy       => fdd_busy,
-			 fdd_reset      => fdd_reset,
 			 fdd_layout     => fdd_layout,
 			 fd_led         => fd_led
 			 
@@ -479,31 +487,22 @@ PRN_DATA    <= via_pa_out;
 --joya <= joystick_0(6 downto 4) & joystick_0(0) & joystick_0(1) & joystick_0(2) & joystick_0(3);
 --joyb <= joystick_1(6 downto 4) & joystick_1(0) & joystick_1(1) & joystick_1(2) & joystick_1(3);
 
+cpu_di <= cont_D_OUT when ula_CSIOn = '0' and cont_IOCONTROLn = '0' else -- expansion port
+          VIA_DO     when ula_CSIOn = '0' and cont_IOCONTROLn = '1' else -- VIA
+               rom_q when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else  -- ROM Oric 1 or Atmos
+               rom_q when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+--        ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
+--            ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
+--           ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+             SRAM_DO when ula_CSRAMn = '0' else -- RAM
+		cpu_di_last;
 
-process begin
-	wait until rising_edge(clk_in);
-  
-	 
-	 
-		-- expansion port
-      if    cpu_rw = '1' and ula_PHI2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '0' then
-         CPU_DI <= cont_D_OUT;
-      -- VIA
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '0' and cont_IOCONTROLn = '1' then
-			cpu_di <= VIA_DO;
-		-- ROM Atmos	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' then
-			cpu_di <= ROM_ATMOS_DO;
-		-- ROM Oric 1	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' then
-			cpu_di <= ROM_1_DO;
-		--ROM Microdisc
-		elsif cpu_rw = '1' and ula_phi2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' then
-			cpu_di <= ROM_MD_DO;	
-		-- RAM	
-		elsif cpu_rw = '1' and ula_phi2 = '1' and ula_CSRAMn = '0' and ula_LATCH_SRAM = '0' then
-			cpu_di <= SRAM_DO; 	
+process (CLK_IN) begin
+	if rising_edge(CLK_IN) then
+		if cpu_rw = '1' and ula_phi2 = '1' then
+			cpu_di_last <= cpu_di;
 		end if;
+	end if;
 end process;
 
 end RTL;

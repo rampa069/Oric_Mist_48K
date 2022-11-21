@@ -80,12 +80,11 @@ library ieee;
 entity ula is
 port (
 	RESETn     :   in  std_logic;                     -- RESET master
-	CLK_4      :   out std_logic;                     -- 4 MHz internal
-	CLK_4_EN   :   out std_logic;                     -- 4 MHz internal clock enable pulse
 
 	CLK        :   in  std_logic;                     -- 24 MHz                       -- pin 07
 	PHI2       :   out std_logic;                     -- 1 MHz CPU & system           -- pin 14
 	PHI2_EN    :   out std_logic;                     -- 1 MHz clock enable pulse
+	PHI2_EN_N  :   out std_logic;                     -- 1 MHz clock enable pulse (negative edge)
 	RW         :   in  std_logic;                     -- R/W from CPU                 -- pin 27
 	MAPn       :   in  std_logic;                     -- MAP                          -- pin 26
 	DB         :   in  std_logic_vector( 7 downto 0); -- DATA BUS                     -- pin 18,34,5,13,12,11,17,8
@@ -112,7 +111,7 @@ port (
 	G          :   out std_logic;                     -- Green                        -- pin 20
 	B          :   out std_logic;                     -- Blue                         -- pin 19
 	SYNC       :   out std_logic;                     -- Synchronisation              -- pin 16        
-   BLANKINGn  :   buffer std_logic;                     -- Blanking signal
+	BLANKn     :   buffer std_logic;                     -- Blanking signal
 	                                                  -- VCC                          -- pin 24
 	                                                  -- GND                          -- pin 06
 	HSYNC      :   out std_logic;
@@ -124,7 +123,6 @@ architecture RTL of ula is
 
 	-- Signal CLOCK
 	signal CLK_24        : std_logic;                    -- CLOCK 24 MHz internal
-	signal CLK_4_INT     : std_logic;                    -- CLOCK  4 MHz internal
 	signal CLK_1_INT     : std_logic;                    -- CLOCK  1 MHz internal
 	signal CLK_1_EN      : std_logic;                    -- CLOCK  1 MHz enable pulse
 	signal CLK_PIXEL_INT : std_logic;                    -- CLOCK PIXEL  internal 
@@ -189,6 +187,7 @@ architecture RTL of ula is
 	signal lCTR_FLASH   : std_logic_vector( 4 downto 0);
 	signal lVBLANKn     : std_logic;
 	signal lHBLANKn     : std_logic;
+	signal BLANKINGn    : std_logic;
 
 	signal lDATABUS     : std_logic_vector( 7 downto 0);
 	signal lSHFREG      : std_logic_vector( 5 downto 0);
@@ -218,11 +217,11 @@ begin
 	-- output assignments
 	PHI2         <= CLK_1_INT;
 	PHI2_EN      <= CLK_1_EN;
+	PHI2_EN_N    <= c(23);
 --	AD_RAM       <= AD_RAM_INT(15 downto 8);
 	CSIOn        <= CSIOn_INT;
 	CSROMn       <= CSROMn_INT;
 	CSRAMn       <= CSRAMn_INT;
-	CLK_4        <= CLK_4_INT;
 
 	------------------
 	-- SRAM signals --
@@ -291,11 +290,7 @@ begin
 
 	-- CPU clock --
 	CLK_1_INT <= ph(2);
-	CLK_1_EN  <= c(16);
-
-	-- VIA 6522 clock
-	CLK_4_INT     <= c(0) or c(1) or c(2) or c(6) or c(7) or c(8) or c(12) or c(13) or c(14) or c(18) or c(19) or c(20);
-	CLK_4_EN      <= c(23) or c(5) or c(11) or c(16);
+	CLK_1_EN  <= c(15); -- ph(2) changes one cycle after this (0-15 ph2=low, 16-23 ph2=hi)
 
 --	LD_REG_0      <= isAttrib and c(5);
 
@@ -438,7 +433,7 @@ begin
 		  lREG_STYLE <= (others=>'0');
 		  lREG_PAPER <= (others=>'0');
 	  elsif rising_edge(CLK_24) then
-			if (RELD_REG = '1' and isAttrib = '1' and BLANKINGn = '1') then
+			if (CLK_PIXEL_INT = '1' and RELD_REG = '1' and isAttrib = '1' and BLANKINGn = '1') then
 				case lREGHOLD(6 downto 3) is
 					when "0000" => lREG_INK   <= lREGHOLD(2 downto 0);
 					when "0001" => lREG_STYLE <= lREGHOLD(2 downto 0);
@@ -476,14 +471,23 @@ begin
 		end if;
 	end process;
 
+	u_blanking_reg: process(CLK_24)
+	begin
+		if rising_edge(CLK_24) then
+			if CLK_PIXEL_INT = '1' then
+				BLANKn <= BLANKINGn;
+			end if;
+		end if;
+	end process;
+
 	lBGFG_SEL  <= '0' when ( (CLK_FLASH = '1') and (lFLASH_SEL = '1') ) else lSHFREG(5);
 
 	-- local assign for R(ed)G(reen)B(lue) signal
 	lRGB <= lREG_INK when lBGFG_SEL = '1' else lREG_PAPER;
 
 	-- Assign out signal
-	RGB_INT <=     lRGB  when (lInv = '0' and BLANKINGn = '1') else
-			     not(lRGB) when (lInv = '1' and BLANKINGn = '1') else
+	RGB_INT <=     lRGB  when (lInv = '0' and BLANKn = '1') else
+			     not(lRGB) when (lInv = '1' and BLANKn = '1') else
 			     "000";--(others=>'0') ;
 
 	-- Compute offset 

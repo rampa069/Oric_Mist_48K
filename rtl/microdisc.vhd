@@ -72,8 +72,6 @@ ENTITY Microdisc IS
 		sd_din_strobe   : IN std_logic;
  
 		fdd_ready       : IN std_logic;
-		fdd_busy        : BUFFER std_logic;
-		fdd_reset       : IN std_logic;
 		fdd_layout      : IN std_logic;
 		fd_led          : OUT std_logic
 	);
@@ -168,6 +166,9 @@ ARCHITECTURE Behavioral OF Microdisc IS
  
 	SIGNAL inMCRQ : std_logic;
 
+	SIGNAL fdd_busy : std_logic;
+	SIGNAL fdd_prepare : std_logic;
+
 BEGIN
 	fdc1 : wd1793
 		GENERIC MAP
@@ -191,13 +192,13 @@ BEGIN
 			intrq         => fdc_IRQ, 
 			drq           => fdc_DRQ, 
  
-			ready         => fdd_ready, 
-			--busy          => fdd_busy, 
+			ready         => fdd_ready and not fdd_prepare, 
+			busy          => fdd_busy, 
  
 			layout        => fdd_layout , --fdd_layout, 
 			size_code     => "001", 
 			side          => SSEL, 
-			prepare       => fdd_busy,
+			prepare       => fdd_prepare,
 			img_mounted   => img_mounted, 
 			wp            => img_wp, 
 			img_size      => img_size (19 DOWNTO 0), 
