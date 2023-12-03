@@ -40,7 +40,8 @@ here, the number of units defaults to 4. */
 #undef CONFIG_EXTJOYSTICK
 
 /* Do we require an autoboot ROM, and thus should we notify the user if it's not found? */
-#undef ROM_REQUIRED
+#define ROM_REQUIRED
+#undef ROM_FILENAME "ORIC    ROM"
 /* Do we support configuration files? */
 #define CONFIG_SETTINGS
 #define CONFIG_SETTINGS_FILENAME "ORIC    CFG" 
