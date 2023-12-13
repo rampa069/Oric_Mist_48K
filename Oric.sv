@@ -1,59 +1,144 @@
 module Oric(
-   input         CLOCK_27,
-	
-   output  [5:0] VGA_R,
-   output  [5:0] VGA_G,
-   output  [5:0] VGA_B,
-   output        VGA_HS,
-   output        VGA_VS,
-   output        LED,
-	
-   input         TAPE_IN,
-	
-   input         UART_RX,
-   output        UART_TX,
-	
-   output        AUDIO_L,
-   output        AUDIO_R,
-	
-   output [15:0] DAC_L,
-   output [15:0] DAC_R,
-	
-   input         SPI_SCK,
-   output        SPI_DO,
-   input         SPI_DI,
-   input         SPI_SS2,
-   input         SPI_SS3,
-   //input         SPI_SS4,
-   input         CONF_DATA0,
-	
-   output [12:0] SDRAM_A,
-   inout  [15:0] SDRAM_DQ,
-   output        SDRAM_DQML,
-   output        SDRAM_DQMH,
-   output        SDRAM_nWE,
-   output        SDRAM_nCAS,
-   output        SDRAM_nRAS,
-   output        SDRAM_nCS,
-   output  [1:0] SDRAM_BA,
-   output        SDRAM_CLK,
-   output        SDRAM_CKE
+	input         CLOCK_27,
+`ifdef USE_CLOCK_50
+	input         CLOCK_50,
+`endif
+
+	output        LED,
+	output [VGA_BITS-1:0] VGA_R,
+	output [VGA_BITS-1:0] VGA_G,
+	output [VGA_BITS-1:0] VGA_B,
+	output        VGA_HS,
+	output        VGA_VS,
+
+`ifdef USE_HDMI
+	output        HDMI_RST,
+	output  [7:0] HDMI_R,
+	output  [7:0] HDMI_G,
+	output  [7:0] HDMI_B,
+	output        HDMI_HS,
+	output        HDMI_VS,
+	output        HDMI_PCLK,
+	output        HDMI_DE,
+	inout         HDMI_SDA,
+	inout         HDMI_SCL,
+	input         HDMI_INT,
+`endif
+
+	input         SPI_SCK,
+	inout         SPI_DO,
+	input         SPI_DI,
+	input         SPI_SS2,    // data_io
+	input         SPI_SS3,    // OSD
+	input         CONF_DATA0, // SPI_SS for user_io
+
+`ifdef USE_QSPI
+	input         QSCK,
+	input         QCSn,
+	inout   [3:0] QDAT,
+`endif
+`ifndef NO_DIRECT_UPLOAD
+	input         SPI_SS4,
+`endif
+
+	output [12:0] SDRAM_A,
+	inout  [15:0] SDRAM_DQ,
+	output        SDRAM_DQML,
+	output        SDRAM_DQMH,
+	output        SDRAM_nWE,
+	output        SDRAM_nCAS,
+	output        SDRAM_nRAS,
+	output        SDRAM_nCS,
+	output  [1:0] SDRAM_BA,
+	output        SDRAM_CLK,
+	output        SDRAM_CKE,
+
+`ifdef DUAL_SDRAM
+	output [12:0] SDRAM2_A,
+	inout  [15:0] SDRAM2_DQ,
+	output        SDRAM2_DQML,
+	output        SDRAM2_DQMH,
+	output        SDRAM2_nWE,
+	output        SDRAM2_nCAS,
+	output        SDRAM2_nRAS,
+	output        SDRAM2_nCS,
+	output  [1:0] SDRAM2_BA,
+	output        SDRAM2_CLK,
+	output        SDRAM2_CKE,
+`endif
+
+	output        AUDIO_L,
+	output        AUDIO_R,
+`ifdef I2S_AUDIO
+	output        I2S_BCK,
+	output        I2S_LRCK,
+	output        I2S_DATA,
+`endif
+`ifdef SPDIF_AUDIO
+	output        SPDIF,
+`endif
+`ifdef USE_AUDIO_IN
+	input         AUDIO_IN,
+`endif
+	input         UART_RX,
+	output        UART_TX
+
 );
+
+`ifdef NO_DIRECT_UPLOAD
+localparam bit DIRECT_UPLOAD = 0;
+wire SPI_SS4 = 1;
+`else
+localparam bit DIRECT_UPLOAD = 1;
+`endif
+
+`ifdef USE_QSPI
+localparam bit QSPI = 1;
+assign QDAT = 4'hZ;
+`else
+localparam bit QSPI = 0;
+`endif
+
+`ifdef VGA_8BIT
+localparam VGA_BITS = 8;
+`else
+localparam VGA_BITS = 6;
+`endif
+
+`ifdef USE_HDMI
+localparam bit HDMI = 1;
+assign HDMI_RST = 1'b1;
+`else
+localparam bit HDMI = 0;
+`endif
+
+`ifdef BIG_OSD
+localparam bit BIG_OSD = 1;
+`define SEP "-;",
+`else
+localparam bit BIG_OSD = 0;
+`define SEP
+`endif
+
 
 `include "build_id.v"
 localparam CONF_STR = {
 	"ORIC;ROM;",
 	"S0U,DSK,Mount Drive A:;",
+	`SEP
 	"F,TAP,Load;",
 	"T1,Tape Play/Stop;",
 	"O2,Tape Sounds,Off,On;",
+	`SEP
 	"O3,ROM,Oric Atmos,Oric 1;",
 	"O6,FDD Controller,Off,On;",
 	"O7,Drive Write,Allow,Prohibit;",
+	`SEP
 	"O45,Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
 	"O89,Stereo,Off,ABC (West Europe),ACB (East Europe);",
+	`SEP
 	"T0,Reset;",
-  	"V,v2.2-EDSK.",`BUILD_DATE
+  	"V,v3.0-POSEIDON.",`BUILD_DATE
 };
 wire        clk_72;
 wire        clk_24;
@@ -114,10 +199,8 @@ pll pll (
 	.c1       (clk_72     ),
 	.locked   (pll_locked )
 	);
-	
-user_io #(
-	.STRLEN				(($size(CONF_STR)>>3)))
-user_io(
+user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io
+(	
 	.clk_sys        	(clk_24         	),
 	.clk_sd           (clk_24           ),
 	.conf_str       	(CONF_STR       	),
@@ -152,8 +235,8 @@ user_io(
 	.img_mounted                 (img_mounted   ),
 	.img_size                    (img_size      )
 );
-	
-mist_video #(.COLOR_DEPTH(1), .SD_HCNT_WIDTH(10)) mist_video(
+
+mist_video #(.COLOR_DEPTH(1), .SD_HCNT_WIDTH(11), .OUT_COLOR_DEPTH(VGA_BITS), .BIG_OSD(BIG_OSD)) mist_video (	
 	.clk_sys      (clk_24     ),
 	.SPI_SCK      (SPI_SCK    ),
 	.SPI_SS3      (SPI_SS3    ),
@@ -190,7 +273,7 @@ oricatmos oricatmos(
 	.VIDEO_B	  (b		),
 	.VIDEO_HSYNC	  (hs           ),
 	.VIDEO_VSYNC	  (vs           ),
-	.K7_TAPEIN        (tap_running ? tap_out : TAPE_IN),
+	.K7_TAPEIN        (tap_running ? tap_out : AUDIO_IN),
 	.K7_TAPEOUT       (tap_in       ),
 	.K7_REMOTE        (remote       ),
 	.ram_ad           (ram_ad       ),
@@ -215,7 +298,7 @@ oricatmos oricatmos(
 	.img_mounted    ( img_mounted   ), // signaling that new image has been mounted
 	.img_size       ( img_size      ), // size of image in bytes
 	.img_wp         ( status[7]     ), // write protect
-        .sd_lba         ( sd_lba        ),
+   .sd_lba         ( sd_lba        ),
 	.sd_rd          ( sd_rd         ),
 	.sd_wr          ( sd_wr         ),
 	.sd_ack         ( sd_ack        ),
@@ -386,7 +469,7 @@ progressbar #(.X_OFFSET(66), .Y_OFFSET(36)) progressbar (
 	.pix(progress)
 );
 
-assign      SDRAM_CLK = clk_72;
+assign      SDRAM_CLK = ~clk_72;
 assign      SDRAM_CKE = 1;
 
 sdram #(72) sdram(
@@ -426,8 +509,8 @@ always @ (psg_a,psg_b,psg_c,psg_out,stereo) begin
                 endcase
 end
 
-wire [15:0] dac_in_l = psg_l + { tap_sound & (tap_running ? tap_out : TAPE_IN), tap_sound & tap_in, 9'd0 };
-wire [15:0] dac_in_r = psg_r + { tap_sound & (tap_running ? tap_out : TAPE_IN), tap_sound & tap_in, 9'd0 };
+wire [15:0] dac_in_l = psg_l + { tap_sound & (tap_running ? tap_out : AUDIO_IN), tap_sound & tap_in, 9'd0 };
+wire [15:0] dac_in_r = psg_r + { tap_sound & (tap_running ? tap_out : AUDIO_IN), tap_sound & tap_in, 9'd0 };
 
 dac #(
    .c_bits	(16))
@@ -447,12 +530,35 @@ audiodac_r(
    .dac_o	(AUDIO_R)
   );
 
-assign DAC_L =  psg_l;
-assign DAC_R =  psg_r;
- 
-assign UART_TX = tap_in;
-  
-  ///////////////////   FDC   ///////////////////
+wire [31:0] clk_rate =  32'd28_375_168;
+
+`ifdef I2S_AUDIO
+i2s i2s (
+	.reset(1'b0),
+	.clk(clk_24),
+	.clk_rate(clk_rate),
+
+	.sclk(I2S_BCK),
+	.lrclk(I2S_LRCK),
+	.sdata(I2S_DATA),
+
+	.left_chan ({~dac_in_l[15],dac_in_l[14:0]}),
+	.right_chan({~dac_in_r[15],dac_in_r[14:0]})
+);
+`endif
+
+`ifdef SPDIF_AUDIO
+spdif spdif (
+	.clk_i(clk_24),
+	.rst_i(1'b0),
+	.clk_rate_i(clk_rate),
+	.spdif_o(SPDIF),
+	.sample_i({dac_in_r, dac_in_l})
+);
+`endif
+
+
+///////////////////   FDC   ///////////////////
 wire [31:0] sd_lba;
 wire        sd_rd;
 wire        sd_wr;

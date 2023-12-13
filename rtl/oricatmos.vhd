@@ -489,13 +489,13 @@ PRN_DATA    <= via_pa_out;
 
 cpu_di <= cont_D_OUT when ula_CSIOn = '0' and cont_IOCONTROLn = '0' else -- expansion port
           VIA_DO     when ula_CSIOn = '0' and cont_IOCONTROLn = '1' else -- VIA
-               rom_q when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else  -- ROM Oric 1 or Atmos
-               rom_q when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
---        ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
---            ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
---           ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
-             SRAM_DO when ula_CSRAMn = '0' else -- RAM
-		cpu_di_last;
+          rom_q when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else  -- ROM Oric 1 or Atmos
+          rom_q when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+          --ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
+          --ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
+          --ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
+          SRAM_DO when ula_CSRAMn = '0' else -- RAM
+		    cpu_di_last;
 
 process (CLK_IN) begin
 	if rising_edge(CLK_IN) then
