@@ -6,4 +6,4 @@
 	url = git@github.com:jotego/jt49.git
 [submodule "DeMiSTify"]
 	path = DeMiSTify
-	url = https://github.com/robinsonb5/DeMiSTify.git
+	url = git@github.com:rampa069/DeMiSTify.git
