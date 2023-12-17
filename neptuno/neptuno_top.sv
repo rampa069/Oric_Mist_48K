@@ -1,6 +1,6 @@
 `default_nettype none
 
-module uareloaded_top (
+module neptuno_top (
 	input         CLOCK_27,
 `ifdef USE_CLOCK_50
 	input         CLOCK_50,
@@ -12,8 +12,6 @@ module uareloaded_top (
 	output [VGA_BITS-1:0] VGA_B,
 	output        VGA_HS,
 	output        VGA_VS,
-	output        VGA_BLANK,
-	output        VGA_CLOCK,
 
 	output [12:0] SDRAM_A,
 	inout  [15:0] SDRAM_DQ,
@@ -37,13 +35,14 @@ module uareloaded_top (
 	inout	       PS2_MOUSE_CLK,
 	inout	       PS2_MOUSE_DAT,
 	
-	input  [5:0] JOYSTICK1,
-	input  [5:0] JOYSTICK2,
-	output       JOY_SELECT,
-
-	output        I2S_BCK,
-	output        I2S_LRCK,
-	output        I2S_DATA,
+   output       JOY_CLK,
+	output       JOY_LOAD,
+	input        JOY_DATA,
+	output       joyP7_o
+	
+	output       I2S_BCK,
+	output       I2S_LRCK,
+	output       I2S_DATA,
 	
 	output        STM_RST = 1'b0,
 	
@@ -63,30 +62,20 @@ localparam VGA_BITS = 6;
 
 
 `ifndef NO_DIRECT_UPLOAD
-wire         SPI_SS4,
+wire         SPI_SS4;
 `endif
 
 wire SPI_SCK,SPI_DO,SPI_DI,SPI_SS2,SPI_SS3,CONF_DATA0;
-
-
-pll_vga pll_vga
-(
-  .inclk0 (CLOCK_50),
-  .c0     (VGA_CLOCK)
-);
-
 
 
 guest_top guest
 (
  .CLOCK_27 (CLOCK_50),
  .SPI_SCK (spi_clk_int),
- .LED(tmp_led),
  .*
 );
 
 wire reset_n;
-wire tmp_led;
 wire ps2_keyboard_clk_in = PS2_KEYBOARD_CLK;
 wire ps2_keyboard_clk_out;
 wire ps2_keyboard_dat_in = PS2_KEYBOARD_DAT ;
@@ -101,8 +90,6 @@ assign PS2_KEYBOARD_DAT = !ps2_keyboard_dat_out ? 1'b0 : 1'bZ;
 assign PS2_MOUSE_CLK = !ps2_mouse_clk_out ? 1'b0 : 1'bZ;
 assign PS2_MOUSE_DAT = !ps2_mouse_dat_out ? 1'b0 : 1'bZ;
 
-assign VGA_BLANK=1'b1;
-assign LED=~tmp_led;
 
 wire spi_clk_int;
 assign SD_SCK = spi_clk_int;
@@ -138,3 +125,4 @@ substitute_mcu #(.sysclk_frequency(500)) controller
  .buttons(4'b1111)
 );
 endmodule
+s

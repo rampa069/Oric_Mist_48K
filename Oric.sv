@@ -1,4 +1,4 @@
-module Oric(
+module guest_top(
 	input         CLOCK_27,
 `ifdef USE_CLOCK_50
 	input         CLOCK_50,
@@ -120,6 +120,11 @@ localparam bit BIG_OSD = 0;
 `define SEP
 `endif
 
+`ifdef USE_AUDIO_IN
+wire TAPE_SOUND = AUDIO_IN;
+`else
+wire TAPE_SOUND = UART_RX;
+`endif
 
 `include "build_id.v"
 localparam CONF_STR = {
@@ -273,7 +278,7 @@ oricatmos oricatmos(
 	.VIDEO_B	  (b		),
 	.VIDEO_HSYNC	  (hs           ),
 	.VIDEO_VSYNC	  (vs           ),
-	.K7_TAPEIN        (tap_running ? tap_out : AUDIO_IN),
+	.K7_TAPEIN        (tap_running ? tap_out : TAPE_SOUND),
 	.K7_TAPEOUT       (tap_in       ),
 	.K7_REMOTE        (remote       ),
 	.ram_ad           (ram_ad       ),
@@ -469,6 +474,7 @@ progressbar #(.X_OFFSET(66), .Y_OFFSET(36)) progressbar (
 	.pix(progress)
 );
 
+
 assign      SDRAM_CLK = ~clk_72;
 assign      SDRAM_CKE = 1;
 
@@ -509,8 +515,8 @@ always @ (psg_a,psg_b,psg_c,psg_out,stereo) begin
                 endcase
 end
 
-wire [15:0] dac_in_l = psg_l + { tap_sound & (tap_running ? tap_out : AUDIO_IN), tap_sound & tap_in, 9'd0 };
-wire [15:0] dac_in_r = psg_r + { tap_sound & (tap_running ? tap_out : AUDIO_IN), tap_sound & tap_in, 9'd0 };
+wire [15:0] dac_in_l = psg_l + { tap_sound & (tap_running ? tap_out : TAPE_SOUND), tap_sound & tap_in, 9'd0 };
+wire [15:0] dac_in_r = psg_r + { tap_sound & (tap_running ? tap_out : TAPE_SOUND), tap_sound & tap_in, 9'd0 };
 
 dac #(
    .c_bits	(16))

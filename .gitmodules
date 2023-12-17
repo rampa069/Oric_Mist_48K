@@ -1,9 +1,6 @@
 [submodule "mist-modules"]
 	path = mist-modules
 	url = https://github.com/mist-devel/mist-modules
-[submodule "rtl/jt49"]
-	path = rtl/jt49
-	url = git@github.com:jotego/jt49.git
 [submodule "DeMiSTify"]
 	path = DeMiSTify
 	url = git@github.com:rampa069/DeMiSTify.git

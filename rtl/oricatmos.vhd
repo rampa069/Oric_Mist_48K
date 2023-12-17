@@ -273,27 +273,6 @@ rom_ad  <= cpu_ad(15 downto 0);
 rom_cs  <= '1' when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else '0';
 rom_ext_cs <= '1' when ula_PHI2 = '1' and cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else '0'; -- Microdisc
 
-inst_rom0 : entity work.BASIC11A  -- Oric Atmos ROM
-	port map (
-		clk  			=> CLK_IN,
-		addr 			=> cpu_ad(13 downto 0),
-		data 			=> ROM_ATMOS_DO
-);
-
-inst_rom1 : entity work.BASIC10  -- Oric 1 ROM
-	port map (
-		clk  			=> CLK_IN,
-		addr 			=> cpu_ad(13 downto 0),
-		data 			=> ROM_1_DO
-);
-
-inst_rom2 : entity work.ORICDOS06  -- Microdisc ROM
-	port map (
-		clk  			=> CLK_IN,
-		addr 			=> cpu_ad(12 downto 0),
-		data 			=> ROM_MD_DO
-);
-
 
 inst_ula : entity work.ULA
    port map (
@@ -364,25 +343,6 @@ inst_via6522 : entity work.via6522
 		irq             => via_irq
 	);
 
---inst_psg : jt49_bus
---  PORT MAP(
---		 clk => CLK_IN,
---		 clk_en => ENA_1MHZ,
---		 sel => '1',
---		 rst_n => RESETn AND KEYB_RESETn,
---		 bc1 => via_ca2_out,
---		 bdir => via_cb2_out,
---		 din => via_pa_out,
---		 dout => psg_do,
---		 sample => open,
---		 sound => PSG_OUT,
---		 A => PSG_OUT_A,
---		 B => PSG_OUT_B,
---		 C => PSG_OUT_C,
---		 IOA_In => (OTHERS => '0'),
---		 IOA_Out => ym_ioa_out,
---		 IOB_In => (OTHERS => '0')
--- );
   psg_a: psg
   port map (
     clock       => CLK_IN,
@@ -491,9 +451,6 @@ cpu_di <= cont_D_OUT when ula_CSIOn = '0' and cont_IOCONTROLn = '0' else -- expa
           VIA_DO     when ula_CSIOn = '0' and cont_IOCONTROLn = '1' else -- VIA
           rom_q when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' else  -- ROM Oric 1 or Atmos
           rom_q when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
-          --ROM_ATMOS_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn ='1' and cont_ROMDISn = '1' and rom ='1' else  -- ROM Atmos
-          --ROM_1_DO when ula_CSIOn = '1' and ula_CSROMn = '0' and cont_MAPn = '1' and cont_ROMDISn = '1' and rom ='0' else -- ROM Oric 1
-          --ROM_MD_DO when cont_ECE ='0' and cont_ROMDISn = '0' and cont_MAPn = '1' else --ROM Microdisc
           SRAM_DO when ula_CSRAMn = '0' else -- RAM
 		    cpu_di_last;
 
