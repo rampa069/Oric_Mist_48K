@@ -38,7 +38,7 @@ module neptuno_top (
    output       JOY_CLK,
 	output       JOY_LOAD,
 	input        JOY_DATA,
-	output       joyP7_o
+	output       joyP7_o,
 	
 	output       I2S_BCK,
 	output       I2S_LRCK,
@@ -75,7 +75,35 @@ guest_top guest
  .*
 );
 
-wire reset_n;
+wire joy1up,joy1down,joy1left,joy1right,joy1fire1,joy1fire2;
+wire joy2up,joy2down,joy2left,joy2right,joy2fire1,joy2fire2;
+wire [7:0] joy1 ={2'b11,joy1fire2,joy1fire1,joy1right,joy1left,joy1down,joy1up};
+wire [7:0] joy2 ={2'b11,joy2fire2,joy2fire1,joy2right,joy2left,joy2down,joy2up};
+wire [7:0] joy3;
+wire [7:0] joy4;
+
+joydecoder joydecoder
+(
+			.clk      (CLOCK_50),
+			.joy_data (JOY_DATA),
+			.joy_clk  (JOY_CLK),
+			.joy_load_n (JOY_LOAD),
+			.joy1up   (joy1up),
+			.joy1down (joy1down),
+			.joy1left (joy1left),
+			.joy1right(joy1right),
+			.joy1fire1(joy1fire1),
+			.joy1fire2(joy1fire2),
+			.joy2up   (joy2up),
+			.joy2down (joy2down),
+			.joy2left (joy2left),
+			.joy2right(joy2right),
+			.joy2fire1(joy2fire1),
+			.joy2fire2(joy2fire2) 
+		);
+
+		
+		wire reset_n;
 wire ps2_keyboard_clk_in = PS2_KEYBOARD_CLK;
 wire ps2_keyboard_clk_out;
 wire ps2_keyboard_dat_in = PS2_KEYBOARD_DAT ;
@@ -121,8 +149,10 @@ substitute_mcu #(.sysclk_frequency(500)) controller
  .ps2m_dat_in  (ps2_mouse_dat_in),
  .ps2m_clk_out (ps2_mouse_clk_out),
  .ps2m_dat_out (ps2_mouse_dat_out),
- 
+ .joy1         (joy1),
+ .joy2         (joy2),
+ .joy3         (joy3),
+ .joy4         (joy4),
  .buttons(4'b1111)
 );
 endmodule
-s

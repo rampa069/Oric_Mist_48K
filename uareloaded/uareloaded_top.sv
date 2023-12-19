@@ -104,6 +104,12 @@ assign PS2_MOUSE_DAT = !ps2_mouse_dat_out ? 1'b0 : 1'bZ;
 assign VGA_BLANK=1'b1;
 assign LED=~tmp_led;
 
+wire joy1={2'b1, JOYSTICK1[5],JOYSTICK1[4],JOYSTICK1[0],JOYSTICK1[1],JOYSTICK1[2],JOYSTICK1[3]};
+wire joy2={2'b1, JOYSTICK2[5],JOYSTICK2[4],JOYSTICK2[0],JOYSTICK2[1],JOYSTICK2[2],JOYSTICK2[3]};
+wire joy3=8'b1;
+wire joy4=8'b1;
+
+
 wire spi_clk_int;
 assign SD_SCK = spi_clk_int;
  
@@ -134,6 +140,11 @@ substitute_mcu #(.sysclk_frequency(500)) controller
  .ps2m_dat_in  (ps2_mouse_dat_in),
  .ps2m_clk_out (ps2_mouse_clk_out),
  .ps2m_dat_out (ps2_mouse_dat_out),
+ 
+ .joy1         (joy1),
+ .joy2         (joy2),
+ .joy3         (joy3),
+ .joy4         (joy4),
  
  .buttons(4'b1111)
 );
