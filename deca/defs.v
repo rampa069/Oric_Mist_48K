@@ -1,10 +1,10 @@
-////////   MACRO DEFINITIONS   ////////
+////////   DEFINES   ////////
 	
-//`define USE_PLL_50_27	
+`define USE_PLL_50_27	
 	
-`define NO_DIRECT_UPLOAD 1
-`define I2S_AUDIO 1
-`define USE_AUDIO_IN 1
+//`define NO_DIRECT_UPLOAD 1
+//`define I2S_AUDIO 1
+//`define USE_AUDIO_IN 1
 
 //`define USE_CLOCK_50 1
 //`define USE_HDMI 1

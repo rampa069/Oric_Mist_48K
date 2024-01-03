@@ -108,38 +108,14 @@ wire 		pll_lock;
 wire   		SPI_SCK;
 wire        SPI_DO;
 wire        SPI_DI;
-wire        SPI_SS2;    // data_io
-wire        SPI_SS3;    // OSD
-wire        CONF_DATA0; // SPI_SS for user_io
+wire        SPI_SS2;    		// data_io
+wire        SPI_SS3;    		// OSD
+wire        CONF_DATA0; 		// SPI_SS for user_io
 `ifndef NO_DIRECT_UPLOAD
 wire        SPI_SS4;
 `else
-// wire 		SPI_SS4 = 1;
+wire 		SPI_SS4 = 1;
 `endif
-
-// wire [12:0]	  SDRAM_A;
-// wire [15:0]   SDRAM_DQ;
-// wire          SDRAM_DQML;
-// wire          SDRAM_DQMH;
-// wire          SDRAM_nWE;
-// wire          SDRAM_nCAS;
-// wire          SDRAM_nRAS;
-// wire          SDRAM_nCS;
-// wire [1:0] 	  SDRAM_BA;
-// wire          SDRAM_CLK;
-// wire          SDRAM_CKE;
-
-// assign  	  DRAM_ADDR		= SDRAM_A;
-// assign  	  DRAM_DQ		= SDRAM_DQ;
-// assign        DRAM_LDQM		= SDRAM_DQML;
-// assign        DRAM_UDQM		= SDRAM_DQMH;
-// assign        DRAM_WE_N		= SDRAM_nWE;
-// assign        DRAM_CAS_N	= SDRAM_nCAS;
-// assign        DRAM_RAS_N	= SDRAM_nRAS;
-// assign        DRAM_CS_N		= SDRAM_nCS;
-// assign 		  DRAM_BA		= SDRAM_BA;
-// assign        DRAM_CLK		= SDRAM_CLK;
-// assign        DRAM_CKE		= SDRAM_CKE;
 
 wire AUDIO_L, AUDIO_R;
 assign        DETO1_PMOD2_6 = AUDIO_L;
@@ -187,9 +163,9 @@ assign 		HDMI_INT		= HDMI_TX_INT;
 `endif
 
 `ifdef USE_QSPI
-wire       	QSCK;	//input
-wire       	QCSn;	//input
-wire [3:0] 	QDAT;	//inout
+wire       	QSCK;				//input
+wire       	QCSn;				//input
+wire [3:0] 	QDAT;				//inout
 `endif
 
 // PLL
@@ -211,13 +187,13 @@ assign SD_MOSI_O = sd_mosi;
 assign sd_miso   = SD_MISO_I;
 assign SD_SCLK_O = sd_clk;
 
-// `ifdef USE_QSPI
-// `else
-assign SD_SEL      = 1'b0; // 0 = 3.3V at sdcard   
-assign SD_CMD_DIR  = 1'b1; // MOSI FPGA output
-assign SD_D0_DIR   = 1'b0; // MISO FPGA input     
-assign SD_D123_DIR = 1'b1; // CS FPGA output  
-// `endif
+`ifdef USE_QSPI
+`else
+assign SD_SEL      = 1'b0; 		// 0 = 3.3V at sdcard   
+assign SD_CMD_DIR  = 1'b1; 		// MOSI FPGA output
+assign SD_D0_DIR   = 1'b0; 		// MISO FPGA input     
+assign SD_D123_DIR = 1'b1; 		// CS FPGA output  
+`endif
 
 // PS2 KEYB & MOUSE
 wire   ps2_keyboard_clk_in = PS2_KEYBOARD_CLK;
@@ -292,16 +268,16 @@ assign LED = {~act_led,7'b1111111};
 
 
 ////////// MIST GUEST TOP MODULE //////////
-wire   spi_clk_int;  // spi_do, spi_toguest, spi_fromguest;
+wire   spi_clk_int;  
+// wire spi_do, spi_toguest, spi_fromguest;
 
-guest_top guest
-// `GUEST_TOP guest
+`GUEST_TOP guest
 (
-// `ifdef USE_PLL_50_27
-// 	.CLOCK_27	(CLOCK_27),
-// `else
+`ifdef USE_PLL_50_27
+	.CLOCK_27	(CLOCK_27),
+`else
 	.CLOCK_27	(CLOCK_50),
-// `endif
+`endif
 
 `ifdef USE_CLOCK_50
 	.CLOCK_50 	(CLOCK_50),
@@ -328,6 +304,7 @@ guest_top guest
 	.VGA_R		(vga_red),	
 	.VGA_G		(vga_green),
 	.VGA_B		(vga_blue),
+	
  	.*
 );
 
@@ -343,11 +320,11 @@ assign sd_clk = spi_clk_int;
 // assign spi_fromguest = spi_do;  			   // to control CPU
 
 substitute_mcu #(
-	.sysclk_frequency(500)//, 
+	.sysclk_frequency(500), 
 	// .SPI_FASTBIT(3),				//needed if OSD hungs
 	// .SPI_INTERNALBIT(2),			//needed if OSD hungs
-	// .debug("false"), 
-	// .jtag_uart("false")
+	.debug("false"), 
+	.jtag_uart("false")
 ) 
 controller
 (
