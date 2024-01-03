@@ -1,0 +1,8 @@
+#set_global_assignment -name VERILOG_FILE  [file join $::quartus(qip_path) defs.v]
+set_global_assignment -name VERILOG_FILE  [file join $::quartus(qip_path) ../defs_demistify.v]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) deca_top.sv]
+set_global_assignment -name VERILOG_FILE  [file join $::quartus(qip_path) pll.v]
+#
+#set_global_assignment -name VERILOG_FILE  [file join $::quartus(qip_path) pll_50_27.v]
+#set_global_assignment -name VERILOG_FILE  [file join $::quartus(qip_path) ../sidi/pll.v]
+
