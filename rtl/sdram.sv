@@ -24,7 +24,7 @@
 module sdram (
 
 	// interface to the MT48LC16M16 chip
-	inout  reg [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
+	inout      [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
 	output reg [12:0] SDRAM_A,    // 13 bit multiplexed address bus
 	output reg        SDRAM_DQML, // two byte masks
 	output reg        SDRAM_DQMH, // two byte masks
@@ -45,7 +45,7 @@ module sdram (
 	input      [23:1] port1_a,
 	input       [1:0] port1_ds,
 	input      [15:0] port1_d,
-	output     [15:0] port1_q,
+	output reg [15:0] port1_q,
 
 	input             port2_req,
 	output reg        port2_ack,
@@ -53,7 +53,7 @@ module sdram (
 	input      [23:1] port2_a,
 	input       [1:0] port2_ds,
 	input      [15:0] port2_d,
-	output     [15:0] port2_q
+	output reg [15:0] port2_q
 );
 
 parameter  MHZ = 16'd80; // 80 MHz default clock, set it to proper value to calculate refresh rate
@@ -141,11 +141,14 @@ localparam CMD_LOAD_MODE       = 4'b0000;
 
 reg  [3:0] sd_cmd;   // current command sent to sd ram
 reg [15:0] sd_din;
+reg [15:0] sd_dout;
+reg        oe;
 // drive control signals according to current command
 assign SDRAM_nCS  = sd_cmd[3];
 assign SDRAM_nRAS = sd_cmd[2];
 assign SDRAM_nCAS = sd_cmd[1];
 assign SDRAM_nWE  = sd_cmd[0];
+assign SDRAM_DQ = oe ? sd_dout : 16'hZZZZ;
 
 reg [24:1] addr_latch[2];
 reg [24:1] addr_latch_next[2];
@@ -196,7 +199,7 @@ always @(posedge clk) begin
 
 	// permanently latch ram data to reduce delays
 	sd_din <= SDRAM_DQ;
-	SDRAM_DQ <= 16'bZZZZZZZZZZZZZZZZ;
+	oe <= 0;
 	{ SDRAM_DQMH, SDRAM_DQML } <= 2'b11;
 	sd_cmd <= CMD_NOP;  // default: idle
 	refresh_cnt <= refresh_cnt + 1'd1;
@@ -278,7 +281,8 @@ always @(posedge clk) begin
 			sd_cmd <= we_latch[0]?CMD_WRITE:CMD_READ;
 			{ SDRAM_DQMH, SDRAM_DQML } <= ~ds[0];
 			if (we_latch[0]) begin
-				SDRAM_DQ <= din_latch[0];
+				sd_dout <= din_latch[0];
+				oe <= 1;
 				port1_ack <= port1_req;
 			end
 			SDRAM_A <= { 4'b0010, addr_latch[0][9:1] };  // auto precharge
@@ -289,7 +293,8 @@ always @(posedge clk) begin
 			sd_cmd <= we_latch[1]?CMD_WRITE:CMD_READ;
 			{ SDRAM_DQMH, SDRAM_DQML } <= ~ds[1];
 			if (we_latch[1]) begin
-				SDRAM_DQ <= din_latch[1];
+				sd_dout <= din_latch[1];
+				oe <= 1;				
 				port2_ack <= port2_req;
 			end
 			SDRAM_A <= { 4'b0010, addr_latch[1][9:1] };  // auto precharge

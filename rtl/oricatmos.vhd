@@ -235,6 +235,47 @@ COMPONENT psg
 						C   : OUT UNSIGNED(11 DOWNTO 0)
 			 );
 END COMPONENT;
+
+COMPONENT Microdisc
+	PORT (
+	  CLK_SYS : in std_logic;
+	  DI : in std_logic_vector(7 DOWNTO 0);
+	  DO : out std_logic_vector(7 DOWNTO 0);
+	  A : in std_logic_vector(15 DOWNTO 0);
+	  RnW : in std_logic;
+	  nIRQ : out std_logic;
+	  PH2 : in std_logic;
+	  nROMDIS : out std_logic;
+	  nMAP : out std_logic;
+	  IO : in std_logic;
+	  IOCTRL : out std_logic;
+	  nHOSTRST : out std_logic;
+	  nOE : out std_logic;
+	  DIR : out std_logic;
+	  nRESET : in std_logic;
+	  nECE : out std_logic;
+	  nEOE : out std_logic;
+	  ENA : in std_logic;
+	  img_mounted : in std_logic;
+	  img_wp : in std_logic;
+	  img_size : in std_logic_vector (31 DOWNTO 0);
+	  sd_lba : out std_logic_vector (31 DOWNTO 0);
+	  sd_rd : out std_logic;
+	  sd_wr : out std_logic;
+	  sd_ack : in std_logic;
+	  sd_buff_addr : in std_logic_vector (8 DOWNTO 0);
+	  sd_dout : in std_logic_vector (7 DOWNTO 0);
+	  sd_din : out std_logic_vector (7 DOWNTO 0);
+	  sd_dout_strobe : in std_logic;
+	  sd_din_strobe : in std_logic;
+	  fdd_ready : in std_logic;
+	  fdd_layout : in std_logic;
+	  fd_led : out std_logic
+	);
+END COMPONENT;
+
+
+
 begin
 
 RESETn <= (not RESET and KEYB_RESETn);
@@ -382,7 +423,7 @@ inst_key : keyboard
 KEYB_NMIn <= NOT swnmi;
 KEYB_RESETn <= NOT swrst;
 
-inst_microdisc: work.Microdisc 
+inst_microdisc: component Microdisc 
     port map( 
           CLK_SYS   => CLK_IN,
                                                             -- Oric Expansion Port Signals

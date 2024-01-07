@@ -4,6 +4,10 @@ module guest_top(
 	input         CLOCK_50,
 `endif
 
+// `ifdef XILINX
+// 	output 		  CLOCK_50_buff,
+// `endif
+
 	output        LED,
 	output [VGA_BITS-1:0] VGA_R,
 	output [VGA_BITS-1:0] VGA_G,
@@ -126,7 +130,12 @@ wire TAPE_SOUND = AUDIO_IN;
 wire TAPE_SOUND = UART_RX;
 `endif
 
-`include "build_id.v"
+`ifdef XILINX
+`include "build_id.vh" 
+`else
+`include "build_id.v" 
+`endif
+
 localparam CONF_STR = {
 	"ORIC;ROM;",
 	"S0U,DSK,Mount Drive A:;",
@@ -174,7 +183,7 @@ wire        remote;
 reg         reset;
 
 wire        rom;
-wire        old_rom;
+reg         old_rom;
 
 wire        led_value;
 reg         fdd_ready=0;
@@ -198,12 +207,29 @@ always @(posedge clk_24) begin
 	reset <= (!pll_locked | status[0] | buttons[1] | old_rom != rom | old_disk_enable != disk_enable | rom_downl);
 end
 
-pll pll (
-	.inclk0	 (CLOCK_27   ),
-	.c0       (clk_24     ),
-	.c1       (clk_72     ),
-	.locked   (pll_locked )
+`ifdef XILINX
+	pll pll			// Xilinx PLL
+	(
+		// Clock out ports
+		.clk_out1(clk_24),        
+		.clk_out2(clk_72),    
+		// Status and control signals
+		.reset(1'b0),              // input reset
+		.locked(pll_locked),       // output locked
+		// Clock in ports
+		.clk_in1(CLOCK_50)         // input  clk_in1
+		// .clk_in1_pll(CLOCK_50_buff)	// output clk_in1 buffered
 	);
+
+`else
+	pll pll (
+		.inclk0	  (CLOCK_27   ),
+		.c0       (clk_24     ),
+		.c1       (clk_72     ),
+		.locked   (pll_locked )
+		);
+`endif
+
 user_io #(.STRLEN($size(CONF_STR)>>3), .SD_IMAGES(2), .FEATURES(32'h0 | (BIG_OSD << 13) | (HDMI << 14))) user_io
 (	
 	.clk_sys        	(clk_24         	),
@@ -503,8 +529,8 @@ sdram #(72) sdram(
 
 ///////////////////////////////////////////////////
 
-wire [15:0] psg_l;
-wire [15:0] psg_r;
+reg [15:0] psg_l;
+reg [15:0] psg_r;
 
 always @ (psg_a,psg_b,psg_c,psg_out,stereo) begin
                 case (stereo)
