@@ -2,10 +2,18 @@
 #find ../firmware/ -type f \( ! -iname "config.h" ! -iname "*.c" \) -delete
 rm -f Oric_*
 rm Oric_zxtres_files.tcl
+rm generate_vivado_project.tcl
 rm build.v
+rm build.vh
 rm -r output_files
 rm vivado*
-rm generate_vivado_project.tcl
+rm -r *.cache
+rm -r *.gen
+rm -r *.hw
+rm -r *.ip_user_files
+rm -r *.runs
+rm -r *.sim
+rm -r .Xil
 #quartus
 find output_files/ -type f \( ! -iname "*.sof" ! -iname "*.svf" ! -iname "*.flow.rpt" \) -delete
 rm -f output_files/*_pof.svf
