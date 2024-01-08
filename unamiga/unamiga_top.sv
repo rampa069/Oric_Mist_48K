@@ -130,10 +130,10 @@ substitute_mcu #(.sysclk_frequency(500)) controller
  .ps2m_clk_out (ps2_mouse_clk_out),
  .ps2m_dat_out (ps2_mouse_dat_out),
  
- .joy1         (joy1),
- .joy2         (joy2),
- .joy3         (joy3),
- .joy4         (joy4),
+ .joy1         (8'b11111111),
+ .joy2         (8'b11111111),
+ .joy3         (8'b11111111),
+ .joy4         (8'b11111111),
  
  .buttons(4'b1111)
 );

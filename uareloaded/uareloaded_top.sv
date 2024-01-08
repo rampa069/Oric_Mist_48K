@@ -98,8 +98,8 @@ wire ps2_mouse_dat_out;
 
 assign PS2_KEYBOARD_CLK = !ps2_keyboard_clk_out ? 1'b0 : 1'bZ;
 assign PS2_KEYBOARD_DAT = !ps2_keyboard_dat_out ? 1'b0 : 1'bZ;
-assign PS2_MOUSE_CLK = !ps2_mouse_clk_out ? 1'b0 : 1'bZ;
-assign PS2_MOUSE_DAT = !ps2_mouse_dat_out ? 1'b0 : 1'bZ;
+assign PS2_MOUSE_CLK    = !ps2_mouse_clk_out ? 1'b0 : 1'bZ;
+assign PS2_MOUSE_DAT    = !ps2_mouse_dat_out ? 1'b0 : 1'bZ;
 
 assign VGA_BLANK=1'b1;
 assign LED=~tmp_led;
