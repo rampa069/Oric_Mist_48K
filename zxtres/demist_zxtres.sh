@@ -15,5 +15,5 @@ python3 qpf2xpr.py --$2 --vga_output $3
 #python3 qpf2xpr.py --$2 --vga_output $3 > "$LOG" 2>&1
 source /opt/Xilinx/Vivado/2022.2/settings64.sh 
 vivado -mode tcl -source generate_vivado_project.tcl
-cp -v zxtres.runs/demist_zx3a200/zxtres_top.bin bitstreams/$1_$2_$(date +"%y%m%d").zx3
-cp -v zxtres.runs/demist_zx3a200/zxtres_top.bit bitstreams/$1_$2_$(date +"%y%m%d").bit
+cp -v zxtres.runs/$2/zxtres_top.bin bitstreams/$1_$2_$(date +"%y%m%d").zx3
+cp -v zxtres.runs/$2/zxtres_top.bit bitstreams/$1_$2_$(date +"%y%m%d").bit
