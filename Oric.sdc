@@ -1,8 +1,9 @@
 # Automatically calculate clock uncertainty to jitter and other effects.
 derive_clock_uncertainty
 
-set sysclk ${topmodule}guest|pll|altpll_component|auto_generated|pll1|clk[0]
-set ramclk ${topmodule}guest|pll|altpll_component|auto_generated|pll1|clk[1]
+set sysclk ${topmodule}pll|altpll_component|auto_generated|pll1|clk[0]
+set ramclk ${topmodule}pll|altpll_component|auto_generated|pll1|clk[1]
+create_generated_clock -name sdramclk -source ${topmodule}pll|altpll_component|auto_generated|pll1|clk[2] $RAM_CLK
 
 # Clock groups
 set_clock_groups -asynchronous -group [get_clocks spiclk] -group [get_clocks $sysclk]
@@ -17,15 +18,16 @@ set_clock_groups -asynchronous -group [get_clocks $supportclk] -group [get_clock
 set_output_delay -clock [get_clocks $sysclk] -max 0 [get_ports $VGA_OUT]
 set_output_delay -clock [get_clocks $sysclk] -min -5 [get_ports $VGA_OUT]
 
-set_multicycle_path -to $VGA_OUT -setup 2
-set_multicycle_path -to $VGA_OUT -hold 1
+set_false_path -to $VGA_OUT
 
 # SDRAM delays
-set_input_delay -clock [get_clocks $ramclk] -reference_pin [get_ports $RAM_CLK] -max 6.4 [get_ports $RAM_IN]
-set_input_delay -clock [get_clocks $ramclk] -reference_pin [get_ports $RAM_CLK] -min 3.2 [get_ports $RAM_IN]
+set_input_delay -clock [get_clocks sdramclk] -max 6.4 [get_ports $RAM_IN]
+set_input_delay -clock [get_clocks sdramclk] -min 3.2 [get_ports $RAM_IN]
 
-set_output_delay -clock [get_clocks $ramclk] -reference_pin [get_ports $RAM_CLK] -max 1.5 [get_ports $RAM_OUT]
-set_output_delay -clock [get_clocks $ramclk] -reference_pin [get_ports $RAM_CLK] -min -0.8 [get_ports $RAM_OUT]
+set_output_delay -clock [get_clocks sdramclk] -max 1.5 [get_ports $RAM_OUT]
+set_output_delay -clock [get_clocks sdramclk] -min -0.8 [get_ports $RAM_OUT]
+
+set_multicycle_path -from [get_clocks {sdramclk}] -to [get_clocks $ramclk] -setup -end 2
 
 set_false_path -to ${FALSE_OUT}
 set_false_path -from ${FALSE_IN}

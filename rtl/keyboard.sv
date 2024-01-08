@@ -10,8 +10,8 @@ module keyboard
 	input	 [2:0] row,
 	input  [7:0] col,
 	output       key_hit,
-	output       swrst,
-	output       swnmi
+	output reg   swrst,
+	output reg   swnmi
 );
 
 reg sw0 = 1'b0;
